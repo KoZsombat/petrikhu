@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-petrikbg: #F7F4EC;
+  --color-petrikcard: #FFFFFF;
+  --color-petrikink: #16211D;
+  --color-petriksoft: #48524B;
+  --color-petrikfaint: #7A8279;
+  --color-petrikcream: #FBFAF6;
+  --color-petrikaccent: #2B8272;
+  --color-petrikaccentdark: #1D5D51;
+  --color-petriktint: #EEF4EA;
+  --color-petrikpale: #85C1B6;
+  --color-petriklight: #B1D258;
+  --color-petrikline: rgba(22,33,29,0.14);
+  --color-petriklinesoft: rgba(22,33,29,0.08);
+  --color-petriklink: rgba(251, 250, 246, 0.78);
+  --font-display: Newsreader, Georgia, serif;
+  --font-body: Archivo, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, monospace;
+}
+
+/* Hero animations */
+@keyframes hero-word {
+  from { transform: translateY(110%) rotate(4deg); filter: blur(8px); opacity: 0; }
+  to { transform: none; filter: none; opacity: 1; }
+}
+@keyframes hero-rise {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes hero-glow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.15); }
+}
+.hero-word { animation: hero-word 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.hero-rise { animation: hero-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.hero-glow { animation: hero-glow 16s ease-in-out infinite; }
+.hero-stripes {
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 60px,
+    rgba(255, 255, 255, 0.025) 60px 120px
+  );
+  mask-image: linear-gradient(to left, black, transparent 70%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-word, .hero-rise, .hero-glow { animation: none; }
+}
