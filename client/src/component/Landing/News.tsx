@@ -44,7 +44,7 @@ const news = [
 
 export default function News() {
   return (
-    <section className="px-4 py-20 bg-petrikpale/30 w-full min-h-screen">
+    <section className="px-4 py-20 bg-petrikpale/30 w-full max-w-screen overflow-x-hidden min-h-screen">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
         <h1 className="text-2xl font-bold md:text-4xl">Aktuális hírek</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

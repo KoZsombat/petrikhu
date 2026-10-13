@@ -38,7 +38,7 @@ function CountUp({ to, prefix, suffix }: { to: number; prefix: string; suffix: s
 
 export default function Hero() {
   return (
-    <section className="relative isolate w-full overflow-hidden bg-[#1B2420] text-petrikcream">
+    <section className="relative isolate w-full max-w-screen overflow-x-hidden overflow-hidden bg-[#1B2420] text-petrikcream">
       <img
         src={SchoolImage}
         alt=""

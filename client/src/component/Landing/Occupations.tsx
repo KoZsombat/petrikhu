@@ -2,14 +2,13 @@ import { FlaskConical, Droplet, Cpu } from "lucide-react";
 
 export default function Occupations() {
   return (
-    <section className="px-4 py-20 bg-petrikbg w-full min-h-max">
+    <section className="px-4 py-20 bg-petrikbg w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl w-140">Szakmák</h1>
-        <p className="text-petrikfaint text-md w-140">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Rem pariatur
-          eaque perferendis, modi nobis molestiae facere optio nam
-          necessitatibus, enim, eum tempore ratione sed harum dicta aperiam.
-          Illum, repellat deserunt.
+        <h1 className="text-2xl font-bold md:text-4xl w-140 max-w-full">Szakmák</h1>
+        <p className="text-petrikfaint text-md w-140 max-w-full">
+          Válaszd ki, merre indulnál – mindhárom irányban valós ipari háttérrel,
+          laborokkal és gyakorlati projektekkel tanulhatsz, nyolcadikosoknak
+          szervezett felvételi előkészítővel.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:max-w-4/6 mx-auto mt-10">
