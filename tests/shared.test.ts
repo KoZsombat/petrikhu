@@ -164,3 +164,11 @@ test('isSafeColor', () => {
   for (const ok of ['#fff', '#a1b2c3', 'rgb(1, 2, 3)', 'rgba(1,2,3,0.5)', 'red']) assert.equal(isSafeColor(ok), true, ok)
   for (const bad of ['red;background:url(x)', 'expression(alert(1))', '#fff"', 'url(x)']) assert.equal(isSafeColor(bad), false, bad)
 })
+
+test('canTrashWorkflowPost: a szerző a saját piszkozatát, visszaküldöttjét és lomtárban lévőjét', async () => {
+  const { canTrashWorkflowPost } = await import('../shared/pnw/access.ts')
+  for (const status of [STATUS.DRAFT, STATUS.REVISION, STATUS.TRASH]) assert.equal(canTrashWorkflowPost(post(status), author), true, status)
+  for (const status of [STATUS.PENDING, STATUS.PUBLISH, STATUS.FUTURE, STATUS.ARCHIVED]) assert.equal(canTrashWorkflowPost(post(status), author), false, status)
+  assert.equal(canTrashWorkflowPost(post(STATUS.TRASH), otherAuthor), false)
+  assert.equal(canTrashWorkflowPost(post(STATUS.PUBLISH, 'z'), reviewer), true)
+})

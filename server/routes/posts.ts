@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { CAPABILITY, STATUS } from '../../shared/pnw/types.ts'
 import type { Post, PostStatus } from '../../shared/pnw/types.ts'
-import { canEditWorkflowPost, canViewWorkflowPost } from '../../shared/pnw/access.ts'
+import { canEditWorkflowPost, canTrashWorkflowPost, canViewWorkflowPost } from '../../shared/pnw/access.ts'
 import { canReview, hasCapability } from '../../shared/pnw/permissions.ts'
 import { countByStatus, countPosts, existingSlugs, findPost, findPosts, insertPost, removePost, updatePost } from '../data/posts-repo.ts'
 import { termIdsOfKind } from '../data/terms-repo.ts'
@@ -43,18 +43,20 @@ router.get('/dashboard', async (req, res) => {
         [STATUS.FUTURE]: counts[STATUS.FUTURE] ?? 0,
         [STATUS.PUBLISH]: counts[STATUS.PUBLISH] ?? 0,
       },
-      posts: await findPosts({ authorId: user.id }, { order: 'modified_desc' }),
+      posts: await findPosts({ authorId: user.id, statusNot: STATUS.TRASH }, { order: 'modified_desc' }),
+      trash: await findPosts({ authorId: user.id, status: STATUS.TRASH }, { order: 'modified_desc' }),
     })
     return
   }
 
-  const [counts, pending, ownWorking, scheduled, recent, publishedToday] = await Promise.all([
+  const [counts, pending, ownWorking, scheduled, recent, publishedToday, trash] = await Promise.all([
     countByStatus(),
     findPosts({ status: STATUS.PENDING }, { order: 'modified_asc' }),
     findPosts({ authorId: user.id, status: [STATUS.DRAFT, STATUS.REVISION] }, { order: 'modified_desc' }),
     findPosts({ status: STATUS.FUTURE }, { order: 'date_asc', limit: 10 }),
     findPosts({ status: [STATUS.PUBLISH, STATUS.FUTURE, STATUS.REVISION, STATUS.TEST_APPROVED] }, { order: 'modified_desc', limit: 10 }),
     countPosts({ status: STATUS.PUBLISH, day: new Date().toISOString().slice(0, 10) }),
+    findPosts({ status: STATUS.TRASH }, { order: 'modified_desc', limit: 30 }),
   ])
 
   res.json({
@@ -67,6 +69,7 @@ router.get('/dashboard', async (req, res) => {
     pending,
     scheduled,
     recent,
+    trash,
   })
 })
 
@@ -249,17 +252,39 @@ router.post('/:id/decision', requireCapability(CAPABILITY.REVIEW_NEWS), async (r
   res.json({ notice: 'approved' })
 })
 
-/** Mirrors delete_news() - trash your own draft/revision. */
-router.delete('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), async (req, res) => {
+/**
+ * Mirrors delete_news(), két lépésben, mint az oldalaknál: az első DELETE a lomtárba teszi a hírt (visszaállítható),
+ * a lomtárban lévőé véglegesen törli. A napló a végleges törlés után is megmarad (a hír címével).
+ */
+router.delete('/:id', async (req, res) => {
   const existing = await findPost(String(req.params.id))
-  if (!existing || !canEditWorkflowPost(existing, req.pnwUser!)) {
+  if (!existing || !canTrashWorkflowPost(existing, req.pnwUser!)) {
     res.status(403).json({ error: 'forbidden' })
     return
   }
 
-  await logAudit(existing.id, 'trashed', existing.status, STATUS.TRASH, undefined, req.pnwUser!.id)
-  await removePost(existing.id)
-  res.json({ notice: 'trashed' })
+  if (existing.status === STATUS.TRASH) {
+    await logAudit(existing.id, 'deleted', STATUS.TRASH, '', undefined, req.pnwUser!.id, existing.title)
+    await removePost(existing.id)
+    res.json({ notice: 'deleted', permanent: true })
+    return
+  }
+
+  await updatePost(existing.id, (post) => ({ ...post, status: STATUS.TRASH, modifiedAt: now() }))
+  await logAudit(existing.id, 'trashed', existing.status, STATUS.TRASH, undefined, req.pnwUser!.id, existing.title)
+  res.json({ notice: 'trashed', permanent: false })
+})
+
+/** Ki a lomtárból - piszkozatként, hogy semmi ne kerüljön ki véletlenül (mint az oldalaknál). */
+router.post('/:id/untrash', async (req, res) => {
+  const existing = await findPost(String(req.params.id))
+  if (!existing || existing.status !== STATUS.TRASH || !canTrashWorkflowPost(existing, req.pnwUser!)) {
+    res.status(404).json({ error: 'not_found' })
+    return
+  }
+  await updatePost(existing.id, (post) => ({ ...post, status: STATUS.DRAFT, modifiedAt: now() }))
+  await logAudit(existing.id, 'untrashed', STATUS.TRASH, STATUS.DRAFT, undefined, req.pnwUser!.id, existing.title)
+  res.json({ notice: 'untrashed' })
 })
 
 /** Mirrors update_published_news(). */

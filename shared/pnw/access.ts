@@ -13,6 +13,15 @@ export function canEditWorkflowPost(post: Post, user: SessionUser): boolean {
   )
 }
 
+/**
+ * Lomtárba teheti, onnan visszaállíthatja vagy véglegesen törölheti-e a hírt: a jóváhagyó bármelyiket, a szerző a
+ * saját piszkozatát / visszaküldött hírét, és ami már a lomtárban van.
+ */
+export function canTrashWorkflowPost(post: Post, user: SessionUser): boolean {
+  if (canReview(user)) return true
+  return canSubmit(user) && post.authorId === user.id && (post.status === STATUS.DRAFT || post.status === STATUS.REVISION || post.status === STATUS.TRASH)
+}
+
 /** Ported from PNW_Access::can_view_workflow_post(). */
 export function canViewWorkflowPost(post: Post, user: SessionUser): boolean {
   if (canReview(user)) return true

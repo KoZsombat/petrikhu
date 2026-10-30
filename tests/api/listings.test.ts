@@ -76,7 +76,7 @@ before(async () => {
   for (const post of posts) await insertPost(post)
 
   const entry = (postId: string, action: AuditAction, at: number) =>
-    insertAuditEntry({ id: `${postId}-${action}-${at}`, postId, userId: null, action, fromStatus: '', toStatus: '', createdAt: iso(at) })
+    insertAuditEntry({ id: `${postId}-${action}-${at}`, entityType: 'post', entityId: postId, postId, userId: null, action, fromStatus: '', toStatus: '', createdAt: iso(at) })
   // Jóváhagyási idők: 1 óra és 3 óra → átlag 2 óra. Egy hír döntés nélkül, egy importált bejegyzés.
   await entry('p001', 'submitted', NOW - 10 * DAY)
   await entry('p001', 'approved', NOW - 10 * DAY + 3600_000)

@@ -147,7 +147,8 @@ export async function createTerm(kind: TermKind, name: string): Promise<Term> {
 
 // --- Hírkezelő: vezérlőpult ------------------------------------------------
 
-export type AuthorDashboard = { view: "author"; counts: Record<string, number>; posts: Post[] };
+/** `trash`: a lomtárban lévő hírek (a szerzőnek a sajátjai), visszaállíthatók vagy véglegesen törölhetők. */
+export type AuthorDashboard = { view: "author"; counts: Record<string, number>; posts: Post[]; trash: Post[] };
 
 export type ReviewerDashboard = {
   view: "reviewer";
@@ -159,6 +160,7 @@ export type ReviewerDashboard = {
   pending: Post[];
   scheduled: Post[];
   recent: Post[];
+  trash: Post[];
 };
 
 export const dashboard = () => request<AuthorDashboard | ReviewerDashboard>("/posts/dashboard");
@@ -185,7 +187,9 @@ export const decide = (
   data: { decision: "approve" | "reject"; note: string; publishMode?: "now" | "schedule"; publishAt?: string },
 ) => request<{ notice: string }>(`/posts/${id}/decision`, { method: "POST", body: JSON.stringify(data) });
 
-export const trashPost = (id: string) => request<{ notice: string }>(`/posts/${id}`, { method: "DELETE" });
+/** Első hívásra a lomtárba tesz, a lomtárban lévő hírt véglegesen törli. */
+export const trashPost = (id: string) => request<{ notice: string; permanent: boolean }>(`/posts/${id}`, { method: "DELETE" });
+export const untrashPost = (id: string) => request<{ notice: string }>(`/posts/${id}/untrash`, { method: "POST" });
 
 export const updatePublished = (id: string, form: FormData) =>
   request<SaveResponse>(`/posts/${id}/published`, { method: "PUT", body: form });

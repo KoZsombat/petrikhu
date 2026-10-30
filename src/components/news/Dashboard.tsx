@@ -7,12 +7,15 @@ import { useUsers } from "../../lib/useUsers";
 import { canSubmit } from "../../../shared/pnw/permissions";
 import { statusLabel } from "../../../shared/pnw/statuses";
 import PostsTable from "./PostsTable";
-import { hk } from "./helpers";
-import { btnPrimary, card, dotCls, emptyCls } from "./ui";
+import { btnPrimary, btnSmall, card, dotCls, emptyCls } from "./ui";
+import { btnCls } from "../../pages/SchemaForm";
+import { formatDateTime, hk } from "./helpers";
+import type { Post } from "../../../shared/pnw/types";
 
 /** Áttekintés: szerzőknek a saját hírek, vezetőknek a jóváhagyási sor. */
 export default function Dashboard({ user }: { user: ApiUser }) {
   const [data, setData] = useState<AuthorDashboard | ReviewerDashboard | null>(null);
+  const [version, setVersion] = useState(0);
   const authors = useUsers();
 
   useEffect(() => {
@@ -23,12 +26,14 @@ export default function Dashboard({ user }: { user: ApiUser }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [version]);
+  const reload = () => setVersion((v) => v + 1);
 
   return (
     <section className="flex flex-col gap-6">
       <h1 className="font-display text-3xl font-bold">Áttekintés</h1>
       {!data ? <div className={emptyCls}>Betöltés…</div> : data.view === "author" ? <AuthorView data={data} user={user} authors={authors} /> : <ReviewerView data={data} user={user} authors={authors} />}
+      {data && <TrashCard posts={data.trash ?? []} onChange={reload} />}
     </section>
   );
 }
@@ -62,6 +67,51 @@ function NewPostLink() {
     <Link className={btnPrimary} to={hk("new")}>
       + Új hír
     </Link>
+  );
+}
+
+/** A lomtár: visszaállítás piszkozatként, vagy végleges törlés (megerősítéssel). Üresen nem látszik. */
+function TrashCard({ posts, onChange }: { posts: Post[]; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  if (posts.length === 0) return null;
+  const run = async (work: () => Promise<unknown>) => {
+    setBusy(true);
+    try {
+      await work();
+    } finally {
+      setBusy(false);
+      onChange();
+    }
+  };
+  return (
+    <div className={card}>
+      <CardHeading title="Lomtár" text="A törölt hírek: visszaállítva piszkozatként kerülnek vissza." />
+      <ul className="divide-y divide-petriklinesoft">
+        {posts.map((post) => (
+          <li key={post.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+            <span className="min-w-0 flex-1">
+              <strong className="block">{post.title || "(Névtelen hír)"}</strong>
+              <small className="text-xs text-petrikfaint">Törölve: {formatDateTime(post.modifiedAt)}</small>
+            </span>
+            <span className="flex gap-2">
+              <button type="button" disabled={busy} className={`${btnCls} ${btnSmall}`} onClick={() => run(() => api.untrashPost(post.id))}>
+                Visszaállítás
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                className={`${btnCls} ${btnSmall}`}
+                onClick={() => {
+                  if (window.confirm(`Véglegesen törlöd ezt a hírt? „${post.title}” Ez nem vonható vissza.`)) void run(() => api.trashPost(post.id));
+                }}
+              >
+                Végleges törlés
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

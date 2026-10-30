@@ -280,9 +280,33 @@ export type AuditAction =
   | 'published_archived'
   | 'archived_restored'
   | 'imported'
+  | 'untrashed'
+  | 'deleted'
+  // Nem hír tárgyú események (AuditEntityType)
+  | 'page_created'
+  | 'page_updated'
+  | 'page_trashed'
+  | 'page_restored'
+  | 'page_deleted'
+  | 'menu_updated'
+  | 'menu_reset'
+  | 'library_updated'
+  | 'library_reset'
+  | 'user_created'
+  | 'user_updated'
+  | 'user_deleted'
+
+/** Mire vonatkozik egy naplóbejegyzés. */
+export type AuditEntityType = 'post' | 'page' | 'menu' | 'library' | 'user'
 
 export type AuditEntry = {
   id: string
+  entityType: AuditEntityType
+  /** A tárgy azonosítója (hír, oldal, fiók); a menünél és a tárnál üres. */
+  entityId: string
+  /** A tárgy neve az esemény idején (oldalcím, fióknév) - törlés után is olvasható. */
+  subject?: string
+  /** Hír tárgyú bejegyzésnél a hír azonosítója (ugyanaz, mint az entityId), különben üres. */
   postId: string
   userId: string | null
   action: AuditAction
@@ -303,6 +327,8 @@ export type NoticeCode =
   | 'schedule_invalid'
   | 'rejected'
   | 'trashed'
+  | 'untrashed'
+  | 'deleted'
   | 'published_updated'
   | 'published_archived'
   | 'archived_restored'

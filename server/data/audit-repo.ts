@@ -1,8 +1,11 @@
-import type { AuditEntry } from '../../shared/pnw/types.ts'
+import type { AuditEntityType, AuditEntry } from '../../shared/pnw/types.ts'
 import { rows, run } from './db.ts'
 
 type Row = {
   id: string
+  entity_type: string
+  entity_id: string | null
+  subject: string | null
   post_id: string | null
   user_id: string | null
   action: string
@@ -15,6 +18,9 @@ type Row = {
 function fromRow(row: Row): AuditEntry {
   return {
     id: row.id,
+    entityType: row.entity_type as AuditEntityType,
+    entityId: row.entity_id ?? '',
+    subject: row.subject ?? undefined,
     // A véglegesen törölt hír bejegyzése megmarad (ON DELETE SET NULL), üres hírazonosítóval.
     postId: row.post_id ?? '',
     userId: row.user_id,
@@ -28,9 +34,12 @@ function fromRow(row: Row): AuditEntry {
 
 export async function insertAuditEntry(entry: AuditEntry): Promise<void> {
   await run(
-    `INSERT INTO audit_log (id, post_id, user_id, action, from_status, to_status, note, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [entry.id, entry.postId || null, entry.userId, entry.action, entry.fromStatus, entry.toStatus, entry.note ?? null, entry.createdAt],
+    `INSERT INTO audit_log (id, entity_type, entity_id, subject, post_id, user_id, action, from_status, to_status, note, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      entry.id, entry.entityType, entry.entityId || null, entry.subject ?? null, entry.postId || null, entry.userId,
+      entry.action, entry.fromStatus, entry.toStatus, entry.note ?? null, entry.createdAt,
+    ],
   )
 }
 

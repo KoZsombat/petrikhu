@@ -14,6 +14,7 @@ import { deletePage, existingPageSlugs, getPage, listSummaries, savePage } from 
 import { clearMenu, getMenu, putMenu } from '../data/menu-repo.ts'
 import { acceptUpload, listImages, storeImage, upload } from '../lib/uploads.ts'
 import { sanitizeRichHtml } from '../lib/sanitize.ts'
+import { logEvent } from '../lib/audit.ts'
 
 const router = Router()
 
@@ -135,12 +136,14 @@ router.put('/menu', async (req, res) => {
     return
   }
   await putMenu(menu)
+  await logEvent('menu', 'menu_updated', req.pnwUser!.id, { note: `${menu.length} menüpont` })
   res.json({ menu })
 })
 
 /** "Visszaállítás az eredetire" - az oldal újra a beépített menüt használja. */
-router.delete('/menu', async (_req, res) => {
+router.delete('/menu', async (req, res) => {
   await clearMenu()
+  await logEvent('menu', 'menu_reset', req.pnwUser!.id)
   res.json({ ok: true })
 })
 
@@ -184,6 +187,7 @@ router.post('/', async (req, res) => {
     modifiedById: req.pnwUser!.id,
   }
   await savePage(page)
+  await logEvent('page', 'page_created', req.pnwUser!.id, { entityId: page.id, subject: page.title, note: `/${page.slug} (${page.status === 'publish' ? 'kiadva' : 'piszkozat'})` })
   res.status(201).json({ page })
 })
 
@@ -218,6 +222,8 @@ router.put('/:id', async (req, res) => {
     modifiedAt: now(),
     modifiedById: req.pnwUser!.id,
   })
+  const statusNote = existing.status === page.status ? undefined : `${existing.status} → ${page.status}`
+  await logEvent('page', 'page_updated', req.pnwUser!.id, { entityId: page.id, subject: page.title, note: statusNote })
   res.json({ page })
 })
 
@@ -230,10 +236,12 @@ router.delete('/:id', async (req, res) => {
   }
   if (page.deleted) {
     await deletePage(page.id)
+    await logEvent('page', 'page_deleted', req.pnwUser!.id, { entityId: page.id, subject: page.title, note: `/${page.slug}` })
     res.json({ ok: true, permanent: true })
     return
   }
   await savePage({ ...page, deleted: true, modifiedAt: now(), modifiedById: req.pnwUser!.id })
+  await logEvent('page', 'page_trashed', req.pnwUser!.id, { entityId: page.id, subject: page.title })
   res.json({ ok: true, permanent: false })
 })
 
@@ -244,7 +252,9 @@ router.post('/:id/restore', async (req, res) => {
     res.status(404).json({ error: 'not_found' })
     return
   }
-  res.json({ page: await savePage({ ...page, deleted: false, status: 'draft', modifiedAt: now(), modifiedById: req.pnwUser!.id }) })
+  const restored = await savePage({ ...page, deleted: false, status: 'draft', modifiedAt: now(), modifiedById: req.pnwUser!.id })
+  await logEvent('page', 'page_restored', req.pnwUser!.id, { entityId: page.id, subject: page.title })
+  res.json({ page: restored })
 })
 
 export default router

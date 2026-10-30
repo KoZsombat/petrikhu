@@ -40,6 +40,32 @@ const AUDIT_LABELS: Record<string, string> = {
   published_archived: 'Archiválva',
   archived_restored: 'Visszaállítva és újrapublikálva',
   imported: 'Importálva a régi petrik.hu-ról',
+  untrashed: 'Visszaállítva a lomtárból',
+  deleted: 'Véglegesen törölve',
+  page_created: 'Oldal létrehozva',
+  page_updated: 'Oldal módosítva',
+  page_trashed: 'Oldal a kukába került',
+  page_restored: 'Oldal visszaállítva a kukából',
+  page_deleted: 'Oldal véglegesen törölve',
+  menu_updated: 'Menü módosítva',
+  menu_reset: 'Menü visszaállítva az eredetire',
+  library_updated: 'Dokumentumtár módosítva',
+  library_reset: 'Dokumentumtár visszaállítva az eredetire',
+  user_created: 'Fiók létrehozva',
+  user_updated: 'Fiók módosítva',
+  user_deleted: 'Fiók törölve',
+}
+
+const ENTITY_LABELS: Record<string, string> = {
+  post: 'Hír',
+  page: 'Oldal',
+  menu: 'Menü',
+  library: 'Dokumentumtár',
+  user: 'Fiók',
+}
+
+export function auditEntityLabel(entityType: string): string {
+  return ENTITY_LABELS[entityType] ?? entityType
 }
 
 export function auditActionLabel(action: string): string {

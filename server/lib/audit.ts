@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import type { AuditAction, AuditEntry } from '../../shared/pnw/types.ts'
+import type { AuditAction, AuditEntityType, AuditEntry } from '../../shared/pnw/types.ts'
 import { insertAuditEntry, recentAuditEntries } from '../data/audit-repo.ts'
 
-/** Ported from PNW_Audit::log(). */
+/** Ported from PNW_Audit::log() - egy hír állapotváltása. */
 export function logAudit(
   postId: string,
   action: AuditAction,
@@ -10,15 +10,41 @@ export function logAudit(
   toStatus: string,
   note?: string,
   userId: string | null = null,
+  subject?: string,
 ): Promise<void> {
-  const entry: AuditEntry = {
+  return insertAuditEntry({
     id: randomUUID(),
+    entityType: 'post',
+    entityId: postId,
+    subject,
     postId,
     userId,
     action,
     fromStatus,
     toStatus,
     note,
+    createdAt: new Date().toISOString(),
+  })
+}
+
+/** Nem hír tárgyú esemény (oldal, menü, Dokumentumtár, fiók) a közös naplóba. */
+export function logEvent(
+  entityType: Exclude<AuditEntityType, 'post'>,
+  action: AuditAction,
+  userId: string | null,
+  details: { entityId?: string; subject?: string; note?: string } = {},
+): Promise<void> {
+  const entry: AuditEntry = {
+    id: randomUUID(),
+    entityType,
+    entityId: details.entityId ?? '',
+    subject: details.subject,
+    postId: '',
+    userId,
+    action,
+    fromStatus: '',
+    toStatus: '',
+    note: details.note,
     createdAt: new Date().toISOString(),
   }
   return insertAuditEntry(entry)

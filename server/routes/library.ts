@@ -9,6 +9,7 @@ import { requireCapability } from '../middleware/auth.ts'
 import { clearLibrary, getLibrary, putLibrary } from '../data/library-repo.ts'
 import { sanitizeLibrary } from '../lib/validation.ts'
 import { acceptUpload, storeDocument, uploadDocument } from '../lib/uploads.ts'
+import { logEvent } from '../lib/audit.ts'
 
 const router = Router()
 
@@ -26,12 +27,15 @@ router.put('/', async (req, res) => {
     return
   }
   await putLibrary(library)
+  const documents = library.categories.reduce((n, category) => n + category.docs.length, 0)
+  await logEvent('library', 'library_updated', req.pnwUser!.id, { note: `${library.categories.length} kategória, ${documents} dokumentum` })
   res.json({ library })
 })
 
 /** "Visszaállítás az eredetire" - the site falls back to src/data/docs.ts. */
-router.delete('/', async (_req, res) => {
+router.delete('/', async (req, res) => {
   await clearLibrary()
+  await logEvent('library', 'library_reset', req.pnwUser!.id)
   res.json({ ok: true })
 })
 
