@@ -1,0 +1,43 @@
+# Runs the checks AGENTS.md requires (lint, server type-check, build, tests) on every push and pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: petrik
+          POSTGRES_PASSWORD: petrik
+          POSTGRES_DB: petrik_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U petrik -d petrik_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://petrik:petrik@localhost:5432/petrik_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Same major version as the Docker image (Dockerfile: node:24-slim).
+          node-version: 24
+          cache: npm
+      # pg_dump/pg_restore matching the server (17), so tests/backup.test.ts runs instead of skipping.
+      - name: PostgreSQL 17 client
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc -p tsconfig.server.json
+      - run: npm run build
+      # After the build, so the test that checks the served index.html (tests/api/page-meta.test.ts) runs too.
+      - run: npm test
