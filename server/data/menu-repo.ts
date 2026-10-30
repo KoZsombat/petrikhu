@@ -6,8 +6,8 @@ import type { MenuItem } from '../../shared/pnw/creator-types.ts'
 import { row, run } from './db.ts'
 
 export async function getMenu(): Promise<{ menu: MenuItem[]; modifiedAt: string } | null> {
-  const found = await row<{ data: string; modified_at: string }>('SELECT data, modified_at FROM site_menu WHERE id = 1')
-  return found ? { menu: JSON.parse(found.data), modifiedAt: found.modified_at } : null
+  const found = await row<{ data: MenuItem[]; modified_at: string }>('SELECT data, modified_at FROM site_menu WHERE id = 1')
+  return found ? { menu: found.data, modifiedAt: found.modified_at } : null
 }
 
 export async function putMenu(menu: MenuItem[]): Promise<void> {

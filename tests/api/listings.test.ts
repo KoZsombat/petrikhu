@@ -29,7 +29,7 @@ function makePost(partial: Partial<Post> & { status: PostStatus }): Post {
     categoryIds: ['cat-a'],
     tagIds: [],
     imagePosition: 'top',
-    authorId: 'x',
+    authorId: '',
     createdAt: iso(NOW - 100 * DAY),
     modifiedAt: iso(NOW - 100 * DAY + seq * 1000),
     date: iso(NOW - 100 * DAY + seq * 1000),

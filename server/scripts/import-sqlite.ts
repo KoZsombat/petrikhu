@@ -22,9 +22,26 @@ if (!existsSync(file)) {
 }
 
 const sqlite = new Database(file, { readonly: true, fileMustExist: true })
+// A régi, időzóna nélküli dátumok UTC-nek számítanak (mint a 004-es migrációban).
+pool.on('connect', (client) => {
+  client.query("SET timezone = 'UTC'").catch(() => undefined)
+})
 await initDb()
 
+// Az idegen kulcsok miatt a hivatkozott tábla előbb jön (fiókok → kategóriák → oldalak → hírek → napló).
 const TABLES = ['users', 'terms', 'creator_pages', 'posts', 'audit_log', 'site_menu', 'site_library', 'media_files'] as const
+
+/** Hivatkozó oszlopok (004-es migráció): a nem létező fiókra / hírre mutató érték NULL-ként kerül be. */
+const REFERENCES: Partial<Record<(typeof TABLES)[number], Record<string, 'users' | 'posts'>>> = {
+  terms: { created_by_id: 'users' },
+  creator_pages: { author_id: 'users', modified_by_id: 'users' },
+  posts: { author_id: 'users', last_reviewer_id: 'users', scheduled_by_id: 'users', archived_by_id: 'users' },
+  audit_log: { user_id: 'users', post_id: 'posts' },
+}
+
+async function idsOf(table: 'users' | 'posts'): Promise<Set<string>> {
+  return new Set((await pool.query<{ id: string }>(`SELECT id FROM ${table}`)).rows.map((r) => r.id))
+}
 
 /** A régi, szerepkör-alapú fiókok jogai (a db.ts régi migrációja ugyanezt csinálta). */
 const LEGACY_ROLES: Record<string, string[]> = {
@@ -53,16 +70,24 @@ for (const table of TABLES) {
   const insertColumns = legacyRoles ? [...columns, 'permissions'] : columns
   const sql = `INSERT INTO ${table} (${insertColumns.join(', ')}) VALUES (${insertColumns.map((_, i) => `$${i + 1}`).join(', ')}) ON CONFLICT DO NOTHING`
 
+  const references = REFERENCES[table] ?? {}
+  const known = { users: await idsOf('users'), posts: await idsOf('posts') }
   let total = 0
   let added = 0
+  let orphans = 0
   for (const record of sqlite.prepare(`SELECT * FROM ${table}`).iterate() as Iterable<Record<string, unknown>>) {
-    const values = columns.map((c) => record[c])
+    const values = columns.map((c) => {
+      const target = references[c]
+      if (!target || record[c] === null || record[c] === undefined || known[target].has(String(record[c]))) return record[c]
+      orphans += 1
+      return null
+    })
     if (legacyRoles) values.push(JSON.stringify(LEGACY_ROLES[String(record.role)] ?? []))
     added += (await pool.query(sql, values)).rowCount ?? 0
     total += 1
     if (total % 500 === 0) console.log(`${table}: ${total}...`)
   }
-  console.log(`${table}: ${total} sor a forrásban, ${added} új került be`)
+  console.log(`${table}: ${total} sor a forrásban, ${added} új került be${orphans ? `, ${orphans} árva hivatkozás NULL lett` : ''}`)
 }
 
 sqlite.close()

@@ -10,10 +10,10 @@ type Row = {
   slug: string
   title: string
   description: string
-  blocks: string
+  blocks: unknown
   status: string
-  deleted: number
-  author_id: string
+  deleted: boolean
+  author_id: string | null
   created_at: string
   modified_at: string
   modified_by_id: string | null
@@ -25,10 +25,10 @@ function fromRow(row: Row): StoredCreatorPage {
     slug: row.slug,
     title: row.title,
     description: row.description,
-    blocks: JSON.parse(row.blocks) as PageBlock[],
+    blocks: row.blocks as PageBlock[],
     status: row.status as CreatorPageStatus,
-    deleted: row.deleted === 1,
-    authorId: row.author_id,
+    deleted: row.deleted,
+    authorId: row.author_id ?? '',
     createdAt: row.created_at,
     modifiedAt: row.modified_at,
   }
@@ -75,7 +75,7 @@ export async function savePage(page: StoredCreatorPage): Promise<StoredCreatorPa
        modified_at = excluded.modified_at, modified_by_id = excluded.modified_by_id`,
     [
       page.id, page.slug, page.title, page.description, JSON.stringify(page.blocks), page.status,
-      page.deleted ? 1 : 0, page.authorId, page.createdAt, page.modifiedAt, page.modifiedById ?? null,
+      page.deleted, page.authorId || null, page.createdAt, page.modifiedAt, page.modifiedById ?? null,
     ],
   )
   return page

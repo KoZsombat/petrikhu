@@ -38,6 +38,12 @@ function legacyFile(): string {
     '2020-05-01T10:00:00.000Z', '2020-05-01T10:00:00.000Z', '2020-05-01T10:00:00.000Z',
   )
   db.prepare('INSERT INTO audit_log VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('a1', 'p1', null, 'imported', '', 'publish', null, '2020-05-01T10:00:00.000Z')
+  // Árvák (törölt fiók / véglegesen törölt hír) és időzóna nélküli régi dátum.
+  db.prepare('INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+    'p2', 'arva-hir', 'Árva hír', '[]', '', '[]', '[]', null, 'top', 'mirror', 'torolt-fiok', 'publish', null, null, null, null, null, null, null,
+    '2019-03-04 08:30:00', '2019-03-04 08:30:00', '2019-03-04 08:30:00',
+  )
+  db.prepare('INSERT INTO audit_log VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('a2', 'torolt-hir', 'torolt-fiok', 'trashed', 'draft', 'trash', null, '2020-01-01T00:00:00.000Z')
   db.close()
   return file
 }
@@ -54,15 +60,21 @@ test('a régi adatbázis sorai átkerülnek, kétszer futtatva sem duplikál', a
       encoding: 'utf8',
     })
   const output = run()
-  assert.match(output, /posts: 1 sor a forrásban, 1 új került be/)
-  assert.match(run(), /posts: 1 sor a forrásban, 0 új került be/)
+  assert.match(output, /posts: 2 sor a forrásban, 2 új került be, 1 árva hivatkozás NULL lett/)
+  assert.match(run(), /posts: 2 sor a forrásban, 0 új került be/)
 
   const q = async (sql: string) => (await admin.query(`SET search_path = ${schema}; ${sql}`) as unknown as pg.QueryResult[])[1].rows
   const [user] = await q("SELECT username, permissions FROM users WHERE id = 'u1'")
   assert.equal(user.username, 'regi.igazgato')
-  assert.ok(JSON.parse(String(user.permissions)).includes('pnw_review_news'))
+  assert.ok((user.permissions as string[]).includes('pnw_review_news'))
   const [post] = await q("SELECT title, status, search_text FROM posts WHERE id = 'p1'")
   assert.equal(post.title, 'Régi Hír')
   assert.match(String(post.search_text), /ballagás a petrikben/)
-  assert.equal((await q('SELECT * FROM audit_log')).length, 1)
+  const [orphan] = await q("SELECT author_id, to_char(date AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') AS d FROM posts WHERE id = 'p2'")
+  assert.deepEqual(orphan, { author_id: null, d: '2019-03-04 08:30' })
+  const audit = await q('SELECT id, post_id, user_id FROM audit_log ORDER BY id')
+  assert.deepEqual(audit, [
+    { id: 'a1', post_id: 'p1', user_id: null },
+    { id: 'a2', post_id: null, user_id: null },
+  ])
 })

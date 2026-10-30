@@ -3,7 +3,7 @@ import { rows, run } from './db.ts'
 
 type Row = {
   id: string
-  post_id: string
+  post_id: string | null
   user_id: string | null
   action: string
   from_status: string
@@ -15,7 +15,8 @@ type Row = {
 function fromRow(row: Row): AuditEntry {
   return {
     id: row.id,
-    postId: row.post_id,
+    // A véglegesen törölt hír bejegyzése megmarad (ON DELETE SET NULL), üres hírazonosítóval.
+    postId: row.post_id ?? '',
     userId: row.user_id,
     action: row.action as AuditEntry['action'],
     fromStatus: row.from_status,
@@ -29,7 +30,7 @@ export async function insertAuditEntry(entry: AuditEntry): Promise<void> {
   await run(
     `INSERT INTO audit_log (id, post_id, user_id, action, from_status, to_status, note, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [entry.id, entry.postId, entry.userId, entry.action, entry.fromStatus, entry.toStatus, entry.note ?? null, entry.createdAt],
+    [entry.id, entry.postId || null, entry.userId, entry.action, entry.fromStatus, entry.toStatus, entry.note ?? null, entry.createdAt],
   )
 }
 

@@ -7,14 +7,14 @@ type Row = {
   id: string
   slug: string
   title: string
-  content: string
+  content: unknown
   excerpt: string
-  category_ids: string
-  tag_ids: string
+  category_ids: unknown
+  tag_ids: unknown
   featured_image: string | null
   image_position: string
   origin: string
-  author_id: string
+  author_id: string | null
   status: string
   review_note: string | null
   last_reviewer_id: string | null
@@ -33,14 +33,15 @@ function fromRow(row: Row): Post {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    content: JSON.parse(row.content),
+    content: row.content as Post['content'],
     excerpt: row.excerpt,
-    categoryIds: JSON.parse(row.category_ids),
-    tagIds: JSON.parse(row.tag_ids),
+    categoryIds: row.category_ids as string[],
+    tagIds: row.tag_ids as string[],
     featuredImage: row.featured_image ?? undefined,
     imagePosition: row.image_position === 'bottom' ? 'bottom' : 'top',
     origin: row.origin === 'mirror' ? 'mirror' : 'hirkezelo',
-    authorId: row.author_id,
+    // Törölt fiók (ON DELETE SET NULL): üres azonosító, a felület "—"-t mutat.
+    authorId: row.author_id ?? '',
     status: row.status as Post['status'],
     reviewNote: row.review_note ?? undefined,
     lastReviewerId: row.last_reviewer_id ?? undefined,
@@ -67,7 +68,7 @@ function toRow(post: Post): Row {
     featured_image: post.featuredImage ?? null,
     image_position: post.imagePosition === 'bottom' ? 'bottom' : 'top',
     origin: post.origin ?? 'hirkezelo',
-    author_id: post.authorId,
+    author_id: post.authorId || null,
     status: post.status,
     review_note: post.reviewNote ?? null,
     last_reviewer_id: post.lastReviewerId ?? null,
@@ -129,7 +130,7 @@ function whereOf(filter: PostFilter): { sql: string; params: unknown[] } {
   if (filter.origin === 'mirror') add('origin = ?', 'mirror')
   if (filter.origin === 'hirkezelo') add('origin <> ?', 'mirror')
   if (filter.dateUntil !== undefined) add('date <= ?', filter.dateUntil)
-  if (filter.day !== undefined) add('left(date, 10) = ?', filter.day)
+  if (filter.day !== undefined) add("(date AT TIME ZONE 'UTC')::date = ?::date", filter.day)
   if (filter.search) add("search_text LIKE ? ESCAPE '\\'", likePattern(filter.search))
   return { sql: parts.length ? `WHERE ${parts.join(' AND ')}` : '', params }
 }

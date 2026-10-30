@@ -27,17 +27,12 @@ type Row = {
   username: string
   display_name: string
   password_hash: string
-  permissions: string
+  permissions: unknown
 }
 
-function parsePermissions(raw: string): Capability[] {
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(isCapability)
-  } catch {
-    return []
-  }
+/** A JSONB-oszlop már tömbként érkezik; az ismeretlen (pl. megszűnt) jogok kimaradnak. */
+function parsePermissions(raw: unknown): Capability[] {
+  return Array.isArray(raw) ? raw.filter(isCapability) : []
 }
 
 function fromRow(row: Row): UserRecord {

@@ -205,3 +205,17 @@ test('az utolsó fiókkezelőtől nem vehető el a jog (last_manager); a többi 
 
 // Az "utolsó kezelő törlése" ág (DELETE → last_manager) HTTP-n át nem érhető el: a törlést csak kezelő
 // végezheti, saját magát nem törölheti, tehát a célponton kívül mindig van másik kezelő.
+
+test('törölt fiók hírei és naplója megmarad, a szerző üres', async () => {
+  // Az igazgató a fiókkezelő: a fenti last_manager teszt a helyettestől elveszi ezt a jogot.
+  const manager = await server.login(DEMO.director)
+  const res = await manager.post('/api/users', { username: 'tavozo', displayName: 'Távozó Tanár', password: PASSWORD, permissions: ['pnw_submit_news'] })
+  assert.equal(res.status, 200, res.text)
+  const leaver = await server.login({ login: 'tavozo', password: PASSWORD })
+  const postId = await authorPost(leaver, 'submit')
+  assert.equal((await manager.delete(`/api/users/${(res.body as UserBody).user.id}`)).status, 200)
+  const post = (await manager.get(`/api/posts/${postId}`)).body as { post: { authorId: string } }
+  assert.equal(post.post.authorId, '')
+  const audit = (await manager.get(`/api/posts/${postId}/audit`)).body as { entries: { action: string; userId: string | null }[] }
+  assert.deepEqual(audit.entries.map((e) => [e.action, e.userId]), [['submitted', null]])
+})

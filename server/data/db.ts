@@ -11,6 +11,8 @@ import { migrate } from './migrate.ts'
 
 // A BIGINT (20) és a NUMERIC alapból string: a munkamenet-lejárat ms-ben van, belefér egy Number-be.
 pg.types.setTypeParser(20, (value) => Number(value))
+// TIMESTAMPTZ (1184): az alkalmazás mindenhol UTC ISO-szöveggel dolgozik (toISOString()), az API is ezt adja.
+pg.types.setTypeParser(1184, (value) => new Date(value).toISOString())
 
 export const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 10 })
 pool.on('error', (error) => console.error('[pnw] postgres pool error', error))
