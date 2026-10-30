@@ -20,6 +20,8 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY shared ./shared
+# The built-in page titles/intros, for the Open Graph tags the server injects (server/lib/page-meta.ts).
+COPY src/pages/samples ./src/pages/samples
 # Nem root felhasználóval fut.
 USER node
 EXPOSE 4000

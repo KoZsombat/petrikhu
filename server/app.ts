@@ -5,18 +5,19 @@
  * Builds the Express app without listening: server/index.ts starts it, the
  * tests (tests/) run it on a random port.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import compression from 'compression'
 import express from 'express'
 import session from 'express-session'
 import { STATUS } from '../shared/pnw/types.ts'
-import { DIST_DIR, MEDIA_URL_PREFIX, SESSION_SECRET, TRUST_PROXY, UPLOADS_URL_PREFIX } from './config.ts'
+import { DIST_DIR, MEDIA_URL_PREFIX, PUBLIC_URL, SESSION_SECRET, TRUST_PROXY, UPLOADS_URL_PREFIX } from './config.ts'
 import { attachUser } from './middleware/auth.ts'
 import { findPosts, updatePost } from './data/posts-repo.ts'
 import { PgSessionStore } from './lib/pg-session-store.ts'
 import { RateLimiter, apiNoStore, ipRateLimit, sameOriginOnly, securityHeaders } from './security.ts'
 import { mediaRouter } from './lib/media.ts'
+import { metaFor, renderIndex } from './lib/page-meta.ts'
 import { logAudit } from './lib/audit.ts'
 import { notifyScheduledPublished } from './lib/notifications.ts'
 import authRoutes from './routes/auth.ts'
@@ -102,7 +103,16 @@ export function createApp(): express.Express {
         return
       }
       res.setHeader('Cache-Control', 'no-cache')
-      res.sendFile(join(DIST_DIR, 'index.html'))
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      // Fill in the title, description and Open Graph tags so a shared link has a preview (lib/page-meta.ts).
+      const template = readFileSync(join(DIST_DIR, 'index.html'), 'utf8')
+      const origin = PUBLIC_URL || `${req.protocol}://${req.get('host')}`
+      metaFor(req.path)
+        .catch((error) => {
+          console.error('[pnw] page meta failed', error)
+          return null
+        })
+        .then((meta) => res.send(renderIndex(template, meta, origin, req.path)), next)
     })
   }
 
