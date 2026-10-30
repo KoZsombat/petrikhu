@@ -36,6 +36,7 @@ services:
       # A nyilvános cím, pl. https://petrik.hu - ez az engedélyezett eredet a módosító API-hívásokhoz.
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
+      PNW_TEST_MODE: ${PNW_TEST_MODE:-false}
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]

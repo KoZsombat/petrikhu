@@ -71,16 +71,13 @@ const DEV_SECRET = 'petrik-news-workflow-dev-secret-change-me'
 export const SESSION_SECRET = process.env.PNW_SESSION_SECRET || DEV_SECRET
 
 /**
- * The real plugin's PNW_TEST_MODE, ported as a real toggle rather than
- * hard-coded true - by explicit user request, approving a submission here
- * really publishes it (GET /api/public/posts, the /hirek/:slug/ page, the
- * site's recent-posts widgets - see AGENT.md 6.15). It never touches the
- * real petrik.hu mirror data (src/data/posts.ts) either way; this is its
- * own, separate SQLite database. Flip to `true` to restore the pilot's
- * approve-but-never-publish behavior without touching any route logic -
- * every TEST_MODE check in server/routes/posts.ts reads this one constant.
+ * The real plugin's PNW_TEST_MODE, as an env toggle (`PNW_TEST_MODE=true`, default off). Off: approving a
+ * submission really publishes it (the public feed, /hirek/:slug). On - for a pilot or a training copy of the
+ * site - an approval only marks the post `pnw_test_ok` and never publishes it, scheduling falls back to
+ * "now", and editing / archiving published posts is refused (`production_only`). Every check is in
+ * server/routes/posts.ts.
  */
-export const TEST_MODE = false as const
+export const TEST_MODE = process.env.PNW_TEST_MODE === 'true'
 
 /** How often the schedule-publish sweep runs (ms). */
 export const SCHEDULE_CHECK_INTERVAL_MS = 60_000
