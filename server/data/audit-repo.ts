@@ -33,14 +33,16 @@ export async function insertAuditEntry(entry: AuditEntry): Promise<void> {
   )
 }
 
-export async function recentAuditEntries(limit: number, postId?: string): Promise<AuditEntry[]> {
-  const result = postId
-    ? await rows<Row>('SELECT * FROM audit_log WHERE post_id = $1 ORDER BY created_at DESC LIMIT $2', [postId, limit])
-    : await rows<Row>('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT $1', [limit])
-  return result.map(fromRow)
-}
-
-/** Every entry, unfiltered - only the statistics module's average-approval-time calc needs this. */
-export async function allAuditEntries(): Promise<AuditEntry[]> {
-  return (await rows<Row>('SELECT * FROM audit_log')).map(fromRow)
+/** A legfrissebb bejegyzések; `postId`-vel egy hírre szűkítve, `excludeImported`-dal az importáltak nélkül - mind SQL-ben. */
+export async function recentAuditEntries(limit: number, options: { postId?: string; excludeImported?: boolean } = {}): Promise<AuditEntry[]> {
+  const where: string[] = []
+  const params: unknown[] = []
+  if (options.postId) {
+    params.push(options.postId)
+    where.push(`post_id = $${params.length}`)
+  }
+  if (options.excludeImported) where.push("action <> 'imported'")
+  params.push(limit)
+  const sql = `SELECT * FROM audit_log ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at DESC, id LIMIT $${params.length}`
+  return (await rows<Row>(sql, params)).map(fromRow)
 }

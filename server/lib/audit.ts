@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { AuditAction, AuditEntry } from '../../shared/pnw/types.ts'
-import { allAuditEntries, insertAuditEntry, recentAuditEntries } from '../data/audit-repo.ts'
+import { insertAuditEntry, recentAuditEntries } from '../data/audit-repo.ts'
 
 /** Ported from PNW_Audit::log(). */
 export function logAudit(
@@ -24,11 +24,7 @@ export function logAudit(
   return insertAuditEntry(entry)
 }
 
-/** Ported from PNW_Audit::recent() - newest first, optionally scoped to one post. */
-export function recentAudit(limit: number, postId?: string): Promise<AuditEntry[]> {
-  return recentAuditEntries(limit, postId)
-}
-
-export function allAudit(): Promise<AuditEntry[]> {
-  return allAuditEntries()
+/** Ported from PNW_Audit::recent() - newest first, optionally scoped to one post or without imported entries. */
+export function recentAudit(limit: number, options: { postId?: string; excludeImported?: boolean } = {}): Promise<AuditEntry[]> {
+  return recentAuditEntries(limit, options)
 }
