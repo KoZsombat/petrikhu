@@ -112,7 +112,8 @@ Run: `npm run server` (port 4000; Vite's dev proxy points there), in production 
 - `/hirkezelo` – news manager (edit, approve, schedule, archive, statistics, log, accounts), `src/components/news/`.
 - `/hirek/:slug`, `/hirek` (live news before the built-in ones, `?oldal=N`), `/kereses`, `/dokumentumtar`.
 - Every upload route goes through `acceptUpload()` (`server/lib/uploads.ts`): over the limit (images 8 MB, documents 9 MB) → `413 file_too_large`, other multer errors → `400 upload_failed`.
-- Media and uploads are in the database (`media_files`), served at `/uploads/*` and `/media/*`; files in `server/media-seed/` are imported on startup (idempotent).
+- Media and uploads are in the database (`media_files`), served at `/uploads/*` and `/media/*`; files in `server/media-seed/` are imported on startup (idempotent). Serving reads the metadata first (ETag/304 and HEAD never touch the bytes), then streams 256 KB `substring()` slices with backpressure; single `Range` requests get 206. `media_files.data` is `STORAGE EXTERNAL` (migration 002), so a slice does not decompress the whole value.
+- Post queries go through `findPosts` / `countPosts` / `countByStatus` / `postSlugs` (`server/data/posts-repo.ts`), so filtering, sorting and paging run in SQL; never load the whole table. Search (`?q=` on the published/archived lists) matches `posts.search_text`, the lowercased title + plain text maintained on every save (`server/data/post-search.ts`, migration 003; `npm run db:import` fills it for imported posts). Statistics are SQL aggregates (`server/data/statistics-repo.ts`).
 - Permissions: no roles, per-account switchable capabilities (`shared/pnw/permissions.ts`); the page editor needs `pnw_manage_pages`, the library `pnw_manage_library`.
 - The public site gets published pages, the menu and the library from `GET /api/public/site` (`src/lib/SiteContentProvider.tsx`); if the server is unreachable the built-in content shows.
 
