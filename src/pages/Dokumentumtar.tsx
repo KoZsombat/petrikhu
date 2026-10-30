@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { PageTemplate } from "../components";
+import { PageRenderer, PageTemplate } from "../components";
+import type { PageBlock } from "../components";
 import { Container } from "../components/creator/Container";
 import { useSiteContent } from "../lib/siteContext";
 import { useDocumentHead } from "../lib/useDocumentHead";
@@ -12,8 +13,29 @@ const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, 
 /** A fájl típusa a kiterjesztésből (PDF, DOC…), a jelvényhez. */
 const fileType = (file: string) => (/\.([a-z0-9]+)$/i.exec(file)?.[1] ?? "fájl").slice(0, 4).toUpperCase();
 
-/** /dokumentumtar: kategóriánként a dokumentumok, kereséssel és oldalsó kategóriamenüvel; a szerkesztő által mentett tár felülírja a beépítettet. */
+/**
+ * /dokumentumtar: ha a szerkesztőben azonos slugú oldalt adtak ki, az jelenik meg (magyarul), mint minden beépített
+ * aloldalnál (BuiltInPage, App.tsx); különben a tár.
+ */
 export default function Dokumentumtar() {
+  const { lang } = useLang();
+  const edited = useSiteContent().pages.get("dokumentumtar");
+  const shown = lang === "hu" ? edited : undefined;
+  if (shown) return <EditedPage page={shown} />;
+  return <Library />;
+}
+
+function EditedPage({ page }: { page: { title: string; description: string; blocks: unknown[] } }) {
+  useDocumentHead({ title: page.title, description: page.description });
+  return (
+    <PageTemplate>
+      <PageRenderer content={page.blocks as PageBlock[]} />
+    </PageTemplate>
+  );
+}
+
+/** Kategóriánként a dokumentumok, kereséssel és oldalsó kategóriamenüvel; a szerkesztő által mentett tár felülírja a beépítettet. */
+function Library() {
   const { tr } = useLang();
   useDocumentHead({ title: tr("Dokumentumtár") });
   const library: DocLibrary = useSiteContent().library ?? (builtIn as DocLibrary);
