@@ -38,11 +38,21 @@ export type PublicSite = {
   library: DocLibrary | null
 }
 
-/** Útvonalak, amiket az alkalmazás már használ: ilyen slugú oldal nem hozható létre. */
+/**
+ * Útvonalak, amiket az alkalmazás már használ: ilyen slugú oldal nem hozható létre, mert sosem lenne elérhető.
+ * Két forrásból jön: a szerver saját útvonalai (server/app.ts) és az src/App.tsx rögzített útvonalai.
+ * A beépített oldalak (pages.json) és a /dokumentumtar NEM foglaltak: azokat egy azonos slugú kiadott oldal
+ * szándékosan felülírja. A tests/reserved-slugs.test.ts ellenőrzi, hogy a lista ne csússzon el az App.tsx-től.
+ */
 export const RESERVED_SLUGS = [
+  // szerver (server/app.ts)
   'api',
   'uploads',
   'media',
+  'healthz',
+  'assets',
+  // kliens (src/App.tsx)
+  'about-us',
   'creator',
   'dashboard',
   'preview',
