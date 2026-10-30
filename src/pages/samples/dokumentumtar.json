@@ -1,0 +1,217 @@
+{
+  "categories": [
+    {
+      "slug": "egyeb-dokumentumok",
+      "title": "Egyéb dokumentumok",
+      "docs": [
+        {
+          "slug": "dualis-kepzes-tajekoztato",
+          "title": "Duális képzés tájékoztató",
+          "file": "/media/wp-content/uploads/2023/10/Dualis-kepzesrol-szolo-tajekoztato.pdf"
+        },
+        {
+          "slug": "nemzetkoziesitesi-strategia",
+          "title": "Nemzetköziesítési stratégia",
+          "file": "/media/wp-content/uploads/2023/09/nemzetkoziesitesi_strategia_-_2023-09-06.pdf"
+        },
+        {
+          "slug": "tagintezmeny-vezetoi-palyazatok",
+          "title": "Tagintézmény-vezetői pályázatok",
+          "file": "/media/wp-content/uploads/2020/11/geptermi_hazirend_ellenorzo_lista.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "intezmenyi-alapdokumentumok",
+      "title": "Intézményi alapdokumentumok",
+      "docs": [
+        {
+          "slug": "alapito-okirat",
+          "title": "Alapító okirat",
+          "file": "/media/wp-content/uploads/2022/08/Alapito_okirat_2022_07_29_BMSZC.pdf"
+        },
+        {
+          "slug": "munkaterv",
+          "title": "Munkaterv",
+          "file": "/media/wp-content/uploads/2024/10/Petrik_eves_munkaterv_-2024-2025_osszesites.pdf"
+        },
+        {
+          "slug": "szakmai-program",
+          "title": "Szakmai program",
+          "file": "/media/wp-content/uploads/2025/02/Szakmai_program_2024_25_02.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "keszulek-kezelesi-utmutato",
+      "title": "Készülék kezelési útmutató",
+      "docs": [
+        {
+          "slug": "shimadzu-lcsolution-125",
+          "title": "Védett: Shimadzu LCsolution 125"
+        },
+        {
+          "slug": "uv-mini-1240-2",
+          "title": "Védett: UV-Mini 1240"
+        }
+      ]
+    },
+    {
+      "slug": "erettsegi",
+      "title": "Oktatás - Érettségi",
+      "docs": [
+        {
+          "slug": "6360",
+          "title": "Középszintű szóbeli témakörök 2025. ősz",
+          "file": "/media/wp-content/uploads/2025/09/Tortenelem_temakorok_2025_osz.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "oktatas-javitovizsga",
+      "title": "Oktatás - Javítóvizsga",
+      "docs": [
+        {
+          "slug": "javitovizsga-3",
+          "title": "Javítóvizsga",
+          "file": "/media/wp-content/uploads/2026/07/10-oszt-javitovizsga_matek_Kovacsne-Antal-Eva.pdf"
+        },
+        {
+          "slug": "tesztoldal",
+          "title": "Tesztoldal"
+        }
+      ]
+    },
+    {
+      "slug": "kornyezetvedelem",
+      "title": "Oktatás - Környezetvédelem",
+      "docs": [
+        {
+          "slug": "gepeszeti-es-automatizalasi-meresek",
+          "title": "Gépészeti és automatizálási mérések",
+          "file": "/media/wp-content/uploads/2020/11/gepeszeti_es_automatizalasi_meresek.pdf"
+        },
+        {
+          "slug": "telepulesi-ismeretek",
+          "title": "Települési ismeretek",
+          "file": "/media/wp-content/uploads/2020/11/telepulesi_ismeretek_ii_14_evfolyam_tanuloi_jegyzet.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "vegyeszet",
+      "title": "Oktatás - Vegyészet",
+      "docs": [
+        {
+          "slug": "analitika-gyakorlat",
+          "title": "Analitika gyakorlat",
+          "file": "/media/wp-content/uploads/2020/11/recept_gyujtemeny_az_analitika_gyakorlat_szamara.pdf"
+        },
+        {
+          "slug": "kemiai-es-fizikai-kemiai",
+          "title": "Kémiai és Fizikai Kémiai",
+          "file": "/media/wp-content/uploads/2020/11/Kemiai-es-Fizikai-Kemiai-Vizsgafeladatok-es-Peldatar.pdf.pdf"
+        },
+        {
+          "slug": "laboratoriumi-muveletek",
+          "title": "Laboratóriumi műveletek",
+          "file": "/media/wp-content/uploads/2020/09/labormuv_1.pdf"
+        },
+        {
+          "slug": "muszaki-ismeretek",
+          "title": "Műszaki ismeretek",
+          "file": "/media/wp-content/uploads/2020/09/muszismeret_1.pdf"
+        },
+        {
+          "slug": "vegyipari-muveletek",
+          "title": "Vegyipari műveletek",
+          "file": "/media/wp-content/uploads/2020/09/vegyipari_muveletek_1.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "petrik-alapitvany",
+      "title": "Petrik alapítvány",
+      "docs": [
+        {
+          "slug": "petrik-alapitvany",
+          "title": "Petrik alapítvány",
+          "file": "/media/wp-content/uploads/2020/11/Petrik-Alapitvany-fokonyvi-2019.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "statisztikai-informaciok",
+      "title": "Statisztikai információk",
+      "docs": [
+        {
+          "slug": "statisztika",
+          "title": "Statisztika",
+          "file": "/media/wp-content/uploads/2021/01/vizsgaeredmenyek-2019-20.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "szabalyzatok-es-hazirendek",
+      "title": "Szabályzatok és Házirendek",
+      "docs": [
+        {
+          "slug": "akadalymentesitesi-nyilatkozat",
+          "title": "Akadálymentesítési nyilatkozat",
+          "file": "/media/wp-content/uploads/2024/03/Akadalymentesitesi_nyilatkozat_petrik.hu_.pdf"
+        },
+        {
+          "slug": "eljarasrend-az-egeszsegugyi-valsaghelyzet-kezelesere",
+          "title": "Eljárásrend az egészségügyi válsághelyzet kezelésére",
+          "file": "/media/wp-content/uploads/2022/03/eljarasrend_petrik_2022_03_07.pdf"
+        },
+        {
+          "slug": "eljarasrendek",
+          "title": "Eljárásrendek",
+          "file": "/media/wp-content/uploads/2023/11/Eljarasrend_tantermi-rend_rongalasok-bejelentese.pdf"
+        },
+        {
+          "slug": "geptermi-hazirend",
+          "title": "Géptermi házirend",
+          "file": "/media/wp-content/uploads/2020/11/geptermi_hazirend.pdf"
+        },
+        {
+          "slug": "hazirend",
+          "title": "Házirend",
+          "file": "/media/wp-content/uploads/2025/02/Hazirend-2024_25_02.pdf"
+        },
+        {
+          "slug": "szervezeti-es-mukodesi-szabalyzat",
+          "title": "Szervezeti és Működési Szabályzat",
+          "file": "/media/wp-content/uploads/2024/10/SZMSZ_2024_25-1.pdf"
+        },
+        {
+          "slug": "tuzvedelmi-szabalyzat",
+          "title": "Tűzvédelmi szabályzat",
+          "file": "/media/wp-content/uploads/2023/11/TVSZ_Petrik_2023.pdf"
+        }
+      ]
+    },
+    {
+      "slug": "tananyag",
+      "title": "Tananyag",
+      "docs": [
+        {
+          "slug": "laboratoriumi-muveletek",
+          "title": "Laboratóriumi műveletek",
+          "file": "/media/wp-content/uploads/2020/09/labormuv_1.pdf"
+        },
+        {
+          "slug": "muszaki-ismeretek",
+          "title": "Műszaki ismeretek",
+          "file": "/media/wp-content/uploads/2020/09/muszismeret_1.pdf"
+        },
+        {
+          "slug": "vegyipari-muveletek",
+          "title": "Vegyipari műveletek",
+          "file": "/media/wp-content/uploads/2020/09/vegyipari_muveletek_1.pdf"
+        }
+      ]
+    }
+  ]
+}

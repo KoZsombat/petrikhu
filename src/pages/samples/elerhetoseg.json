@@ -1,0 +1,59 @@
+[
+  {
+    "component": "PageTitle",
+    "values": {
+      "breadcrumb": [
+        { "label": "Kezdőlap", "href": "/" },
+        { "label": "Kapcsolat", "href": "/kapcsolat" },
+        { "label": "Elérhetőség" }
+      ],
+      "title": "Elérhetőség",
+      "intro": "1146 Budapest, Thököly út 48–54. · info@petrik.hu · OM azonosító: 203 058 · Fenntartó: Budapesti Műszaki Szakképzési Centrum · A porta: +36 70 502 1723 · B porta: +36 70 502 1724"
+    }
+  },
+  {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+      "columns": 3,
+      "heading": "Az iskola vezetői",
+      "items": [
+        { "name": "Gál-Berey Csilla", "role": "Igazgató", "phone": "+36 70 502 1719" },
+        { "name": "Igazgatóhelyettes", "role": "Általános ügyek", "email": "info@petrik.hu" },
+        { "name": "Igazgatóhelyettes", "role": "Szakmai ügyek", "email": "info@petrik.hu" }
+      ]
+    }
+  },
+  {
+    "component": "RichText",
+    "values": {
+      "html": "<h2>Tanügyigazgatási ügyintézők</h2><p>A Diákcentrum a beiratkozással, tanulói ügyintézéssel és pénzügyekkel kapcsolatos kérdésekben nyújt segítséget, hétköznap 9:00–14:00 óra között.</p>"
+    }
+  },
+  {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+      "columns": 3,
+      "heading": "Egészségügyi munkatársak",
+      "items": [
+        { "name": "Dr. Tóth-Vajna Zsombor", "role": "Iskolaorvos", "room": "H, Sze 9:30–14:00" },
+        { "name": "Pezenhoffer Tímea", "role": "Védőnő", "room": "H–Cs 9:30–14:00" },
+        { "name": "Egészségügyi kabinet", "role": "Elérhetőség", "email": "orvosi@petrik.hu" }
+      ]
+    }
+  },
+  {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+      "columns": 3,
+      "heading": "Tanári és tanulói segítők",
+      "items": [
+        { "name": "Kulcsár Anikó", "role": "IKSZ koordinátor", "room": "B épület 103", "email": "kulcsara@petrik.hu" },
+        { "name": "Szolnok Ádám", "role": "Gyakorlati és projekt koordinátor", "room": "A.017", "email": "szolnok@petrik.hu" },
+        { "name": "Sütő Éva", "role": "Könyvtáros", "email": "info@petrik.hu" }
+      ]
+    }
+  }
+]

@@ -1,0 +1,60 @@
+# Fejlesztés Dockerrel:  docker compose -f docker-compose.dev.yml up
+#   oldal (Vite, HMR):  http://localhost:5173   (a /api, /uploads, /media az api szolgáltatásra proxyzik)
+#   API közvetlenül:    http://localhost:4000
+# A forráskód a hostról van becsatolva, így a módosítások azonnal érvényesek (Vite HMR, `node --watch` az API-nál).
+# A node_modules külön kötetben él, hogy ne ütközzön a host (macOS) csomagjaival.
+# Üres adatbázisnál 3 demó fiók jön létre (igazgato, helyettes, mk.vezeto; jelszavak: server/data/users-repo.ts).
+x-node: &node
+  image: node:24-slim
+  working_dir: /app
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: petrik
+      POSTGRES_PASSWORD: petrik
+      POSTGRES_DB: petrik
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    # Hogy a host eszközei (psql, `npm run db:import`) is elérjék: DATABASE_URL=postgres://petrik:petrik@localhost:5432/petrik
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petrik -d petrik"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Egyszeri: telepíti a függőségeket a közös node_modules kötetbe.
+  deps:
+    <<: *node
+    command: npm install --ignore-scripts
+
+  api:
+    <<: *node
+    depends_on:
+      postgres: { condition: service_healthy }
+      deps: { condition: service_completed_successfully }
+    command: node --watch --experimental-strip-types server/index.ts
+    environment:
+      DATABASE_URL: postgres://petrik:petrik@postgres:5432/petrik
+      PNW_PORT: "4000"
+      PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:-dev-only-secret}
+      PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:-}
+    ports: ["127.0.0.1:4000:4000"]
+
+  web:
+    <<: *node
+    depends_on:
+      deps: { condition: service_completed_successfully }
+    command: npx vite --host 0.0.0.0
+    environment:
+      VITE_PROXY_TARGET: http://api:4000
+    ports: ["127.0.0.1:5173:5173"]
+
+volumes:
+  pgdata-dev:
+  node_modules:
