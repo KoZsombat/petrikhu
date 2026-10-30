@@ -2,7 +2,7 @@
  * Hírkezelő account management - no equivalent in the real plugin, which
  * relies on wp-admin's own user screen. Added by user request; an account is
  * a name, a login and a **set of permissions** - there are no roles
- * (AGENT.md 6.16), so this is where every capability is handed out one by
+ * (AGENTS.md "Server" (permissions)), so this is where every capability is handed out one by
  * one.
  */
 import { randomUUID } from 'node:crypto'

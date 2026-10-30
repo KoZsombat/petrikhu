@@ -1,6 +1,6 @@
 /**
  * Replaces the earlier categories.ts (deleted). Categories and tags are real,
- * editable rows now (apps/server/data/terms-repo.ts, AGENT.md 6.16) - this
+ * editable rows now (apps/server/data/terms-repo.ts, AGENTS.md "Server" (permissions)) - this
  * module only supplies what a brand-new database is seeded with: the site's
  * real WordPress categories, from seed-categories.ts (generated from the
  * client's archives.ts by apps/client/scripts/seed-categories.ts, so the

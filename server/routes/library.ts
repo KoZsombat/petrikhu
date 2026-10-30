@@ -1,5 +1,5 @@
 /**
- * The Dokumentumtár's API (AGENT.md 6.24), mounted at /api/pages/library. Kept
+ * The Dokumentumtár's API (AGENTS.md "Server" (document library)), mounted at /api/pages/library. Kept
  * out of routes/pages.ts, which gates everything on MANAGE_PAGES: the library
  * has a permission of its own.
  */

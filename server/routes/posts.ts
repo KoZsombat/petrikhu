@@ -27,7 +27,7 @@ router.use(requireLogin)
 
 /**
  * Mirrors render_dashboard()'s two branches - which branch you get is now a
- * question about one capability, not about a role (AGENT.md 6.16).
+ * question about one capability, not about a role (AGENTS.md "Server" (permissions)).
  */
 router.get('/dashboard', async (req, res) => {
   const user = req.pnwUser!
@@ -400,7 +400,7 @@ async function saveAuthoredPost(
   }
 
   // No allow-list any more: every account may use every category and tag
-  // (AGENT.md 6.16), so the only check is that the ids really exist - read
+  // (AGENTS.md "Server" (permissions)), so the only check is that the ids really exist - read
   // fresh, since a term created moments ago in the same editor must count.
   const categoryIds = sanitizeTermIds(parseIdList(req.body?.categoryIds), await termIdsOfKind('category'))
   const tagIds = sanitizeTermIds(parseIdList(req.body?.tagIds), await termIdsOfKind('tag'))

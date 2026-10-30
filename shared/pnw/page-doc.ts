@@ -1,5 +1,5 @@
 /**
- * Pure helpers over a PageDocument (AGENT.md 6.20): walking it, numbering its
+ * Pure helpers over a PageDocument (AGENTS.md "Core idea: a page is JSON"): walking it, numbering its
  * nodes and bringing a document saved by the v1 builder up to the v2 shape.
  * No React - the renderer, the editor, the server and the scripts share it.
  */

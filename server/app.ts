@@ -1,5 +1,5 @@
 /**
- * The /hirkezelo/ backend - see AGENT.md 6.15 for why this exists and what it
+ * The /hirkezelo/ backend - see AGENTS.md "Server" for why this exists and what it
  * knowingly does differently from the real WordPress plugin it re-implements.
  *
  * Builds the Express app without listening: server/index.ts starts it, the
@@ -40,7 +40,7 @@ export function createApp(): express.Express {
     res.json({ ok: true })
   })
 
-  // A Szerkesztő page document (AGENT.md 6.20) easily outgrows express's 100 KB default
+  // A Szerkesztő page document (AGENTS.md "Core idea: a page is JSON") easily outgrows express's 100 KB default
   // (the staff page alone is ~120 KB; nginx's client_max_body_size is 10m).
   app.use(express.json({ limit: '8mb' }))
   app.use(express.urlencoded({ extended: true }))

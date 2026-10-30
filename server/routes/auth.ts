@@ -48,7 +48,7 @@ router.post('/login', async (req, res) => {
   byAccount.reset(accountKey)
 
   // PNW_Roles::has_manager_role() has no counterpart: there are no roles
-  // (AGENT.md 6.16). An account with an empty permission list can still log
+  // (AGENTS.md "Server" (permissions)). An account with an empty permission list can still log
   // in and is shown the "no permission" screen, exactly as the plugin's own
   // render_unauthorized() branch does.
   // Új munkamenet-azonosító belépéskor (session fixation ellen).

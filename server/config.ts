@@ -1,6 +1,5 @@
 /**
- * Shared configuration for the /hirkezelo/ Express backend - see AGENT.md
- * 6.15. Mirrors the shape of scripts/mirror.ts's constants, one level up: a
+ * Shared configuration for the /hirkezelo/ Express backend - see AGENTS.md "Server". Mirrors the shape of scripts/mirror.ts's constants, one level up: a
  * single file every other server module reads paths and flags from.
  */
 import { resolve } from 'node:path'

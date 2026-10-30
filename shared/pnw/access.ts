@@ -31,6 +31,6 @@ export function canViewWorkflowPost(post: Post, user: SessionUser): boolean {
 /*
  * PNW_Access::allowed_category_ids() has no counterpart here any more: by
  * user request every account may use every category and tag, so there is
- * nothing to filter (AGENT.md 6.16). Creating a *new* category or tag is the
+ * nothing to filter (AGENTS.md "Server" (permissions)). Creating a *new* category or tag is the
  * only taxonomy action behind a permission (pnw_manage_terms).
  */

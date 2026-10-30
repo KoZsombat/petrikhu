@@ -1,7 +1,7 @@
 /**
  * Uploads - one multer config shared by the Hírkezelő's featured image
  * (routes/posts.ts), the Szerkesztő's media picker (routes/pages.ts,
- * AGENT.md 6.19) and the Dokumentumtár (routes/library.ts). The bytes are kept
+ * AGENTS.md "Server" (/creator)) and the Dokumentumtár (routes/library.ts). The bytes are kept
  * in memory just long enough to be written to the database (data/media-repo.ts)
  * and are served from there at /uploads - nothing touches the disk.
  */

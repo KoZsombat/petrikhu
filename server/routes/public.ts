@@ -1,6 +1,6 @@
 /**
  * Genuinely public endpoints - no requireLogin, unlike everything under
- * /api/posts (see AGENT.md 6.15). This is what the site's own static pages
+ * /api/posts (see AGENTS.md "Server"). This is what the site's own static pages
  * (the sidebar's "Legutóbbi bejegyzések" widget, the homepage's feeds, and
  * the /hirek/:slug/ page) read a published Hírkezelő post through.
  */

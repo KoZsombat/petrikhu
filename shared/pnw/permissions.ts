@@ -5,7 +5,7 @@ import type { Capability } from './types.ts'
  * Replaces the earlier roles.ts (deleted): the real plugin's PNW_Roles maps
  * three WordPress roles onto these capabilities, but here **there are no
  * roles** - by user request every account simply carries its own set of
- * permissions (AGENT.md 6.16). Everything that used to ask "which role is
+ * permissions (AGENTS.md "Server" (permissions)). Everything that used to ask "which role is
  * this?" now asks "does this account hold this capability?".
  *
  * Every helper takes the whole account-ish object rather than a role string,
@@ -78,12 +78,12 @@ export function canManageUsers(user: HasPermissions): boolean {
   return hasCapability(user, CAPABILITY.MANAGE_USERS)
 }
 
-/** The Szerkesztő (/szerkeszto/) - see AGENT.md 6.19. */
+/** The Szerkesztő (/szerkeszto/) - see AGENTS.md "Server" (/creator). */
 export function canManagePages(user: HasPermissions): boolean {
   return hasCapability(user, CAPABILITY.MANAGE_PAGES)
 }
 
-/** The Dokumentumtár section of the Szerkesztő - see AGENT.md 6.24. */
+/** The Dokumentumtár section of the Szerkesztő - see AGENTS.md "Server" (document library). */
 export function canManageLibrary(user: HasPermissions): boolean {
   return hasCapability(user, CAPABILITY.MANAGE_LIBRARY)
 }
@@ -96,7 +96,7 @@ export function canUseEditor(user: HasPermissions): boolean {
 /**
  * Whether the account has anything to do in the Hírkezelő - any permission
  * but the Szerkesztő's two. An account holding only `pnw_manage_pages` is let
- * into /szerkeszto/, not into the news workflow (AGENT.md 6.19).
+ * into /szerkeszto/, not into the news workflow (AGENTS.md "Server" (/creator)).
  */
 export function hasNewsPermission(user: HasPermissions): boolean {
   return user.permissions.some(

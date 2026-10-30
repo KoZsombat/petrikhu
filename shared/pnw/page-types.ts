@@ -1,5 +1,5 @@
 /**
- * The Szerkesztő's document model (AGENT.md 6.20) - shared by the editor
+ * The Szerkesztő's document model (AGENTS.md "Core idea: a page is JSON") - shared by the editor
  * (src/components/szerkeszto/), the public renderer (src/components/
  * pagebuilder/), the generation scripts and the backend's validation
  * (server/lib/validation.ts).
@@ -27,8 +27,7 @@ export type TextAlign = 'left' | 'center' | 'right' | 'justified'
 /* --- design settings ------------------------------------------------------- */
 
 /**
- * Structured design settings on a section, row, column or module (AGENT.md
- * 6.20). Never raw CSS: every value is a number in a range, an enum or a
+ * Structured design settings on a section, row, column or module (AGENTS.md "Core idea: a page is JSON"). Never raw CSS: every value is a number in a range, an enum or a
  * validated colour, and they are rendered as one generated `<style>` element
  * per document (src/lib/designCss.ts) because the mirror's own stylesheets
  * mark nearly everything `!important`, which an inline style cannot beat.
@@ -71,7 +70,7 @@ export type PageImage = {
   height?: number
   srcSet?: string
   sizes?: string
-  /** Carried from the mirror: an image with no size must not be lazy (AGENT.md 4.22). */
+  /** Carried from the mirror: an image with no size must not be lazy (AGENTS.md "Core idea: a page is JSON"). */
   loading?: 'lazy' | 'eager'
 }
 
