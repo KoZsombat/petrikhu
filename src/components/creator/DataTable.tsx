@@ -4,18 +4,18 @@ import { cx } from "./utils";
 
 export type DataTableProps = {
   heading?: string;
-  /** Oszlopfejlécek. */
+  /** Column headers. */
   columns: string[];
-  /** Sorok; a cellákban a sortörés (\n) új sort ad. */
+  /** Rows; a line break (\n) in a cell starts a new line. */
   rows: { cells: string[] }[];
-  /** Az első oszlop kiemelve (pl. kódszám, név). */
+  /** First column highlighted (e.g. code number, name). */
   highlightFirst?: boolean;
   footnote?: string;
   className?: string;
   limit?: number;
 };
 
-/** A cellaszövegben a `[felirat](https://cím)` hivatkozássá válik, minden más sima szöveg. */
+/** In cell text, `[label](https://address)` becomes a link; everything else is plain text. */
 function renderCell(text: string): ReactNode {
   const parts: ReactNode[] = [];
   const link = /\[([^\]]+)\]\(((?:https?:\/\/|\/|mailto:)[^)\s]+)\)/g;
@@ -34,7 +34,7 @@ function renderCell(text: string): ReactNode {
   return parts;
 }
 
-/** Táblázat: nagy képernyőn rács, mobilon soronként kártyák (az oszlopfejléc a cella felett). */
+/** Table: a grid on large screens, cards per row on mobile (the column header above each cell). */
 export function DataTable({ heading, columns, rows, highlightFirst = true, footnote, className, limit }: DataTableProps) {
   const shown = limit === undefined ? rows : rows.slice(0, limit);
   return (

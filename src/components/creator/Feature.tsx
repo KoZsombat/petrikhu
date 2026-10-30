@@ -4,17 +4,17 @@ import { cx, linkProps } from "./utils";
 export type FeatureProps = {
   eyebrow?: string;
   title: string;
-  /** Előre megtisztított (sanitizált) HTML, mint a RichText-nél. */
+  /** Pre-sanitised HTML, as with RichText. */
   html?: string;
   image?: { src: string; alt: string };
-  /** Melyik oldalon legyen a kép (alapból balra). */
+  /** Which side the image is on (left by default). */
   imageSide?: "left" | "right";
   ctaLabel?: string;
   ctaHref?: string;
   className?: string;
 };
 
-/** Kép + szöveg két hasábban: bemutatkozó szekciókhoz, váltakozó képoldallal. */
+/** Image + text in two columns: for introduction sections, with the image side alternating. */
 export function Feature({ eyebrow, title, html, image, imageSide = "left", ctaLabel, ctaHref, className }: FeatureProps) {
   return (
     <section data-component="Feature" data-variant={imageSide} className={cx("py-12 md:py-16", className)}>

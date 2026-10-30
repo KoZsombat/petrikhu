@@ -1,2 +1,2 @@
-// A séma a shared/pnw/creator-schema.ts-ben él: a szerver is ez alapján ellenőrzi a mentett oldalakat.
+// The schema lives in shared/pnw/creator-schema.ts; the server also validates saved pages against it.
 export * from "../../shared/pnw/creator-schema";

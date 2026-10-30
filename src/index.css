@@ -48,7 +48,7 @@
   .hero-word, .hero-rise, .hero-glow { animation: none; }
 }
 
-/* Segédosztályok a creator komponensekhez */
+/* Utility classes for the Creator components */
 .petrik-eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -63,7 +63,7 @@
     var(--color-petriktint);
 }
 
-/* Folyó szöveg (RichText): a Tailwind reset után visszaadjuk a bekezdések, listák, címsorok formáját */
+/* Running text (RichText): after the Tailwind reset, restores the shape of paragraphs, lists and headings */
 .petrik-prose { font-size: 17px; line-height: 1.75; color: var(--color-petrikink); }
 .petrik-prose > * + * { margin-top: 1.1em; }
 .petrik-prose h2, .petrik-prose h3, .petrik-prose h4 {

@@ -8,7 +8,7 @@ import PostList from "./PostList";
 import { formatDateTime, hk, termLine } from "./helpers";
 import { actionsCls, btnDanger, btnPrimary, btnSmall, td, tdNowrap } from "./ui";
 
-/** Kint lévő hírek: keresés, szerkesztés, archiválás. */
+/** Published posts: search, edit, archive. */
 export default function Published() {
   const navigate = useNavigate();
   const authors = useUsers();

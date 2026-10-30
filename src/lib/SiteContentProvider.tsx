@@ -4,7 +4,7 @@ import { publicSite } from "./api";
 import { SiteContext } from "./siteContext";
 import type { SiteContent } from "./siteContext";
 
-/** Betöltéskor egyszer lekéri a szerkesztő változtatásait; hiba esetén minden a beépített tartalmat mutatja. */
+/** Fetches the Creator's changes once on load; on error, everything shows the built-in content. */
 export default function SiteContentProvider({ children }: { children: ReactNode }) {
   const [site, setSite] = useState<Awaited<ReturnType<typeof publicSite>> | null>(null);
   const [loading, setLoading] = useState(true);

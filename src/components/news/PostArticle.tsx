@@ -10,14 +10,14 @@ type Props = {
   content: RichTextDocument;
   categoryIds: string[];
   image?: string;
-  /** A szöveg felett (alapból) vagy alatta - a szerző választása. */
+  /** Above the text (by default) or below it - the author decides. */
   imagePosition?: ImagePosition;
   date?: string;
 };
 
 /**
- * Egy hír cikknézete: ugyanez jelenik meg a nyilvános /hirek/:slug oldalon,
- * az előnézeti oldalon és a szerkesztő előnézeti ablakában.
+ * Article view of a post: the same is shown on the public /hirek/:slug page,
+ * on the preview page and in the editor's preview window.
  */
 export default function PostArticle({ title, content, categoryIds, image, imagePosition = "top", date }: Props) {
   const { lang, tr } = useLang();

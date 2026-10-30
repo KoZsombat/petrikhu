@@ -12,7 +12,7 @@ import { btnCls } from "../../pages/SchemaForm";
 import { formatDateTime, hk } from "./helpers";
 import type { Post } from "../../../shared/pnw/types";
 
-/** Áttekintés: szerzőknek a saját hírek, vezetőknek a jóváhagyási sor. */
+/** Overview: authors see their own posts, managers see the approval queue. */
 export default function Dashboard({ user }: { user: ApiUser }) {
   const [data, setData] = useState<AuthorDashboard | ReviewerDashboard | null>(null);
   const [version, setVersion] = useState(0);
@@ -70,7 +70,7 @@ function NewPostLink() {
   );
 }
 
-/** A lomtár: visszaállítás piszkozatként, vagy végleges törlés (megerősítéssel). Üresen nem látszik. */
+/** Trash: restore as a draft, or delete permanently (with confirmation). Hidden when empty. */
 function TrashCard({ posts, onChange }: { posts: Post[]; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   if (posts.length === 0) return null;
@@ -124,7 +124,7 @@ function AuthorView({ data, user, authors }: { data: AuthorDashboard; user: ApiU
         ))}
       </div>
       <div className={card}>
-        {/* pnw_submit_news nélkül a fiók nem írhat hírt (lehet, hogy csak "Fiókok kezelése" van rajta). */}
+        {/* Without pnw_submit_news the account cannot write posts (it may only have "Fiókok kezelése"). */}
         <CardHeading title="Saját híreim" action={canSubmit(user) ? <NewPostLink /> : undefined} />
         <PostsTable posts={data.posts} reviewer={false} user={user} authors={authors} />
       </div>

@@ -1,10 +1,10 @@
 /**
- * Magyar felirat → angol fordítás a weboldal keretéhez (menü, fejléc, lábléc, kezdőlap, gombok).
- * A kulcs a magyar szöveg szó szerint; ami nincs itt, az magyarul marad. Az oldalak tartalma
- * külön fájlban van (src/pages/samples/pages.en.json).
+ * Hungarian label → English translation for the site frame (menu, header, footer, home page, buttons).
+ * The key is the Hungarian text verbatim; anything not listed here stays Hungarian. Page content
+ * lives in a separate file (src/pages/samples/pages.en.json).
  */
 export const en: Record<string, string> = {
-  // Menü
+  // Menu
   "Kezdőlap": "Home",
   "Hírek": "News",
   "Bemutatkozás": "About us",
@@ -34,7 +34,7 @@ export const en: Record<string, string> = {
   "Kapcsolat": "Contact",
   "Elérhetőség": "Contact details",
   "Tanári kar": "Teaching staff",
-  // Felső sáv
+  // Top bar
   "Helyettesítés": "Substitutions",
   "Eseménynaptár": "Event calendar",
   "Órarend": "Timetable",
@@ -45,7 +45,7 @@ export const en: Record<string, string> = {
   "Menü bezárása": "Close menu",
   "Menü megnyitása": "Open menu",
   "Magyar": "Magyar",
-  // Lábléc
+  // Footer
   "Budapesti Műszaki SZC Petrik Lajos": "Budapest Technical VTC Petrik Lajos",
   "Két Tanítási Nyelvű Technikum": "Bilingual Technical School",
   "OM azonosító: 203 058": "OM ID: 203 058",
@@ -53,7 +53,7 @@ export const en: Record<string, string> = {
   "1146 Budapest, Thököly út 48–54.": "1146 Budapest, Thököly út 48–54, Hungary",
   "Adatkezelési tájékoztató": "Privacy notice",
   "© 2026 Budapesti Műszaki SZC Petrik Lajos Két Tanítási Nyelvű Technikum · Minden jog fenntartva.": "© 2026 Budapest Technical VTC Petrik Lajos Bilingual Technical School · All rights reserved.",
-  // Kezdőlap
+  // Home page
   "Budapesti Műszaki SZC · OM 203 058 · Budapest, VI. kerület": "Budapest Technical VTC · OM 203 058 · Budapest",
   "Több mint 140 éve az érték a mérték.": "Over 140 years of value as the measure.",
   "Vegyipari, környezetvédelmi és informatikai képzés a főváros szívében – két tanítási nyelven, ipari partnerekkel és gyakorlatközeli projektekkel, nyolcadikosoktól a felnőttoktatásig.":
@@ -111,7 +111,7 @@ export const en: Record<string, string> = {
   "Tanterem": "Classrooms",
   "Labor": "Laboratories",
   "Cél": "Goal",
-  // Összetevők
+  // Components
   "RÉSZLETEK →": "DETAILS →",
   "Az oldal nem található": "Page not found",
   "Vissza a kezdőlapra": "Back to the home page",

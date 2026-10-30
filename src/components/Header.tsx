@@ -10,7 +10,7 @@ import { useLang } from "../i18n/languageContext";
 import LanguageSwitch from "../i18n/LanguageSwitch";
 import Logo from "../assets/logo_nagy_ed8ce51ced.png";
 
-// Több menüpont is mutathat ugyanarra az oldalra (pl. /hirek): csak az első találat aktív.
+// Several menu items may point to the same page (e.g. /hirek): only the first match is active.
 function ownersOf(menu: MenuItem[]) {
   const owner = new Map<string, string>();
   for (const item of menu) {
@@ -24,7 +24,7 @@ function ownersOf(menu: MenuItem[]) {
 export default function Header() {
   const { pathname } = useLocation();
   const { tr } = useLang();
-  // A szerkesztő által mentett menü, ennek hiányában a beépített.
+  // The menu saved by the editor; the built-in one if there is none.
   const menu: MenuItem[] = useSiteContent().menu ?? defaultMenu;
   const hrefOwner = ownersOf(menu);
   const isActive = (label: string, href: string) =>

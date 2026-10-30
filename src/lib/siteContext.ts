@@ -3,13 +3,13 @@ import type { MenuItem, PublicSite } from "../../shared/pnw/creator-types";
 import type { DocLibrary } from "../../shared/pnw/page-types";
 
 export type SiteContent = {
-  /** A szerkesztő által kiadott oldalak, slug szerint; felülírják a beépítetteket. */
+  /** Pages published by the Creator, by slug; they override the built-in ones. */
   pages: Map<string, PublicSite["pages"][number]>;
-  /** A szerkesztett menü, vagy null: ilyenkor a beépített (constants.ts) él. */
+  /** The edited menu, or null: the built-in one (constants.ts) applies then. */
   menu: MenuItem[] | null;
-  /** A szerkesztett Dokumentumtár, vagy null: ilyenkor a beépített él. */
+  /** The edited Dokumentumtár, or null: the built-in one applies then. */
   library: DocLibrary | null;
-  /** Addig igaz, amíg a lekérés tart: egy ismeretlen slugot ekkor még nem szabad 404-nek venni. */
+  /** True while the fetch is in progress: an unknown slug must not yet be treated as a 404. */
   loading: boolean;
 };
 

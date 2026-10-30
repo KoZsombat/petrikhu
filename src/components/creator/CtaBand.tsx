@@ -8,7 +8,7 @@ export type CtaBandProps = {
   className?: string;
 };
 
-/** Oldalanként legfeljebb egy, az oldal alján. */
+/** At most one per page, at the bottom. */
 export function CtaBand({ title, buttonLabel, href, className }: CtaBandProps) {
   return (
     <section data-component="CtaBand" className={cx("bg-petriktint py-12 md:py-14", className)}>

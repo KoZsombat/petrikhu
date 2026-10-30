@@ -8,7 +8,7 @@ import PostList from "./PostList";
 import { formatDateTime, hk, termLine } from "./helpers";
 import { btnPrimary, btnSmall, td, tdNowrap } from "./ui";
 
-/** Archívum: nem publikus hírek, egy kattintással visszaállíthatók. */
+/** Archive: non-public posts, restorable with one click. */
 export default function Archive() {
   const navigate = useNavigate();
   const authors = useUsers();

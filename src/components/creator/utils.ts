@@ -4,7 +4,7 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
-/** Külső (http/https) linkek új lapon, noopener noreferrer mellett nyílnak. */
+/** External (http/https) links open in a new tab with noopener noreferrer. */
 export function linkProps(
   href: string,
 ): Pick<AnchorHTMLAttributes<HTMLAnchorElement>, "target" | "rel"> {

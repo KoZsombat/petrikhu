@@ -29,10 +29,10 @@ const SAVE_ERRORS: Record<string, string> = {
 
 function CreatorEditor({ name, logout }: { name: string; logout: () => void }) {
   const navigate = useNavigate();
-  // ?id=... esetén egy már mentett oldalt szerkesztünk.
+  // With ?id=..., an already saved page is being edited.
   const [params] = useSearchParams();
   const editId = params.get("id");
-  // ?slug=... egy beépített (pages.json-beli) oldalt nyit meg; mentéskor azonos slugú, felülíró oldal jön létre.
+  // ?slug=... opens a built-in (pages.json) page; saving creates an overriding page with the same slug.
   const builtInSlug = params.get("slug");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -40,7 +40,7 @@ function CreatorEditor({ name, logout }: { name: string; logout: () => void }) {
   const [status, setStatus] = useState<CreatorPageStatus>("draft");
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  // Az egész oldal JSON-ja: a már továbblépett (összecsukott) komponensek.
+  // The whole page JSON: the components already moved past (collapsed).
   const [page, setPage] = useState<PageItem[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [currentName, setCurrentName] = useState("");
@@ -51,7 +51,7 @@ function CreatorEditor({ name, logout }: { name: string; logout: () => void }) {
   const [currentVariant, setCurrentVariant] = useState("");
   const [values, setValues] = useState<Record<string, unknown>>({});
 
-  // Variáns nélkül az alap `fields`, variánsnál a kiválasztott variáns mezői.
+  // Without a variant, the base `fields`; with one, the selected variant's fields.
   const activeFields = currentComponent?.variants
     ? currentVariant
       ? currentComponent.variants[currentVariant]
@@ -93,7 +93,7 @@ function CreatorEditor({ name, logout }: { name: string; logout: () => void }) {
     if (!builtInSlug || editId) return;
     const blocks = (builtInPages as Record<string, PageItem[]>)[builtInSlug];
     if (!blocks) return;
-    // Ha a beépített oldalt már felülírták, azt szerkesztjük tovább.
+    // If the built-in page has already been overridden, that override is edited further.
     listPages().then(({ pages }) => {
       const saved = pages.find((p) => p.slug === builtInSlug && !p.deleted);
       if (saved) {

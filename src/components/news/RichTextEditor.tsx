@@ -22,12 +22,12 @@ const removeBtn =
   "absolute right-2 top-2 size-6 rounded-full border border-petrikline bg-petrikcard text-sm leading-none text-petriksoft hover:border-red-600 hover:bg-red-600 hover:text-white";
 
 /**
- * Strukturált szövegszerkesztő, nem TinyMCE és nem egyetlen textarea: nyers HTML
- * sehol sincs. Minden blokk egy "run" (egy szöveg saját félkövér/dőlt/igazítás
- * jelzéssel), sima <textarea>-ban szerkesztve, amit élőben a run saját
- * formázásával stíluzunk. Az eszköztár visszavonása a blokkszerkezetre
- * működik (hozzáadás, törlés, formázás, típusváltás); a blokkon belüli
- * gépelésnél a textarea saját visszavonása él.
+ * Structured text editor, neither TinyMCE nor a single textarea: raw HTML
+ * appears nowhere. Every block is a "run" (a piece of text with its own bold/italic/alignment
+ * marks), edited in a plain <textarea>, styled live with the run's own
+ * formatting. Toolbar undo works on the block structure
+ * (add, delete, formatting, type change); while typing inside a block,
+ * the textarea's own undo applies.
  */
 export default function RichTextEditor({ id, value, onChange }: Props) {
   const [activeId, setActiveId] = useState<string | null>(value[0]?.id ?? null);
@@ -58,7 +58,7 @@ export default function RichTextEditor({ id, value, onChange }: Props) {
     setActiveId(block.id);
   }
 
-  /** 3×3-as táblázat (fejlécsorral) az aktív blokk után, vagy a végén. */
+  /** 3×3 table (with a header row) after the active block, or at the end. */
   function addTable(): void {
     const block = emptyTable();
     const at = active ? value.findIndex((entry) => entry.id === active.id) + 1 : value.length;
@@ -70,7 +70,7 @@ export default function RichTextEditor({ id, value, onChange }: Props) {
   const galleryInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  /** A kiválasztott képek feltöltése; egy kép képblokk lesz, több galéria. Az aktív blokk után, vagy a végén kerül be. */
+  /** Uploads the selected images: one image becomes an image block, several become a gallery. Inserted after the active block, or at the end. */
   async function insertImages(files: FileList | null, asGallery: boolean): Promise<void> {
     if (!files || files.length === 0) return;
     setUploadError(null);
@@ -123,7 +123,7 @@ export default function RichTextEditor({ id, value, onChange }: Props) {
   }
 
   function toggleRun(key: "bold" | "italic"): void {
-    // A blokk minden run-jára, hogy egy átvett bekezdés megtartsa a linkjeit (editRuns).
+    // Applied to every run of the block, so an imported paragraph keeps its links (editRuns).
     updateActive((block) => {
       const on = !block.runs[0]?.[key];
       return { ...block, runs: block.runs.map((run) => ({ ...run, [key]: on })) };
@@ -273,11 +273,11 @@ export default function RichTextEditor({ id, value, onChange }: Props) {
 }
 
 /**
- * Egy textarea-szerkesztés alkalmazása a blokk run-jaira. Itt írt hírnek
- * blokkonként egy run-ja van, az átvettnek több (link, félkövér szó), és ezeket
- * egyetlen run-ként újraírni az első betűnél elveszítené. A szerkesztés a
- * változatlan eleje és vége közti szakasz; csak az érintett run-ok változnak,
- * az új szöveg abba a run-ba kerül, amibe gépelték.
+ * Applies a textarea edit to the block's runs. A post written here has
+ * one run per block, an imported post has several (links, bold words), and rewriting these
+ * as a single run would lose them at the first keystroke. The edit is the
+ * span between the unchanged start and end; only the affected runs change,
+ * and the new text goes into the run it was typed into.
  */
 function editRuns(runs: TextRun[], text: string): TextRun[] {
   if (runs.length <= 1) return [{ ...runs[0], text }];
@@ -297,7 +297,7 @@ function editRuns(runs: TextRun[], text: string): TextRun[] {
     const to = offset + run.text.length;
     offset = to;
     let next = run.text;
-    // Határon gépelve az előtte lévő run folytatódik.
+    // When typing at a boundary, the preceding run continues.
     const hosts = !placed && start >= from && (start < to || (start === to && start > 0));
     if (to > start && from < removeTo) {
       next = run.text.slice(0, Math.max(0, start - from)) + (hosts ? inserted : "") + run.text.slice(Math.max(0, removeTo - from));
@@ -319,7 +319,7 @@ function ToolbarButton({ label, active, onClick, children }: { label: string; ac
       title={label}
       aria-label={label}
       aria-pressed={active ?? false}
-      // A fókusz (és a visszavonási pillanatkép) a blokk textarea-ján marad, különben a kattintás előbb elvenné.
+      // Focus (and the undo snapshot) stays on the block's textarea, otherwise the click would take it first.
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
     >
@@ -354,7 +354,7 @@ function BlockRow({
   const frame = `relative rounded-md border ${active ? "border-petrikaccent bg-petrikcream" : "border-transparent hover:border-petriklinesoft"}`;
 
   if (isMediaBlock(block)) {
-    // Régi oldalról átvett kép, galéria vagy beágyazás: megmarad és úgy látszik, ahogy lesz, de itt nem szerkeszthető.
+    // Image, gallery or embed imported from the old site: kept and shown as it will appear, but not editable here.
     return (
       <div className={`${frame} p-3 pr-10`} tabIndex={0} onFocus={onFocus} onBlur={onBlur}>
         <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.15em] text-petrikfaint">
@@ -458,9 +458,9 @@ const MAX_ROWS = 100;
 const MAX_COLUMNS = 30;
 
 /**
- * A táblázatblokk szerkesztője: cellánként egy input, sor/oszlop hozzáadás és
- * törlés, fejlécsor-kapcsoló. A cellák sima szövegek, így táblázat sem hordozhat
- * jelölést. A szerkezeti változás visszavonási lépés, a cellába gépelés nem.
+ * Table block editor: one input per cell, row/column add and
+ * delete, header-row toggle. Cells are plain text, so a table cannot carry
+ * markup either. A structural change is one undo step; typing into a cell is not.
  */
 function TableEditor({ table, onChange }: { table: RichTable; onChange: (table: RichTable, record: boolean) => void }) {
   const columns = Math.max(1, ...table.rows.map((row) => row.length));

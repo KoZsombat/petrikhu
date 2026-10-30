@@ -58,13 +58,13 @@ export const upperLinks = [
   { label: "Levelezés", href: "https://outlook.office.com/owa/" },
 ];
 
-/** Közösségi linkek (felső sáv, fejléc, lábléc). */
+/** Social links (top bar, header, footer). */
 export const socialLinks = {
   facebook: "https://www.facebook.com/BMSZCPetrik/",
   instagram: "https://www.instagram.com/petrikinsta/",
 };
 
-/** Felirat → útvonal (a lábléc és más, csak felirattal hivatkozó helyek használják). */
+/** Label → route (used by the footer and other places that reference only by label). */
 export const labelHref: Record<string, string> = {
   "Kezdőlap": "/",
   "Hírek": "/hirek",

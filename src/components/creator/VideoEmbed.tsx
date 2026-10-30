@@ -4,19 +4,19 @@ import { cx } from "./utils";
 
 export type VideoEmbedProps = {
   heading?: string;
-  /** YouTube-cím (watch?v=…, youtu.be/… vagy embed/…). */
+  /** YouTube URL (watch?v=…, youtu.be/… or embed/…). */
   url: string;
   title?: string;
   caption?: string;
   className?: string;
 };
 
-/** A YouTube azonosítója a címből, vagy undefined, ha nem YouTube-link. */
+/** The YouTube ID from the URL, or undefined if it is not a YouTube link. */
 function youtubeId(url: string): string | undefined {
   return /(?:v=|youtu\.be\/|embed\/)([\w-]{11})/.exec(url)?.[1];
 }
 
-/** Beágyazott videó 16:9-ben (youtube-nocookie); nem YouTube-cím esetén sima link. */
+/** Embedded video at 16:9 (youtube-nocookie); a plain link for non-YouTube URLs. */
 export function VideoEmbed({ heading, url, title, caption, className }: VideoEmbedProps) {
   const { tr } = useLang();
   const id = youtubeId(url);

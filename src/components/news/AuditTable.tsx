@@ -7,11 +7,11 @@ import { emptyCls, td, tdNowrap, th } from "./ui";
 type Props = {
   entries: AuditEntry[];
   authors: Map<string, ApiUser>;
-  /** postId → cím. */
+  /** postId → title. */
   postTitles: Map<string, string>;
 };
 
-/** Hírnél a mostani cím (vagy a törléskori), más tárgynál a típus és az akkori név. */
+/** For a post: its current title (or the one at deletion); for other objects: the type and the name at the time. */
 function Subject({ entry, postTitles }: { entry: AuditEntry; postTitles: Map<string, string> }) {
   if ((entry.entityType ?? "post") === "post") {
     const title = (entry.postId && postTitles.get(entry.postId)) || entry.subject;
@@ -25,7 +25,7 @@ function Subject({ entry, postTitles }: { entry: AuditEntry; postTitles: Map<str
   );
 }
 
-/** A teljes napló táblázata: mikor, ki, mi történt, min (hír, oldal, menü, Dokumentumtár, fiók), megjegyzés. */
+/** Full log table: when, who, what happened, to what (post, page, menu, Dokumentumtár, account), note. */
 export default function AuditTable({ entries, authors, postTitles }: Props) {
   if (entries.length === 0) return <div className={emptyCls}>Nincs a szűrésnek megfelelő naplóbejegyzés.</div>;
 

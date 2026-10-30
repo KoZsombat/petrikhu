@@ -1,6 +1,6 @@
 import { statusCssClass } from "../../../shared/pnw/statuses";
 
-/** A Hírkezelő közös osztályai (a Vezérlőpult `card` stílusához igazítva). */
+/** Shared Hírkezelő classes (aligned with the Dashboard `card` style). */
 export const card = "rounded-lg border border-petrikline bg-petrikcard p-5";
 export const kicker = "font-mono text-xs uppercase tracking-[0.25em] text-petrikaccentdark";
 export const labelCls = "block text-sm font-medium text-petriksoft";
@@ -13,12 +13,12 @@ export const btnDanger =
   "inline-block rounded-md border border-red-600 px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:opacity-60";
 export const th = "px-4 py-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.15em] text-petrikfaint";
 export const td = "border-t border-petriklinesoft px-4 py-4 align-top";
-/** Rövid, nem törhető cella (dátum, forrás). */
+/** Short, non-wrapping cell (date, source). */
 export const tdNowrap = `${td} whitespace-nowrap`;
-/** Egy sorban maradó műveletgombok a táblázat utolsó cellájában. */
+/** Action buttons that stay on one line in the table's last cell. */
 export const actionsCls = "flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap";
 
-/** Az állapot színe: statusCssClass() értéke → badge / pont. */
+/** Status colour: the statusCssClass() value → badge / dot. */
 const BADGE: Record<string, string> = {
   draft: "bg-petriktint text-petriksoft",
   pending: "bg-amber-100 text-amber-800",

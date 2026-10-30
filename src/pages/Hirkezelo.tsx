@@ -14,10 +14,10 @@ import Audit from "../components/news/Audit";
 import Users from "../components/news/Users";
 
 /**
- * /hirkezelo - a hírkezelő felületei. A képernyőt a ?pnw_view= választja
+ * /hirkezelo - the Hírkezelő screens. The screen is chosen by ?pnw_view=
  * (dashboard, new, edit, review, published, published_edit, archive, stats,
- * audit, users), a hír a ?post_id=, az értesítés a ?pnw_notice=.
- * Bármelyik hírjog elég a belépéshez; hogy melyik képernyő érhető el, nézetenként dől el.
+ * audit, users); the post is ?post_id=, the notice is ?pnw_notice=.
+ * Any news permission is enough to log in; which screens are available is decided per view.
  */
 export default function Hirkezelo() {
   return (

@@ -11,7 +11,7 @@ export type GalleryProps = {
 
 const COLS = { 3: "sm:grid-cols-2 lg:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4" } as const;
 
-/** Képgaléria négyzetes, levágott csempékkel; a csempére kattintva az eredeti kép nyílik. */
+/** Image gallery with square, cropped tiles; clicking a tile opens the original image. */
 export function Gallery({ heading, columns = 3, images, className, limit }: GalleryProps) {
   return (
     <section data-component="Gallery" className={cx("py-12 md:py-16", className)}>

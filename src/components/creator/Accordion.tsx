@@ -3,14 +3,14 @@ import { cx } from "./utils";
 
 export type AccordionProps = {
   heading?: string;
-  /** `html`: előre megtisztított (sanitizált) HTML. */
+  /** `html`: pre-sanitised HTML. */
   items: { title: string; html: string }[];
-  /** Az első elem nyitva legyen-e. */
+  /** Whether the first item starts open. */
   openFirst?: boolean;
   className?: string;
 };
 
-/** Lenyitható kérdés-válasz / szakaszlista, natív <details>-szel (JS nélkül is működik). */
+/** Expandable Q&A / section list using native <details> (works without JS). */
 export function Accordion({ heading, items, openFirst, className }: AccordionProps) {
   return (
     <section data-component="Accordion" className={cx("py-12 md:py-16", className)}>

@@ -19,7 +19,7 @@ function monthLabel(key: string): string {
   return MONTH_LABEL.format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-/** A Hírkezelő használatának és a publikált tartalmaknak az áttekintése. */
+/** Overview of Hírkezelő usage and published content. */
 export default function Statistics() {
   const [data, setData] = useState<StatisticsData | null>(null);
   const authors = useUsers();

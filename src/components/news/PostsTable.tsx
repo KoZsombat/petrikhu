@@ -16,7 +16,7 @@ type Props = {
   authors: Map<string, ApiUser>;
 };
 
-/** Hírek táblázata a vezérlőpulton. */
+/** Posts table on the dashboard. */
 export default function PostsTable({ posts, reviewer, user, authors }: Props) {
   const terms = useTerms();
 
@@ -95,7 +95,7 @@ function action(post: Post, reviewer: boolean, user: ApiUser) {
     );
   }
   if (post.status === STATUS.PUBLISH) {
-    // A kint lévő hírt a "Kint lévő hírek" képernyő kezeli, nem a vezérlőpult.
+    // Published posts are handled on the "Published posts" screen, not on the dashboard.
     return null;
   }
   return (

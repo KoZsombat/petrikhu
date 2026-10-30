@@ -16,9 +16,9 @@ type Props = {
 };
 
 /**
- * Gyors előnézet: a hír cikknézete (PostArticle) ugyanúgy, ahogy a nyilvános
- * oldalon megjelenik. A címkék nem részei a cikknézetnek, ezért fölötte, a
- * Hírkezelő saját sávjában látszanak.
+ * Quick preview: the post's article view (PostArticle) exactly as it appears on the public
+ * page. Tags are not part of the article view, so they are shown above it, in the
+ * Hírkezelő's own bar.
  */
 export default function PreviewModal({ open, onClose, title, content, categoryIds, tagIds, image, imagePosition }: Props) {
   const tags = termNames(useTerms(), tagIds);

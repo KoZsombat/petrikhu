@@ -24,7 +24,7 @@ const MESSAGES: Record<NoticeCode, [type: keyof typeof noticeCls, text: string]>
   save_error: ["error", "A mentés nem sikerült. Próbáld újra."],
 };
 
-/** A ?pnw_notice= kódhoz tartozó értesítés. */
+/** Notification for the ?pnw_notice= code. */
 export default function Notice() {
   const [params] = useSearchParams();
   const key = params.get("pnw_notice") as NoticeCode | null;

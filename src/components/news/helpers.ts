@@ -3,7 +3,7 @@ import { emptyDocument } from "../../../shared/pnw/richtext";
 import { isLegacyBlocks, richToBlocks, toRichContent } from "../../../shared/pnw/rich-content";
 import { termNames } from "../../lib/terms";
 
-/** A Hírkezelő képernyőinek címe: /hirkezelo?pnw_view=…&post_id=…&pnw_notice=… */
+/** URL of a Hírkezelő screen: /hirkezelo?pnw_view=…&post_id=…&pnw_notice=… */
 export function hk(view?: string, postId?: string, notice?: string): string {
   const params = new URLSearchParams();
   if (notice) params.set("pnw_notice", notice);
@@ -13,7 +13,7 @@ export function hk(view?: string, postId?: string, notice?: string): string {
   return query ? `/hirkezelo?${query}` : "/hirkezelo";
 }
 
-/** Egy sornyi besorolás a lista címe alatt: kategóriák, utána a címkék. */
+/** One line of classification under the list title: categories, then tags. */
 export function termLine(terms: Term[], post: Post): string {
   const categoryPart = post.categoryIds.length === 0 ? "Nincs kategória" : termNames(terms, post.categoryIds).join(", ");
   const tags = termNames(terms, post.tagIds);
@@ -31,7 +31,7 @@ export function formatDateTime(iso: string | undefined): string {
   });
 }
 
-/** A szerkesztő blokkjai: a hír tartalma (blokk vagy tartalomfa) mindig blokklistává alakítva, legalább egy üres blokkal. */
+/** Creator blocks: the post content (blocks or content tree) is always converted to a block list, with at least one empty block. */
 export function asBlocks(content: unknown): RichTextDocument {
   if (isLegacyBlocks(content)) return content;
   const blocks = richToBlocks(toRichContent(content));

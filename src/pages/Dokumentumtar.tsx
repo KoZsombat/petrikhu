@@ -10,12 +10,12 @@ import type { DocLibrary } from "../../shared/pnw/page-types";
 
 const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-/** A fájl típusa a kiterjesztésből (PDF, DOC…), a jelvényhez. */
+/** File type from the extension (PDF, DOC…), for the badge. */
 const fileType = (file: string) => (/\.([a-z0-9]+)$/i.exec(file)?.[1] ?? "fájl").slice(0, 4).toUpperCase();
 
 /**
- * /dokumentumtar: ha a szerkesztőben azonos slugú oldalt adtak ki, az jelenik meg (magyarul), mint minden beépített
- * aloldalnál (BuiltInPage, App.tsx); különben a tár.
+ * /dokumentumtar: if a page with the same slug was published in the Creator, that is shown (in Hungarian), like every built-in
+ * subpage (BuiltInPage, App.tsx); otherwise the built-in library.
  */
 export default function Dokumentumtar() {
   const { lang } = useLang();
@@ -34,7 +34,7 @@ function EditedPage({ page }: { page: { title: string; description: string; bloc
   );
 }
 
-/** Kategóriánként a dokumentumok, kereséssel és oldalsó kategóriamenüvel; a szerkesztő által mentett tár felülírja a beépítettet. */
+/** Documents by category, with search and a side category menu; a library saved in the Creator overrides the built-in one. */
 function Library() {
   const { tr } = useLang();
   useDocumentHead({ title: tr("Dokumentumtár") });

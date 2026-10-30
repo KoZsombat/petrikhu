@@ -19,7 +19,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const emptyForm = (): AccountInput => ({ username: "", displayName: "", password: "", permissions: [] });
 
-/** Fiókkezelés: a fiók egy belépés és egy jogosultsághalmaz, szerepkörök nincsenek. */
+/** Account management: an account is one login plus a set of permissions; there are no roles. */
 export default function Users({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<ApiUser[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export default function Users({ currentUserId }: { currentUserId: string }) {
   }
 
   useEffect(() => {
-    // Egyszeri lekérés betöltéskor.
+    // One-time fetch on load.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
   }, []);

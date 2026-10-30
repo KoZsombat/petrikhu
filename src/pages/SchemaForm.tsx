@@ -42,7 +42,7 @@ function FieldInput({
             onChange={(e) => onChange(e.target.value)}
           />
           {field.type === "image" && (
-            // Feltöltés a szerver médiatárába; csak bejelentkezve működik (a szerkesztő úgyis az).
+            // Upload to the server media library; only works when logged in (the Creator always is).
             <input
               type="file"
               accept="image/*"

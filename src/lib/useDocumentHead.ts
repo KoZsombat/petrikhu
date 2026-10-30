@@ -3,12 +3,12 @@ import { useLang } from "../i18n/languageContext";
 
 const SITE = "Petrik Lajos Két Tanítási Nyelvű Technikum";
 
-/** Beállítja az oldal címét és leírását; a `noindex` a szerkesztő felületeknek kell. */
+/** Sets the page title and description; the editor screens need `noindex`. */
 export function useDocumentHead({ title, description, noindex }: { title?: string; description?: string; noindex?: boolean }) {
   const { tr } = useLang();
   useEffect(() => {
     const site = tr(SITE);
-    // Régi oldali sablon: "Oldalcím | petrik.hu"; a kezdőlapé az iskola neve.
+    // Old-site template: "Page title | petrik.hu"; the home page uses the school name.
     document.title = title ? `${title} | petrik.hu` : site;
 
     const set = (name: string, content: string | undefined) => {

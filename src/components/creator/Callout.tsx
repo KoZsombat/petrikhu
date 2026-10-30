@@ -3,14 +3,14 @@ import { cx } from "./utils";
 
 export type CalloutProps = {
   title?: string;
-  /** Előre megtisztított (sanitizált) HTML. */
+  /** Pre-sanitised HTML. */
   html: string;
-  /** `info`: halvány kiemelés, `accent`: telt zöld háttér. */
+  /** `info`: subtle highlight, `accent`: solid green background. */
   tone?: "info" | "accent";
   className?: string;
 };
 
-/** Kiemelt közlemény / fontos tudnivaló. */
+/** Highlighted notice / important information. */
 export function Callout({ title, html, tone = "info", className }: CalloutProps) {
   const accent = tone === "accent";
   return (

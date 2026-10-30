@@ -5,9 +5,9 @@ import PostArticle from "./PostArticle";
 import { badgeCls, card } from "./ui";
 
 /**
- * Egy hír csak olvasható részletei: az állapotjelvény és a címkék a Hírkezelő
- * saját sávjában, alatta a tartalom ugyanúgy, ahogy a nyilvános oldalon
- * megjelenik (kategóriák a cikk meta sorában).
+ * Read-only details of a post: the status badge and tags in the Hírkezelő
+ * own bar, with the content below it, exactly as on the public page
+ * is shown (categories in the article meta line).
  */
 export default function ReadOnlyDetails({ post }: { post: Post }) {
   const tags = termNames(useTerms(), post.tagIds);

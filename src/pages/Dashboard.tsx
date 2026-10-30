@@ -65,8 +65,8 @@ function Pages() {
   const overridden = new Set(pages?.filter((p) => !p.deleted).map((p) => p.slug));
   const reset = async (id: string) => {
     if (!confirm("Visszaállítod az oldalt az eredeti tartalmára? A módosításaid elvesznek.")) return;
-    await api.deletePage(id); // kukába
-    await api.deletePage(id); // véglegesen
+    await api.deletePage(id); // to trash
+    await api.deletePage(id); // permanently
     load();
   };
 
@@ -291,7 +291,7 @@ const moveItem = <T,>(list: T[], i: number, by: number): T[] => {
   return next;
 };
 
-/** A főmenü: elemenként vagy egy link, vagy egy legördülő almenüvel (egy szint). A mentés után legfeljebb egy percig tart, míg a nyilvános oldalon megjelenik. */
+/** The main menu: each item is either a link or a dropdown with a submenu (one level). After saving, it can take up to a minute to appear on the public site. */
 function MenuEditor() {
   const [menu, setMenu] = useState<MenuItem[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
