@@ -8,7 +8,7 @@
  * Keys are the public URL path, NFC-normalised (a macOS filesystem hands out
  * decomposed accents, a browser asks for composed ones).
  */
-import { row, rows, run } from './db.ts'
+import { pool, row, rows, run } from './db.ts'
 
 export type MediaFile = { path: string; mime: string; size: number; modifiedAt: string; data: Buffer }
 
@@ -38,14 +38,41 @@ export async function hasMedia(path: string): Promise<boolean> {
   return (await row('SELECT 1 FROM media_files WHERE path = $1', [mediaKey(path)])) !== undefined
 }
 
-export async function getMedia(path: string): Promise<MediaFile | null> {
-  const found = await row<{ path: string; mime: string; size: number; modified_at: string; data: Buffer }>(
-    'SELECT path, mime, size, modified_at, data FROM media_files WHERE path = $1',
+export type MediaInfo = Omit<MediaFile, 'data'>
+
+/** A fájl adatai a tartalma nélkül - a kiszolgálás ebből dönt (304, Range), mielőtt egy bájtot is olvasna. */
+export async function getMediaInfo(path: string): Promise<MediaInfo | null> {
+  const found = await row<{ path: string; mime: string; size: number; modified_at: string }>(
+    'SELECT path, mime, size, modified_at FROM media_files WHERE path = $1',
     [mediaKey(path)],
   )
-  return found
-    ? { path: found.path, mime: found.mime, size: found.size, modifiedAt: found.modified_at, data: found.data }
-    : null
+  return found ? { path: found.path, mime: found.mime, size: found.size, modifiedAt: found.modified_at } : null
+}
+
+export const MEDIA_CHUNK_BYTES = 256 * 1024
+
+/**
+ * A fájl `start`-tól `end`-ig (mindkettő bezárólag) darabokban, egyetlen kapcsolaton. Egyszerre csak egy darab
+ * van a memóriában; a `data` oszlop STORAGE EXTERNAL (002-es migráció), így a Postgres is csak a kért szeletet
+ * olvassa. Ha a hívó idő előtt kilép a ciklusból, a kapcsolat visszakerül a poolba.
+ */
+export async function* mediaChunks(path: string, start: number, end: number, chunkBytes = MEDIA_CHUNK_BYTES): AsyncGenerator<Buffer> {
+  const client = await pool.connect()
+  try {
+    for (let offset = start; offset <= end; offset += chunkBytes) {
+      const length = Math.min(chunkBytes, end - offset + 1)
+      // A substring 1-től számoz.
+      const result = await client.query<{ chunk: Buffer | null }>(
+        'SELECT substring(data FROM $2::int FOR $3::int) AS chunk FROM media_files WHERE path = $1',
+        [mediaKey(path), offset + 1, length],
+      )
+      const chunk = result.rows[0]?.chunk
+      if (!chunk || chunk.length === 0) return
+      yield chunk
+    }
+  } finally {
+    client.release()
+  }
 }
 
 /** Images stored under a URL prefix, newest first - no file contents. */
