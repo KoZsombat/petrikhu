@@ -23,7 +23,7 @@ npm run dev              # frontend (Vite); /api, /uploads, /media proxy to port
 npm run server           # backend on port 4000
 ```
 
-Other scripts: `npm run build`, `npm run lint`, `npx tsc -p tsconfig.server.json` (type-check the server), `npm run db:import` (one-off copy of the legacy SQLite data into Postgres).
+Other scripts: `npm run build`, `npm run lint`, `npx tsc -p tsconfig.server.json` (type-check the server), `npm test` (test suite; needs a Postgres database, default `postgres://petrik:petrik@localhost:5432/petrik_test`, override with `TEST_DATABASE_URL`), `npm run db:import` (one-off copy of the legacy SQLite data into Postgres).
 
 ## Production (Docker + Cloudflare Tunnel)
 

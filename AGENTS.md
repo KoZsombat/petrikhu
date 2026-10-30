@@ -6,7 +6,8 @@ New website for Petrik Lajos Bilingual Technical School (petrik.hu) plus a **pag
 
 - **Update this file after every change.** If you add, remove, rename or change behaviour of a route, component, env variable, script, table, permission or deployment detail, edit the matching section here in the same piece of work. Keep it accurate rather than long; delete statements that stopped being true.
 - Keep [README.md](README.md) in sync when setup, scripts or deployment change (it is the short, human-facing version of this file).
-- Verify before finishing: `npm run build`, `npx tsc -p tsconfig.server.json`, and `npm run lint` (one old react-refresh warning in `SchemaForm.tsx` is known).
+- Verify before finishing: `npm run build`, `npx tsc -p tsconfig.server.json`, `npm run lint` (one old react-refresh warning in `SchemaForm.tsx` is known) and `npm test` (needs a local Postgres, see "Tests").
+- Every bug fix comes with a regression test.
 
 ## Stack
 
@@ -19,6 +20,7 @@ npm run server    # the Express server (port 4000; needs DATABASE_URL, loads .en
 npm run db:import # one-off: copy the legacy SQLite file (server/data/db/hirkezelo.db) into Postgres
 npm run build     # tsc -b && vite build
 npm run lint      # eslint
+npm test          # node:test, tests/**/*.test.ts (needs Postgres: TEST_DATABASE_URL)
 npx tsc -p tsconfig.server.json   # type-check the server
 ```
 
@@ -52,7 +54,8 @@ A subpage is an array of blocks, exactly in this shape (the Creator outputs the 
 | `src/lib/constants.ts` | Default menu (`menu`), top links (`upperLinks`), `labelHref` (label → route, used by the footer). |
 | `src/App.tsx` | Routes. `/:slug` serves pages published from the editor (built-ins get their own routes; a published page with the same slug overrides them). |
 | `src/lib/api.ts`, `useSession.ts`, `SiteContentProvider.tsx` | Fetch wrapper (relative `/api` URLs only), logged-in user, public site content (`/api/public/site`). |
-| `server/`, `shared/pnw/` | Express backend and shared types (see "Server" below). |
+| `server/`, `shared/pnw/` | Express backend and shared types (see "Server" below). `server/app.ts` builds the app (`createApp()`), `server/index.ts` boots the DB and listens. |
+| `tests/` | Test suite (see "Tests"). |
 
 ## Components (14)
 
@@ -67,6 +70,8 @@ Every root element gets `data-component` / `data-variant`. Adding a component: c
 - `/creator` editor, `/preview` last Creator preview (`localStorage` key `page-creator:preview`), `/components-preview` component catalogue, `/dashboard` (admin, login required)
 - `/hirkezelo`, `/hirek/:slug`, `/kereses`, `/dokumentumtar`, `/bejelentkezes` (redirects to `/dashboard`)
 - `*` 404
+
+- `RESERVED_SLUGS` (`shared/pnw/creator-types.ts`): slugs a Creator page may not take because a fixed route (server or `App.tsx`) would hide it. Built-in `pages.json` slugs and `dokumentumtar` are *not* reserved: a published page with that slug overrides them on purpose (`BuiltInPage` / `Dokumentumtar.tsx`, Hungarian only). `tests/reserved-slugs.test.ts` fails if a new fixed route in `App.tsx` is neither.
 
 New page: add a key to `pages.json`; the route appears automatically. To show it in the menu, add it in `constants.ts` (`href` = slug) or via the dashboard Menu tab.
 
@@ -104,9 +109,18 @@ Run: `npm run server` (port 4000; Vite's dev proxy points there), in production 
 - `/creator` – page editor; `?id=` edits a saved page. Pages live in the `creator_pages` table (`blocks` = PageRenderer JSON); a published page is served at `/<slug>` and overrides a built-in page with the same slug.
 - `/hirkezelo` – news manager (edit, approve, schedule, archive, statistics, log, accounts), `src/components/news/`.
 - `/hirek/:slug`, `/hirek` (live news before the built-in ones, `?oldal=N`), `/kereses`, `/dokumentumtar`.
+- Every upload route goes through `acceptUpload()` (`server/lib/uploads.ts`): over the limit (images 8 MB, documents 9 MB) → `413 file_too_large`, other multer errors → `400 upload_failed`.
 - Media and uploads are in the database (`media_files`), served at `/uploads/*` and `/media/*`; files in `server/media-seed/` are imported on startup (idempotent).
 - Permissions: no roles, per-account switchable capabilities (`shared/pnw/permissions.ts`); the page editor needs `pnw_manage_pages`, the library `pnw_manage_library`.
 - The public site gets published pages, the menu and the library from `GET /api/public/site` (`src/lib/SiteContentProvider.tsx`); if the server is unreachable the built-in content shows.
+
+## Tests
+
+`npm test` runs `tests/**/*.test.ts` with Node's built-in runner (`node --test`, no extra dependency). Each file runs in its own process and `tests/helpers/server.ts` gives it a fresh, random Postgres schema in `TEST_DATABASE_URL` (default `postgres://petrik:petrik@localhost:5432/petrik_test`; the database must exist), starts `createApp()` (`server/app.ts`) on a random port and seeds the demo accounts. Client components are tested by rendering them with Vite's `ssrLoadModule` + `react-dom/server` (`tests/helpers/render.ts`).
+
+- `tests/api/` – HTTP-level tests against the real app and database.
+- `tests/client/` – rendered React components.
+- `tests/*.test.ts` – pure functions and repo-wide checks.
 
 ## Security and operations
 
@@ -119,4 +133,4 @@ Run: `npm run server` (port 4000; Vite's dev proxy points there), in production 
 - **Cloudflare Tunnel, one port:** a single Node process serves the API, media and the built client on `PNW_PORT` (default 4000; bound to `127.0.0.1` in compose). Point the tunnel's public hostname at `http://localhost:4000` (or `http://petrik:4000` inside compose); `docker compose --profile tunnel up` also starts `cloudflared` (`TUNNEL_TOKEN`). Set `PNW_PUBLIC_URL` (e.g. `https://petrik.hu`): it is the allowed origin for modifying calls if the tunnel rewrites the Host header. `PNW_TRUST_PROXY=1` makes the cookie `Secure` and the client IP real. The CSP is `script-src 'self'`, so disable Cloudflare's injected scripts (Web Analytics, Rocket Loader).
 - **EC2 deployment guide:** `deploy.md` (step by step: EC2 + Docker + Cloudflare Tunnel, data import, backups, troubleshooting). It is git-ignored on purpose (internal notes), so it exists only in local checkouts; keep it in sync when deployment changes.
 - **Environment variables:** `DATABASE_URL`, `POSTGRES_PASSWORD` (compose), `PNW_SESSION_SECRET`, `PNW_SEED_PASSWORD`, `PNW_PORT`, `PNW_PUBLIC_URL`, `PNW_ALLOWED_ORIGINS`, `PNW_TRUST_PROXY`, `PNW_UPLOADS_DIR`, `PNW_MEDIA_SEED_DIR`, `PNW_SHOW_DEMO_LOGINS`, `PNW_SQLITE_FILE` (import script), `TUNNEL_TOKEN` (compose). See `.env.example` and `server/config.ts`.
-- **Not present:** automatic database backups (run `pg_dump` periodically), two-factor login, automated tests.
+- **Not present:** automatic database backups (run `pg_dump` periodically), two-factor login.
