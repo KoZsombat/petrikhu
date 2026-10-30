@@ -97,7 +97,6 @@ New page: add a key to `pages.json`; the route appears automatically. To show it
 ## Ideas / next steps
 
 - `server/lib/validation.ts` (news, library, terms) is still hand-written; port it to zod like `creator-validation.ts`.
-- Automatic deployment to EC2 (today manual; `production-check.yml` only checks the live site).
 - Missing from the old site: sidebar widgets, category/date/author archives, `/docs/<slug>` document pages, Divi modules (Gallery, HeroSlider, Pricing...).
 - Open Graph tags are injected by the server only; the client's `useDocumentHead` sets title/description after navigation.
 - `RichText` uses `dangerouslySetInnerHTML` (forbidden on the old site); Hírkezelő content is rendered structurally through `RichContent`.
@@ -149,5 +148,5 @@ The app is meant to run as **one** process. The scheduled-publish sweep (`setInt
 - **EC2 deployment guide:** `deploy.md` (step by step: EC2 + Docker + Cloudflare Tunnel, data import, backups, troubleshooting). It is git-ignored on purpose (internal notes), so it exists only in local checkouts; keep it in sync when deployment changes.
 - **Environment variables:** `DATABASE_URL`, `POSTGRES_PASSWORD` (compose), `PNW_SESSION_SECRET`, `PNW_SEED_PASSWORD`, `PNW_PORT`, `PNW_PUBLIC_URL`, `PNW_ALLOWED_ORIGINS`, `PNW_TRUST_PROXY`, `PNW_UPLOADS_DIR`, `PNW_MEDIA_SEED_DIR`, `PNW_SHOW_DEMO_LOGINS`, `PNW_TEST_MODE`, `PNW_BACKUP_DIR` / `PNW_BACKUP_KEEP_DAYS` / `PNW_BACKUP_AT` (compose `backup` service), `PNW_SQLITE_FILE` (import script), `TUNNEL_TOKEN` (compose). See `.env.example` and `server/config.ts`.
 - **Backups:** the `backup` compose service (`scripts/backup.sh`) writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`, git-ignored) and keeps `PNW_BACKUP_KEEP_DAYS` (14). Media is in the database, so the dump is the whole site. Restore steps are in README "Backups"; `tests/backup.test.ts` checks a dump → restore round trip. Copy backups off the instance.
-- **Production:** runs on AWS EC2 behind Cloudflare at https://petriknew.zsombor.dev (`PNW_PUBLIC_URL`). `.github/workflows/production-check.yml` checks it every 6 h; deployment is manual (see `deploy.md` locally).
-- **Not present:** two-factor login, automatic deployment.
+- **Production:** runs on AWS EC2 behind Cloudflare at https://petriknew.zsombor.dev (`PNW_PUBLIC_URL`). `.github/workflows/production-check.yml` checks it every 6 h. **CD:** `.github/workflows/deploy.yml` deploys after a green CI run on a push to `main` (or manually): over SSH in `/petrik` it backs up the DB, fast-forwards to `origin/main`, runs `docker compose up -d --build` and waits for `/healthz`. Secrets: `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, optional `EC2_KNOWN_HOSTS`; runs in the `production` environment. Setup steps: README "CI".
+- **Not present:** two-factor login.

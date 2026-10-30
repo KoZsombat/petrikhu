@@ -63,7 +63,14 @@ On start the server runs any newer migrations on top of the restored schema. Tes
 
 ## CI
 
-`.github/workflows/ci.yml` runs lint, the server type-check, the build and `npm test` (against a Postgres 17 service) on every push and pull request. `.github/workflows/production-check.yml` checks every 6 hours (or on demand) that https://petriknew.zsombor.dev answers `/healthz`, the public API and serves the Open Graph tags. Deployment itself is still manual.
+`.github/workflows/ci.yml` runs lint, the server type-check, the build and `npm test` (against a Postgres 17 service) on every push and pull request. `.github/workflows/production-check.yml` checks every 6 hours (or on demand) that https://petriknew.zsombor.dev answers `/healthz`, the public API and serves the Open Graph tags.
+
+**Deployment (CD):** `.github/workflows/deploy.yml` runs after CI passes on a push to `main` (or by hand: Actions → Deploy → Run workflow). Over SSH, in `/petrik` on the EC2 server, it takes a database backup (`docker compose run --rm backup once`), fast-forwards to `origin/main`, runs `docker compose up -d --build`, and then waits until `/healthz` answers. One-time setup:
+
+1. On the server, create a deploy key pair. Put the public key in the deploy user's `~/.ssh/authorized_keys`. That user must own `/petrik` and be allowed to run `docker`, and `/petrik` must be a clone of this repo on `main` with its `.env` in place.
+2. Allow inbound port 22 from GitHub Actions in the EC2 security group.
+3. In GitHub, go to Settings → Secrets and variables → Actions and add `EC2_HOST`, `EC2_USER` and `EC2_SSH_KEY` (the private key). For `EC2_KNOWN_HOSTS`, add the output of `ssh-keyscan <host>` (recommended; it pins the server's host key).
+4. Optionally, add a protection rule (required reviewer) to the `production` environment under Settings → Environments, so every deploy waits for an approval.
 
 ## Where things are
 
