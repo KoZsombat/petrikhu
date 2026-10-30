@@ -6,7 +6,7 @@ import AdminHeader from "../AdminHeader";
 import { hk } from "./helpers";
 import Notice from "./Notice";
 
-/** A Hírkezelő kerete: fejléc a felhasználóval, füles navigáció, alatta a képernyő. */
+/** Hírkezelő frame: header with the user, tab navigation, the screen below. */
 export default function NewsShell({ user, onLogout, children }: { user: ApiUser; onLogout: () => void; children: ReactNode }) {
   const [params] = useSearchParams();
   const { pathname } = useLocation();
@@ -38,7 +38,7 @@ export default function NewsShell({ user, onLogout, children }: { user: ApiUser;
               {tab.label}
             </Link>
           ))}
-          {/* A Creator ugyanezzel a belépéssel nyílik. */}
+          {/* The Creator opens with the same login. */}
           {canManagePages(user) && (
             <Link to="/dashboard" className="rounded-md border border-petrikline bg-petrikcard px-4 py-2 text-sm font-semibold text-petriksoft hover:bg-petriktint">
               Oldalszerkesztő →

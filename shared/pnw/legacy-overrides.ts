@@ -1,5 +1,5 @@
 /**
- * The v1 override layer (AGENT.md 6.19), which AGENT.md 6.20 superseded: a
+ * The v1 override layer (AGENTS.md "Server" (/creator)), which AGENTS.md "Core idea: a page is JSON" superseded: a
  * mirrored page used to stay generated code with a `PageOverrides` row laid on
  * top. These types survive only so scripts/migrate-overrides.ts can read the
  * old `page_overrides` rows and turn them into documents.
@@ -26,6 +26,6 @@ export type PageOverrides = {
   extraSections: PageSection[]
   title?: string
   description?: string
-  /** "Rejtés": the page was served as the 404 page. */
+  /** "Rejtés" (hide): the page was served as the 404 page. */
   hidden?: boolean
 }

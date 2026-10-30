@@ -1,6 +1,5 @@
 /**
- * Shared configuration for the /hirkezelo/ Express backend - see AGENT.md
- * 6.15. Mirrors the shape of scripts/mirror.ts's constants, one level up: a
+ * Shared configuration for the /hirkezelo/ Express backend - see AGENTS.md "Server". Mirrors the shape of scripts/mirror.ts's constants, one level up: a
  * single file every other server module reads paths and flags from.
  */
 import { resolve } from 'node:path'
@@ -10,15 +9,15 @@ export const SERVER_ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)))
 /** The repo root - server/ is one level below it. */
 export const PROJECT_ROOT = resolve(SERVER_ROOT, '..')
 
-/** PostgreSQL kapcsolat (pl. postgres://petrik:jelszo@postgres:5432/petrik). */
+/** PostgreSQL connection (e.g. postgres://petrik:jelszo@postgres:5432/petrik). */
 export const DATABASE_URL = process.env.DATABASE_URL || 'postgres://petrik:petrik@localhost:5432/petrik'
 
-/** A régi SQLite fájl helye - csak az egyszeri importáló szkript (server/scripts/import-sqlite.ts) használja. */
+/** Location of the old SQLite file - only the one-off import script (server/scripts/import-sqlite.ts) uses it. */
 export const LEGACY_SQLITE_FILE = process.env.PNW_SQLITE_FILE
   ? resolve(process.env.PNW_SQLITE_FILE)
   : resolve(SERVER_ROOT, 'data/db/hirkezelo.db')
 
-/** `PNW_UPLOADS_DIR` a régi, fájlrendszeres feltöltések mappája (induláskor bekerülnek az adatbázisba). */
+/** `PNW_UPLOADS_DIR`: the folder of the old file-system uploads (imported into the database on startup). */
 
 export const UPLOADS_DIR = process.env.PNW_UPLOADS_DIR ? resolve(process.env.PNW_UPLOADS_DIR) : resolve(SERVER_ROOT, 'uploads')
 export const UPLOADS_URL_PREFIX = '/uploads'
@@ -36,26 +35,26 @@ export const MEDIA_SEED_DIR = process.env.PNW_MEDIA_SEED_DIR
   : resolve(PROJECT_ROOT, 'server/media-seed')
 
 /**
- * A kliens build-kimenete: ugyanaz a folyamat szolgálja ki, mint az API-t (Dockerben is), így egyetlen porton
- * elérhető az egész oldal - ez kell a Cloudflare Tunnelhez.
+ * The client build output: the same process that serves the API serves it too (in Docker as well), so
+ * the whole site is reachable on one port - the Cloudflare Tunnel needs this.
  */
 export const DIST_DIR = resolve(PROJECT_ROOT, 'dist')
 
 export const PORT = Number(process.env.PNW_PORT ?? 4000)
 
-/** Éles üzem: a Docker image NODE_ENV=production-nel fut. */
+/** Production: the Docker image runs with NODE_ENV=production. */
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 /**
- * Hány fordított proxy áll az alkalmazás előtt (Cloudflare tunnel, nginx): ettől függ, hogy a `req.ip` és a
- * `req.secure` a valódi kliensre / HTTPS-re mutat-e. Élesben alapból 1, fejlesztésben 0.
+ * How many reverse proxies sit in front of the app (Cloudflare tunnel, nginx); this decides whether `req.ip` and the
+ * `req.secure` point at the real client / HTTPS. Defaults to 1 in production, 0 in development.
  */
 export const TRUST_PROXY = Number(process.env.PNW_TRUST_PROXY ?? (IS_PRODUCTION ? 1 : 0))
 
-/** Az oldal nyilvános címe (pl. https://petrik.hu): automatikusan engedélyezett eredet a módosító API-hívásokhoz. */
+/** The site's public address (e.g. https://petrik.hu): automatically an allowed origin for modifying API calls. */
 export const PUBLIC_URL = (process.env.PNW_PUBLIC_URL ?? '').trim().replace(/\/+$/, '')
 
-/** Vesszővel elválasztott eredetek (pl. https://petrik.hu), ahonnan módosító API-hívás jöhet a saját hoszton kívül. */
+/** Comma-separated origins (e.g. https://petrik.hu) that may send modifying API calls from outside the app's own host. */
 export const ALLOWED_ORIGINS = (process.env.PNW_ALLOWED_ORIGINS ?? '')
   .split(',')
   .map((origin) => origin.trim())
@@ -71,16 +70,13 @@ const DEV_SECRET = 'petrik-news-workflow-dev-secret-change-me'
 export const SESSION_SECRET = process.env.PNW_SESSION_SECRET || DEV_SECRET
 
 /**
- * The real plugin's PNW_TEST_MODE, ported as a real toggle rather than
- * hard-coded true - by explicit user request, approving a submission here
- * really publishes it (GET /api/public/posts, the /hirek/:slug/ page, the
- * site's recent-posts widgets - see AGENT.md 6.15). It never touches the
- * real petrik.hu mirror data (src/data/posts.ts) either way; this is its
- * own, separate SQLite database. Flip to `true` to restore the pilot's
- * approve-but-never-publish behavior without touching any route logic -
- * every TEST_MODE check in server/routes/posts.ts reads this one constant.
+ * The real plugin's PNW_TEST_MODE, as an env toggle (`PNW_TEST_MODE=true`, default off). Off: approving a
+ * submission really publishes it (the public feed, /hirek/:slug). On - for a pilot or a training copy of the
+ * site - an approval only marks the post `pnw_test_ok` and never publishes it, scheduling falls back to
+ * "now", and editing / archiving published posts is refused (`production_only`). Every check is in
+ * server/routes/posts.ts.
  */
-export const TEST_MODE = false as const
+export const TEST_MODE = process.env.PNW_TEST_MODE === 'true'
 
 /** How often the schedule-publish sweep runs (ms). */
 export const SCHEDULE_CHECK_INTERVAL_MS = 60_000

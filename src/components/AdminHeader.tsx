@@ -1,7 +1,7 @@
 import { btnCls } from "../pages/SchemaForm";
 import Logo from "../assets/logo_nagy_ed8ce51ced.png";
 
-/** A szerkesztő felületek (Hírkezelő, Vezérlőpult, Creator) közös fejlécsávja: logó, felület neve, felhasználó, kijelentkezés. */
+/** Shared header bar of the editor screens (Hírkezelő, Dashboard, Creator): logo, screen name, user, logout. */
 export default function AdminHeader({
   title,
   name,
@@ -10,7 +10,7 @@ export default function AdminHeader({
 }: {
   title: string;
   name: string;
-  /** Súgó a névre vitt egérhez (pl. a jogosultságok). */
+  /** Tooltip for hovering over the name (e.g. the permissions). */
   hint?: string;
   onLogout: () => void;
 }) {

@@ -8,9 +8,9 @@ const router = Router()
 /** Mirrors render_audit() - the full event log, newest first. */
 router.get('/', requireCapability(CAPABILITY.VIEW_AUDIT_LOG), async (req, res) => {
   const limit = Math.min(200, Number(req.query.limit) || 100)
-  // A régi oldalról importált hírek bejegyzései (több száz, egy időpontból) elnyomnák a valódi eseményeket: alapból kimaradnak.
+  // Entries of posts imported from the old site (hundreds, all from one moment) would drown out the real events: they are left out by default.
   const withImported = req.query.imported === '1'
-  const entries = withImported ? await recentAudit(limit) : (await recentAudit(5000)).filter((entry) => entry.action !== 'imported').slice(0, limit)
+  const entries = await recentAudit(Math.max(1, limit), { excludeImported: !withImported })
   res.json({ entries })
 })
 

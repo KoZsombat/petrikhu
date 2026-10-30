@@ -1,5 +1,5 @@
 /**
- * Categories and tags (AGENT.md 6.16). Listing is genuinely public - a
+ * Categories and tags (AGENTS.md "Server" (permissions)). Listing is genuinely public - a
  * published post shows its category names on the open site, so the static
  * pages (src/lib/terms.ts) need this without a session, exactly like
  * /api/public/posts. Creating needs `pnw_manage_terms`; *using* an existing

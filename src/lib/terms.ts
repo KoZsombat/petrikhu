@@ -3,11 +3,11 @@ import type { Term, TermKind } from "../../shared/pnw/types";
 import { SEED_CATEGORIES } from "../../shared/pnw/seed-terms";
 
 /**
- * Az élő kategória- és címkelista. A szerver birtokolja őket, ezért minden
- * képernyő (a Hírkezelő és a nyilvános hír is) innen olvassa a neveket.
- * Oldalbetöltésenként egy lekérés, modulszinten gyorsítótárazva; amíg nem
- * érkezik meg (vagy ha nincs backend), a magolt kategóriák a pillanatkép.
- * Az előfizetők miatt egy új elem azonnal megjelenik minden nyitott listában.
+ * The live category and tag list. The server owns it, so every
+ * screen (the Hírkezelő and the public post alike) reads the names from here.
+ * One fetch per page load, cached at module level; until it
+ * arrives (or when there is no backend), the baked-in categories are the snapshot.
+ * Subscribers mean a new item appears immediately in every open list.
  */
 let snapshot: Term[] = SEED_CATEGORIES;
 let inflight: Promise<void> | null = null;
@@ -25,7 +25,7 @@ function load(): Promise<void> {
       if (data.terms) publish(data.terms);
     })
     .catch(() => {
-      /* nincs backend: a magolt kategóriák így is a jó nevek */
+      /* no backend: the baked-in categories already have the right names */
     });
   return inflight;
 }
@@ -39,7 +39,7 @@ function subscribe(listener: () => void): () => void {
 
 const getSnapshot = () => snapshot;
 
-/** Minden kategória és címke. */
+/** All categories and tags. */
 export function useTerms(): Term[] {
   const terms = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useTerms(): Term[] {
   return terms;
 }
 
-/** Egy frissen létrehozott elem (api.createTerm) beemelése a közös listába. */
+/** Adds a newly created item (api.createTerm) to the shared list. */
 export function rememberTerm(term: Term): void {
   if (snapshot.some((existing) => existing.id === term.id)) return;
   publish([...snapshot, term]);
@@ -62,7 +62,7 @@ export function termMap(terms: Term[]): Map<string, Term> {
   return new Map(terms.map((term) => [term.id, term]));
 }
 
-/** Egy hír kategóriáinak/címkéinek megjelenített nevei, a hír saját sorrendjében. */
+/** Display names of a post's categories/tags, in the post's own order. */
 export function termNames(terms: Term[], ids: string[]): string[] {
   const byId = termMap(terms);
   return ids.map((id) => byId.get(id)?.name ?? id);

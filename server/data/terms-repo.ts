@@ -1,5 +1,5 @@
 /**
- * Categories and tags, in PostgreSQL (see AGENT.md 6.16). The earlier
+ * Categories and tags, in PostgreSQL (see AGENTS.md "Server" (permissions)). The earlier
  * shared/pnw/categories.ts was a fixed, build-time list derived from the
  * mirror's category archives; it survives only as the seed
  * (shared/pnw/seed-terms.ts) for a fresh database. From there on terms are

@@ -15,7 +15,7 @@ import { btnDanger, btnPrimary, card, emptyCls, kicker } from "./ui";
 
 type Props = { user: ApiUser; postId?: string; published?: boolean };
 
-/** Hír írása/szerkesztése (szerző), vagy a kint lévő hír módosítása (published). */
+/** Writing/editing a post (author), or editing a published post (published). */
 export default function Editor({ user, postId, published }: Props) {
   const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
@@ -55,7 +55,7 @@ export default function Editor({ user, postId, published }: Props) {
     };
   }, [postId]);
 
-  // A kiválasztott kép blob-címe az előnézeti ablaknak; takarítást kér (revokeObjectURL).
+  // Blob URL of the selected image for the preview window; needs cleanup (revokeObjectURL).
   useEffect(() => {
     if (!image) {
       // eslint-disable-next-line react-hooks/set-state-in-effect

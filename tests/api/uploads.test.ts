@@ -1,0 +1,170 @@
+// Upload checks: images (extension + magic bytes), documents, serving (/uploads).
+import { after, before, describe, test } from 'node:test'
+import assert from 'node:assert/strict'
+import { DEMO, fileForm, PNG_BYTES, startTestServer } from '../helpers/server.ts'
+import type { Client, TestServer } from '../helpers/server.ts'
+
+let server: TestServer
+let editor: Client
+let author: Client
+
+before(async () => {
+  server = await startTestServer()
+  editor = await server.login(DEMO.reviewer)
+  author = await server.login(DEMO.author)
+})
+after(() => server.close())
+
+const JPEG_BYTES = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0])
+const GIF_BYTES = Uint8Array.from([...new TextEncoder().encode('GIF89a'), 1, 0, 1, 0])
+const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><script>alert(1)</script></svg>'
+const urlOf = (res: { body: unknown }) => (res.body as { url: string }).url
+
+/** The two image upload endpoints apply the same rule. */
+const endpoints: { name: string; who: () => Client; path: string }[] = [
+  { name: 'Szerkesztő médiatár', who: () => editor, path: '/api/pages/media' },
+  { name: 'hír szövegképe (/api/posts/media)', who: () => author, path: '/api/posts/media' },
+]
+
+for (const e of endpoints) {
+  describe(e.name, () => {
+    const upload = (name: string, bytes: Uint8Array | string, type: string) => e.who().post(e.path, fileForm('file', name, bytes, type))
+    const rejected = (res: { status: number; body: unknown }) => {
+      assert.equal(res.status, 422)
+      assert.deepEqual(res.body, { error: 'not_an_image' })
+    }
+
+    test('PNG with a correct header and extension → 200, the url returns the bytes as image/png', async () => {
+      const res = await upload('kep.png', PNG_BYTES, 'image/png')
+      assert.equal(res.status, 200)
+      const url = urlOf(res)
+      assert.match(url, /^\/uploads\/[0-9a-f-]{36}\.png$/)
+
+      const served = await fetch(server.url + url)
+      assert.equal(served.status, 200)
+      assert.equal(served.headers.get('content-type'), 'image/png')
+      assert.equal(served.headers.get('x-content-type-options'), 'nosniff')
+      assert.ok(!String(served.headers.get('content-security-policy')).includes('sandbox'))
+      assert.deepEqual(new Uint8Array(await served.arrayBuffer()), PNG_BYTES)
+    })
+
+    test('JPEG and GIF also pass with their own headers; an uppercase extension becomes lowercase', async () => {
+      const jpg = await upload('a.JPG', JPEG_BYTES, 'image/jpeg')
+      assert.equal(jpg.status, 200)
+      assert.ok(urlOf(jpg).endsWith('.jpg'))
+      const gif = await upload('a.gif', GIF_BYTES, 'image/gif')
+      assert.equal(gif.status, 200)
+      assert.equal((await fetch(server.url + urlOf(gif))).headers.get('content-type'), 'image/gif')
+    })
+
+    test('forbidden extension (.exe, .html, .php, none) → 422', async () => {
+      for (const name of ['a.exe', 'a.html', 'a.php', 'a', 'a.png.exe']) rejected(await upload(name, PNG_BYTES, 'image/png'))
+    })
+
+    test('good extension, bad content → 422', async () => {
+      rejected(await upload('szoveg.png', 'ez nem kép', 'image/png'))
+      rejected(await upload('jpeg.gif', JPEG_BYTES, 'image/gif'))
+      rejected(await upload('png.jpg', PNG_BYTES, 'image/jpeg'))
+      rejected(await upload('ures.png', '', 'image/png'))
+      rejected(await upload('hamis.webp', 'RIFFxxxxWEBX', 'image/webp'))
+    })
+
+    test('not image/* mimetype → 422', async () => {
+      rejected(await upload('kep.png', PNG_BYTES, 'application/octet-stream'))
+      rejected(await upload('kep.png', PNG_BYTES, 'text/html'))
+    })
+
+    test('SVG (starting with <svg) accepted, but served with a sandbox CSP', async () => {
+      const res = await upload('abra.svg', SVG, 'image/svg+xml')
+      assert.equal(res.status, 200)
+      const served = await fetch(server.url + urlOf(res))
+      assert.equal(served.status, 200)
+      assert.equal(served.headers.get('content-type'), 'image/svg+xml')
+      assert.equal(served.headers.get('content-security-policy'), "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+      assert.equal(served.headers.get('x-content-type-options'), 'nosniff')
+    })
+
+    test('SVG-nek nevezett HTML → 422', async () => {
+      rejected(await upload('x.svg', '<html><script>alert(1)</script></html>', 'image/svg+xml'))
+    })
+
+    test('no file either → 422', async () => {
+      const res = await e.who().post(e.path, new FormData())
+      assert.equal(res.status, 422)
+    })
+  })
+}
+
+test('the uploaded image appears in the media library list', async () => {
+  const url = urlOf(await editor.post('/api/pages/media', fileForm('file', 'lista.png', PNG_BYTES, 'image/png')))
+  const list = (await editor.get('/api/pages/media')).body as { items: { url: string }[] }
+  assert.ok(list.items.some((i) => i.url === url))
+})
+
+test('the media library is forbidden without the right (author), and so is the post image without login', async () => {
+  assert.equal((await author.post('/api/pages/media', fileForm('file', 'a.png', PNG_BYTES, 'image/png'))).status, 403)
+  const anon = server.client()
+  const res = await anon.post('/api/posts/media', fileForm('file', 'a.png', PNG_BYTES, 'image/png'))
+  assert.ok(res.status === 401 || res.status === 403, String(res.status))
+})
+
+describe('dokumentumok (/api/pages/library/file)', () => {
+  const upload = (name: string, bytes: Uint8Array | string = '%PDF-1.4') => editor.post('/api/pages/library/file', fileForm('file', name, bytes, 'application/octet-stream'))
+
+  test('.pdf accepted, the url contains the slug of the original name, and it is served', async () => {
+    const res = await upload('Alapito Okirat 2026.pdf', '%PDF-1.4 teszt')
+    assert.equal(res.status, 200)
+    const url = urlOf(res)
+    assert.match(url, /^\/uploads\/alapito-okirat-2026-[0-9a-f]{6}\.pdf$/)
+    const served = await fetch(server.url + url)
+    assert.equal(served.status, 200)
+    assert.equal(served.headers.get('content-type'), 'application/pdf')
+    assert.equal(await served.text(), '%PDF-1.4 teszt')
+  })
+
+  // multer/busboy decodes the file name as latin1 by default, so a UTF-8 accented name ("í" → "Ã" + soft hyphen) gets garbled in the slug.
+  test('an accented original file name goes into the url unaccented', async () => {
+    const res = await upload('Alapító Okirat.pdf')
+    assert.equal(res.status, 200)
+    assert.match(urlOf(res), /^\/uploads\/alapito-okirat-[0-9a-f]{6}\.pdf$/)
+  })
+
+  test('other allowed types (docx, xlsx, zip, txt) pass', async () => {
+    for (const name of ['a.docx', 'b.XLSX', 'c.zip', 'd.txt']) assert.equal((await upload(name)).status, 200, name)
+  })
+
+  test('.exe, .html, .svg, .js, no extension → 422 unsupported_file', async () => {
+    for (const name of ['a.exe', 'a.html', 'a.svg', 'a.js', 'pdf', 'a.pdf.exe']) {
+      const res = await upload(name)
+      assert.equal(res.status, 422, name)
+      assert.deepEqual(res.body, { error: 'unsupported_file' })
+    }
+  })
+
+  test('a path-traversal name is stored slugged (no / or ..)', async () => {
+    const res = await upload('../../etc/passwd.pdf')
+    assert.equal(res.status, 200)
+    const url = urlOf(res)
+    const stored = url.slice('/uploads/'.length)
+    assert.ok(!stored.includes('/') && !stored.includes('..') && !stored.includes('\\'), stored)
+    assert.match(stored, /^(etc-)?passwd-[0-9a-f]{6}\.pdf$/)
+    const row = await server.sql('SELECT 1 AS x FROM media_files WHERE path = $1', [url])
+    assert.equal(row.length, 1)
+  })
+
+  test('an empty base name also gets a name', async () => {
+    const res = await upload('.pdf')
+    // counts as a "dotfile" name with no extension (extname('.pdf') === ''), so it is rejected
+    assert.equal(res.status, 422)
+  })
+
+  test('without the right (author) 403', async () => {
+    const res = await author.post('/api/pages/library/file', fileForm('file', 'a.pdf', '%PDF', 'application/pdf'))
+    assert.equal(res.status, 403)
+  })
+})
+
+test('path traversal on serving returns nothing', async () => {
+  const res = await fetch(server.url + '/uploads/..%2f..%2fetc%2fpasswd')
+  assert.notEqual(res.status, 200)
+})

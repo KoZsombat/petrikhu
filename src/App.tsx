@@ -5,7 +5,7 @@ import Landing from "./pages/Landing";
 import Preview from "./pages/Preview";
 import { PageRenderer, PageTemplate } from "./components";
 import type { PageBlock } from "./components";
-import { pageBlocks, pageSlugs } from "./i18n/pages";
+import { hasTranslation, pageBlocks, pageSlugs } from "./i18n/pages";
 import titles from "./pages/samples/pageTitles.json";
 import { useLang } from "./i18n/languageContext";
 import type { Lang } from "./i18n/languageContext";
@@ -35,15 +35,24 @@ function NotFound() {
   );
 }
 
-/** Az oldal címe: az első PageTitle blokk címe. */
+/** Shown in English mode above a built-in page that has no English version yet (it falls back to Hungarian). */
+function UntranslatedNotice() {
+  return (
+    <div role="note" className="mx-auto mt-6 max-w-4xl rounded-md border border-petrikline bg-petriktint px-4 py-3 text-sm text-petriksoft">
+      This page is not yet available in English; the Hungarian version is shown.
+    </div>
+  );
+}
+
+/** Page title: the title of the first PageTitle block. */
 function titleOf(blocks: PageBlock[]): string | undefined {
   const title = blocks.find((b) => b.component === "PageTitle")?.values.title;
   return typeof title === "string" ? title : undefined;
 }
 
 /**
- * Beépített oldal az aktuális nyelven (a `forceLang` egy adott nyelvhez köti, pl. az /about-us). Ha a szerkesztőben
- * azonos slugú oldalt adtak ki, az felülírja a magyar változatot; az angol a fordított tartalmat mutatja.
+ * Built-in page in the current language (`forceLang` ties it to one language, e.g. /about-us). If the Creator
+ * published a page with the same slug, that overrides the Hungarian version; English shows the translated content.
  */
 function BuiltInPage({ slug, forceLang }: { slug: string; forceLang?: Lang }) {
   const { lang: current } = useLang();
@@ -51,11 +60,12 @@ function BuiltInPage({ slug, forceLang }: { slug: string; forceLang?: Lang }) {
   const content = pageBlocks(slug, lang) ?? [];
   const edited = useSiteContent().pages.get(slug);
   const shown = lang === "hu" ? edited : undefined;
-  // A fül címe az oldal neve (nem a nagy cím, ami gyakran szlogen): a régi oldal címei, angolul a megfelelőjük.
+  // The tab title is the page name (not the large heading, which is often a slogan): the old site's titles, and their English equivalents.
   const pageName = (titles as Record<string, { hu: string; en: string }>)[slug]?.[lang];
   useDocumentHead({ title: shown?.title ?? pageName ?? titleOf(content), description: shown?.description });
   return (
     <PageTemplate>
+      {lang === "en" && !hasTranslation(slug) && <UntranslatedNotice />}
       {slug === "hirek" && !shown ? (
         <NewsFeed content={content} />
       ) : (
@@ -65,7 +75,7 @@ function BuiltInPage({ slug, forceLang }: { slug: string; forceLang?: Lang }) {
   );
 }
 
-/** A /<slug>: a szerkesztőben kiadott oldal; ha nincs, 404. A beépített oldalak saját útvonalat kapnak. */
+/** /<slug>: a page published in the Creator; 404 if there is none. Built-in pages get their own routes. */
 function CreatedPage() {
   const { slug = "" } = useParams();
   const { pages, loading } = useSiteContent();
@@ -78,7 +88,7 @@ function CreatedPage() {
       </PageTemplate>
     );
   }
-  // Nem szerkesztőben kiadott oldal: lehet egy hír a régi /<slug> címén (a PublishedPost maga mutatja a 404-et).
+  // Not a page published in the Creator: it may be a post at the old /<slug> address (PublishedPost shows the 404 itself).
   return loading ? null : <PublishedPost slug={slug} />;
 }
 
@@ -93,11 +103,11 @@ export default function App() {
           </PageTemplate>
         }
       />
-      {/* Minden aloldal a pages.json-ból: /<slug> */}
+      {/* Every subpage from pages.json: /<slug> */}
       {pageSlugs.map((slug) => (
         <Route key={slug} path={`/${slug}`} element={<BuiltInPage slug={slug} />} />
       ))}
-      {/* Régi angol oldal: a Bemutatkozás angol változata */}
+      {/* Old English page: the English version of the Bemutatkozás page */}
       <Route path="/about-us" element={<BuiltInPage slug="bemutatkozas" forceLang="en" />} />
       <Route path="/creator" element={<Creator />} />
       <Route path="/dashboard" element={<Dashboard />} />

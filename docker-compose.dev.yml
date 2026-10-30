@@ -1,9 +1,9 @@
-# Fejlesztés Dockerrel:  docker compose -f docker-compose.dev.yml up
-#   oldal (Vite, HMR):  http://localhost:5173   (a /api, /uploads, /media az api szolgáltatásra proxyzik)
-#   API közvetlenül:    http://localhost:4000
-# A forráskód a hostról van becsatolva, így a módosítások azonnal érvényesek (Vite HMR, `node --watch` az API-nál).
-# A node_modules külön kötetben él, hogy ne ütközzön a host (macOS) csomagjaival.
-# Üres adatbázisnál 3 demó fiók jön létre (igazgato, helyettes, mk.vezeto; jelszavak: server/data/users-repo.ts).
+# Development with Docker:  docker compose -f docker-compose.dev.yml up
+#   site (Vite, HMR):   http://localhost:5173   (/api, /uploads and /media are proxied to the api service)
+#   API directly:       http://localhost:4000
+# The source code is bind-mounted from the host, so changes apply immediately (Vite HMR, `node --watch` for the API).
+# node_modules lives in a separate volume so it does not clash with the host's (macOS) packages.
+# An empty database gets 3 demo accounts (igazgato, helyettes, mk.vezeto; passwords: server/data/users-repo.ts).
 x-node: &node
   image: node:24-slim
   working_dir: /app
@@ -20,7 +20,7 @@ services:
       POSTGRES_DB: petrik
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
-    # Hogy a host eszközei (psql, `npm run db:import`) is elérjék: DATABASE_URL=postgres://petrik:petrik@localhost:5432/petrik
+    # So host tools (psql, `npm run db:import`) can reach it too: DATABASE_URL=postgres://petrik:petrik@localhost:5432/petrik
     ports: ["127.0.0.1:5432:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U petrik -d petrik"]
@@ -28,7 +28,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # Egyszeri: telepíti a függőségeket a közös node_modules kötetbe.
+  # One-off: installs the dependencies into the shared node_modules volume.
   deps:
     <<: *node
     command: npm install --ignore-scripts

@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 import { labelHref, socialLinks } from "../lib/constants";
 import Logo from "../assets/logo_nagy_ed8ce51ced.png";
+import { SmartLink } from "./SmartLink";
 
 const columns = [
   {
@@ -63,12 +64,12 @@ export default function Footer() {
               <ul className="space-y-2">
                 {col.links.map((label) => (
                   <li key={tr(label)}>
-                    <a
+                    <SmartLink
                       href={labelHref[label] ?? ""}
                       className="text-petriklink hover:text-white transition-colors duration-200"
                     >
                       {tr(label)}
-                    </a>
+                    </SmartLink>
                   </li>
                 ))}
               </ul>
@@ -84,29 +85,29 @@ export default function Footer() {
               </li>
               <li className="flex items-center justify-center gap-3 md:justify-start">
                 <Phone size={14} className="shrink-0" />
-                <a
+                <SmartLink
                   href="tel:+36705021724"
                   className="text-petriklink hover:text-white transition-colors duration-200"
                 >
                   +36 70 502 1724
-                </a>
+                </SmartLink>
               </li>
               <li className="flex items-center justify-center gap-3 md:justify-start">
                 <Mail size={14} className="shrink-0" />
-                <a
+                <SmartLink
                   href="mailto:info@petrik.hu"
                   className="text-petriklink hover:text-white transition-colors duration-200"
-                >{tr("info@petrik.hu")}</a>
+                >{tr("info@petrik.hu")}</SmartLink>
               </li>
               <li>
-                <a
+                <SmartLink
                   href="/tanari-kar"
                   className="text-petriklink hover:text-white transition-colors duration-200"
-                >{tr("Tanári kar")}</a>
+                >{tr("Tanári kar")}</SmartLink>
               </li>
             </ul>
             <div className="mt-4 flex justify-center gap-3 md:justify-start">
-              <a
+              <SmartLink
                 href={socialLinks.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -114,8 +115,8 @@ export default function Footer() {
                 className="flex size-11 items-center justify-center rounded-full border border-petriklink/20 hover:border-white hover:text-white transition-colors duration-200"
               >
                 <FaFacebookF size={14} />
-              </a>
-              <a
+              </SmartLink>
+              <SmartLink
                 href={socialLinks.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -123,7 +124,7 @@ export default function Footer() {
                 className="flex size-11 items-center justify-center rounded-full border border-petriklink/20 hover:border-white hover:text-white transition-colors duration-200"
               >
                 <FaInstagram size={14} />
-              </a>
+              </SmartLink>
             </div>
           </div>
         </div>
@@ -131,14 +132,14 @@ export default function Footer() {
         <div className="mt-12 flex flex-col gap-3 border-t border-petriklink/15 pt-6 text-sm sm:flex-row items-center sm:justify-between">
           <p className="text-petriklink/50">{tr("© 2026 Budapesti Műszaki SZC Petrik Lajos Két Tanítási Nyelvű Technikum · Minden jog fenntartva.")}</p>
           <div className="flex gap-6">
-            <a
+            <SmartLink
               href="/adatvedelem"
               className="text-petriklink hover:text-white transition-colors duration-200"
-            >{tr("Adatvédelem")}</a>
-            <a
+            >{tr("Adatvédelem")}</SmartLink>
+            <SmartLink
               href="/adatkezelesi-tajekoztato"
               className="text-petriklink hover:text-white transition-colors duration-200"
-            >{tr("Adatkezelési tájékoztató")}</a>
+            >{tr("Adatkezelési tájékoztató")}</SmartLink>
           </div>
         </div>
       </div>

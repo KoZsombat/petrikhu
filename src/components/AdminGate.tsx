@@ -58,15 +58,15 @@ function LoginCard({ onLogin }: { onLogin: (login: string, password: string) => 
 
 type GateProps = {
   children: (user: ApiUser, logout: () => Promise<void>) => ReactNode;
-  /** Ki léphet be; alapból az oldalszerkesztési jog (MANAGE_PAGES). A Hírkezelő: bármelyik hírjog. */
+  /** Who may enter; by default the page-editing permission (MANAGE_PAGES). Hírkezelő: any news permission. */
   allow?: (user: ApiUser) => boolean;
-  /** A tiltó képernyő szövege. */
+  /** Text of the access-denied screen. */
   deniedText?: string;
 };
 
 const canManagePages = (user: ApiUser) => user.permissions.includes(CAPABILITY.MANAGE_PAGES);
 
-/** A szerkesztő felületek (Creator, Dashboard, Hírkezelő) kapuja: belépés, majd a jogosultság ellenőrzése. */
+/** Gate for the editor screens (Creator, Dashboard, Hírkezelő): login, then the permission check. */
 export default function AdminGate({
   children,
   allow = canManagePages,

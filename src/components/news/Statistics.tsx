@@ -19,7 +19,7 @@ function monthLabel(key: string): string {
   return MONTH_LABEL.format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-/** A Hírkezelő használatának és a publikált tartalmaknak az áttekintése. */
+/** Overview of Hírkezelő usage and published content. */
 export default function Statistics() {
   const [data, setData] = useState<StatisticsData | null>(null);
   const authors = useUsers();
@@ -42,7 +42,6 @@ export default function Statistics() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Metric value={data.liveAll} label="Kint lévő hírek" description="Az összes jelenleg publikus hír" />
-        <Metric value={data.liveManaged} label="Hírkezelőből publikált" description="A workflow-val létrehozott és jelenleg élő hírek" />
         <Metric value={data.scheduled} label="Időzített" description="Jóváhagyva, későbbi megjelenésre vár" />
         <Metric value={data.pending} label="Jóváhagyásra vár" description="Vezetői döntésre váró hírek" />
         <Metric value={data.archived} label="Archívumban" description="Nem publikus, visszaállítható hírek" />

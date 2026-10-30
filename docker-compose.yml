@@ -1,12 +1,12 @@
-# Három szolgáltatás: postgres (csak a belső hálózaton), petrik (az egyetlen port: 4000) és
-# opcionálisan a cloudflared (`docker compose --profile tunnel up`), ami ezt az egy portot teszi ki az internetre.
+# Services: postgres (internal network only), petrik (the single port: 4000), backup (nightly pg_dump) and
+# optionally cloudflared (`docker compose --profile tunnel up`), which exposes this one port to the internet.
 services:
   postgres:
     image: postgres:17
     restart: unless-stopped
     environment:
       POSTGRES_USER: petrik
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?állíts be egy adatbázis-jelszót}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a database password}
       POSTGRES_DB: petrik
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -15,7 +15,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # Nincs publikált port: csak a petrik szolgáltatás éri el a compose hálózaton.
+    # No published port: only the petrik service is reachable on the compose network.
 
   petrik:
     build: .
@@ -23,32 +23,53 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Csak a hosti loopbackre kötve: ide mutat a cloudflared (http://localhost:4000), kívülről közvetlenül nem érhető el.
+    # Bound to the host loopback only: cloudflared points here (http://localhost:4000); it is not directly reachable from outside.
     ports: ["127.0.0.1:${PNW_PORT:-4000}:${PNW_PORT:-4000}"]
     environment:
       DATABASE_URL: postgres://petrik:${POSTGRES_PASSWORD}@postgres:5432/petrik
       PNW_PORT: ${PNW_PORT:-4000}
-      # Éles használathoz kötelező: PNW_SESSION_SECRET és PNW_SEED_PASSWORD (lásd .env.example, server/config.ts).
-      PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:?állíts be egy titkot}
-      PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?állíts be induló jelszót}
-      # Hány proxy áll a szerver előtt (a cloudflared egy).
+      # Required for production: PNW_SESSION_SECRET and PNW_SEED_PASSWORD (see .env.example, server/config.ts).
+      PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:?set a session secret}
+      PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?set an initial password}
+      # How many proxies sit in front of the server (cloudflared is one).
       PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-1}
-      # A nyilvános cím, pl. https://petrik.hu - ez az engedélyezett eredet a módosító API-hívásokhoz.
+      # The public address, e.g. https://petrik.hu - the allowed origin for modifying API calls.
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
+      PNW_TEST_MODE: ${PNW_TEST_MODE:-false}
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
+
+  # Nightly pg_dump of the whole database (posts, pages, accounts AND media) into ./backups on the host.
+  # Run one now: docker compose run --rm backup once. Restore: README.md "Backups".
+  backup:
+    image: postgres:17
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: petrik
+      PGDATABASE: petrik
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PNW_BACKUP_KEEP_DAYS: ${PNW_BACKUP_KEEP_DAYS:-14}
+      PNW_BACKUP_AT: ${PNW_BACKUP_AT:-03:30}
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - ${PNW_BACKUP_DIR:-./backups}:/backups
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel"]
     restart: unless-stopped
     depends_on: [petrik]
-    # A Cloudflare Zero Trust felületén a tunnel Public Hostname-je: http://petrik:4000
+    # The tunnel's Public Hostname in the Cloudflare Zero Trust dashboard: http://petrik:4000
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?állítsd be a Cloudflare tunnel tokent}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set the Cloudflare tunnel token}
 
 volumes:
   pgdata:

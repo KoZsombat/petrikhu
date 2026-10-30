@@ -2,18 +2,17 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { CAPABILITY, STATUS } from '../../shared/pnw/types.ts'
 import type { Post, PostStatus } from '../../shared/pnw/types.ts'
-import { canEditWorkflowPost, canViewWorkflowPost } from '../../shared/pnw/access.ts'
+import { canEditWorkflowPost, canTrashWorkflowPost, canViewWorkflowPost } from '../../shared/pnw/access.ts'
 import { canReview, hasCapability } from '../../shared/pnw/permissions.ts'
-import { allPosts, existingSlugs, findPost, insertPost, removePost, updatePost } from '../data/posts-repo.ts'
+import { countByStatus, countPosts, existingSlugs, findPost, findPosts, insertPost, removePost, updatePost } from '../data/posts-repo.ts'
 import { termIdsOfKind } from '../data/terms-repo.ts'
 import { uniqueSlug } from '../../shared/pnw/slug.ts'
 import { requireCapability, requireLogin } from '../middleware/auth.ts'
 import { logAudit, recentAudit } from '../lib/audit.ts'
 import { notifyApproved, notifyRejected, notifyScheduled, notifySubmitted } from '../lib/notifications.ts'
 import { hasRealText, parseIdList, parseRichText, sanitizeTermIds } from '../lib/validation.ts'
-import { blockText } from '../../shared/pnw/richtext.ts'
 import { TEST_MODE } from '../config.ts'
-import { storeImage, upload } from '../lib/uploads.ts'
+import { acceptUpload, storeImage, upload } from '../lib/uploads.ts'
 
 const router = Router()
 
@@ -28,70 +27,60 @@ router.use(requireLogin)
 
 /**
  * Mirrors render_dashboard()'s two branches - which branch you get is now a
- * question about one capability, not about a role (AGENT.md 6.16).
+ * question about one capability, not about a role (AGENTS.md "Server" (permissions)).
  */
 router.get('/dashboard', async (req, res) => {
   const user = req.pnwUser!
-  const all = await allPosts()
-  const mine = all.filter((post) => post.authorId === user.id)
 
   if (!canReview(user)) {
+    const counts = await countByStatus({ authorId: user.id })
     res.json({
       view: 'author',
       counts: {
-        [STATUS.DRAFT]: mine.filter((p) => p.status === STATUS.DRAFT).length,
-        [STATUS.PENDING]: mine.filter((p) => p.status === STATUS.PENDING).length,
-        [STATUS.REVISION]: mine.filter((p) => p.status === STATUS.REVISION).length,
-        [STATUS.FUTURE]: mine.filter((p) => p.status === STATUS.FUTURE).length,
-        [STATUS.PUBLISH]: mine.filter((p) => p.status === STATUS.PUBLISH).length,
+        [STATUS.DRAFT]: counts[STATUS.DRAFT] ?? 0,
+        [STATUS.PENDING]: counts[STATUS.PENDING] ?? 0,
+        [STATUS.REVISION]: counts[STATUS.REVISION] ?? 0,
+        [STATUS.FUTURE]: counts[STATUS.FUTURE] ?? 0,
+        [STATUS.PUBLISH]: counts[STATUS.PUBLISH] ?? 0,
       },
-      posts: sortByModified(mine),
+      posts: await findPosts({ authorId: user.id, statusNot: STATUS.TRASH }, { order: 'modified_desc' }),
+      trash: await findPosts({ authorId: user.id, status: STATUS.TRASH }, { order: 'modified_desc' }),
     })
     return
   }
 
-  const pending = all
-    .filter((p) => p.status === STATUS.PENDING)
-    .sort((a, b) => a.modifiedAt.localeCompare(b.modifiedAt))
-  const ownWorking = sortByModified(
-    mine.filter((p) => p.status === STATUS.DRAFT || p.status === STATUS.REVISION),
-  )
-  const scheduled = all
-    .filter((p) => p.status === STATUS.FUTURE)
-    .sort((a, b) => a.date.localeCompare(b.date))
-  const recent = sortByModified(
-    all.filter((p) =>
-      ([STATUS.PUBLISH, STATUS.FUTURE, STATUS.REVISION, STATUS.TEST_APPROVED] as PostStatus[]).includes(p.status),
-    ),
-  ).slice(0, 10)
-  const todayKey = new Date().toISOString().slice(0, 10)
-  const publishedToday = all.filter(
-    (p) => p.status === STATUS.PUBLISH && (p.date ?? '').startsWith(todayKey),
-  ).length
+  const [counts, pending, ownWorking, scheduled, recent, publishedToday, trash] = await Promise.all([
+    countByStatus(),
+    findPosts({ status: STATUS.PENDING }, { order: 'modified_asc' }),
+    findPosts({ authorId: user.id, status: [STATUS.DRAFT, STATUS.REVISION] }, { order: 'modified_desc' }),
+    findPosts({ status: STATUS.FUTURE }, { order: 'date_asc', limit: 10 }),
+    findPosts({ status: [STATUS.PUBLISH, STATUS.FUTURE, STATUS.REVISION, STATUS.TEST_APPROVED] }, { order: 'modified_desc', limit: 10 }),
+    countPosts({ status: STATUS.PUBLISH, day: new Date().toISOString().slice(0, 10) }),
+    findPosts({ status: STATUS.TRASH }, { order: 'modified_desc', limit: 30 }),
+  ])
 
   res.json({
     view: 'reviewer',
-    pendingCount: pending.length,
-    returnedCount: all.filter((p) => p.status === STATUS.REVISION).length,
-    scheduledCount: scheduled.length,
+    pendingCount: counts[STATUS.PENDING] ?? 0,
+    returnedCount: counts[STATUS.REVISION] ?? 0,
+    scheduledCount: counts[STATUS.FUTURE] ?? 0,
     publishedTodayCount: publishedToday,
     ownWorking,
     pending,
-    scheduled: scheduled.slice(0, 10),
+    scheduled,
     recent,
+    trash,
   })
 })
 
 /** Mirrors render_published_news(). */
 router.get('/published', requireCapability(CAPABILITY.MANAGE_PUBLISHED), async (req, res) => {
-  const { list, total, totalPages } = paginate((await allPosts()).filter((p) => p.status === STATUS.PUBLISH), req)
-  res.json({ posts: list, total, totalPages, testMode: TEST_MODE })
+  res.json({ ...(await paginate(STATUS.PUBLISH, req)), testMode: TEST_MODE })
 })
 
 /** Mirrors render_archived_news(). */
 router.get('/archived', requireCapability(CAPABILITY.MANAGE_PUBLISHED), async (req, res) => {
-  const { list, total, totalPages } = paginate((await allPosts()).filter((p) => p.status === STATUS.ARCHIVED), req)
-  res.json({ posts: list, total, totalPages })
+  res.json(await paginate(STATUS.ARCHIVED, req))
 })
 
 router.get('/:id', async (req, res) => {
@@ -104,8 +93,8 @@ router.get('/:id', async (req, res) => {
 })
 
 /** Mirrors PNW_Actions::save_news() for a brand-new draft. */
-/** Kép a hír szövegébe (egy kép vagy egy galéria elemei): mindenki tölthet fel, aki hírt írhat vagy kezelhet. */
-router.post('/media', upload.single('file'), async (req, res) => {
+/** An image for the text of a post (a single image or the items of a gallery): anyone who can write or manage posts may upload. */
+router.post('/media', acceptUpload(upload, 'file'), async (req, res) => {
   const user = req.pnwUser
   const allowed = [CAPABILITY.SUBMIT_NEWS, CAPABILITY.REVIEW_NEWS, CAPABILITY.MANAGE_PUBLISHED].some((c) => user && hasCapability(user, c))
   if (!allowed) {
@@ -120,13 +109,13 @@ router.post('/media', upload.single('file'), async (req, res) => {
   res.json({ url })
 })
 
-router.post('/', requireCapability(CAPABILITY.SUBMIT_NEWS), upload.single('featuredImage'), async (req, res) => {
+router.post('/', requireCapability(CAPABILITY.SUBMIT_NEWS), acceptUpload(upload, 'featuredImage'), async (req, res) => {
   const result = await saveAuthoredPost(req, null)
   respondToSave(res, result)
 })
 
 /** Mirrors save_news() for an existing draft/revision. */
-router.put('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), upload.single('featuredImage'), async (req, res) => {
+router.put('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), acceptUpload(upload, 'featuredImage'), async (req, res) => {
   const existing = await findPost(String(req.params.id))
   if (!existing || !canEditWorkflowPost(existing, req.pnwUser!)) {
     res.status(403).json({ error: 'forbidden' })
@@ -263,24 +252,46 @@ router.post('/:id/decision', requireCapability(CAPABILITY.REVIEW_NEWS), async (r
   res.json({ notice: 'approved' })
 })
 
-/** Mirrors delete_news() - trash your own draft/revision. */
-router.delete('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), async (req, res) => {
+/**
+ * Mirrors delete_news(), in two steps, like for pages: the first DELETE moves the post to the trash (restorable),
+ * a DELETE of a trashed post removes it permanently. The log is kept after the permanent deletion (with the post's title).
+ */
+router.delete('/:id', async (req, res) => {
   const existing = await findPost(String(req.params.id))
-  if (!existing || !canEditWorkflowPost(existing, req.pnwUser!)) {
+  if (!existing || !canTrashWorkflowPost(existing, req.pnwUser!)) {
     res.status(403).json({ error: 'forbidden' })
     return
   }
 
-  await logAudit(existing.id, 'trashed', existing.status, STATUS.TRASH, undefined, req.pnwUser!.id)
-  await removePost(existing.id)
-  res.json({ notice: 'trashed' })
+  if (existing.status === STATUS.TRASH) {
+    await logAudit(existing.id, 'deleted', STATUS.TRASH, '', undefined, req.pnwUser!.id, existing.title)
+    await removePost(existing.id)
+    res.json({ notice: 'deleted', permanent: true })
+    return
+  }
+
+  await updatePost(existing.id, (post) => ({ ...post, status: STATUS.TRASH, modifiedAt: now() }))
+  await logAudit(existing.id, 'trashed', existing.status, STATUS.TRASH, undefined, req.pnwUser!.id, existing.title)
+  res.json({ notice: 'trashed', permanent: false })
+})
+
+/** Restore from the trash - as a draft, so nothing goes public by accident (as with pages). */
+router.post('/:id/untrash', async (req, res) => {
+  const existing = await findPost(String(req.params.id))
+  if (!existing || existing.status !== STATUS.TRASH || !canTrashWorkflowPost(existing, req.pnwUser!)) {
+    res.status(404).json({ error: 'not_found' })
+    return
+  }
+  await updatePost(existing.id, (post) => ({ ...post, status: STATUS.DRAFT, modifiedAt: now() }))
+  await logAudit(existing.id, 'untrashed', STATUS.TRASH, STATUS.DRAFT, undefined, req.pnwUser!.id, existing.title)
+  res.json({ notice: 'untrashed' })
 })
 
 /** Mirrors update_published_news(). */
 router.put(
   '/:id/published',
   requireCapability(CAPABILITY.MANAGE_PUBLISHED),
-  upload.single('featuredImage'),
+  acceptUpload(upload, 'featuredImage'),
   async (req, res) => {
     if (TEST_MODE) {
       res.status(403).json({ error: 'production_only' })
@@ -345,7 +356,7 @@ router.get('/:id/audit', async (req, res) => {
     res.status(404).json({ error: 'not_found' })
     return
   }
-  res.json({ entries: await recentAudit(30, post.id) })
+  res.json({ entries: await recentAudit(30, { postId: post.id }) })
 })
 
 // --- helpers ---------------------------------------------------------------
@@ -355,27 +366,18 @@ function canViewPost(post: Post, user: import('../../shared/pnw/types.ts').Sessi
   return canViewWorkflowPost(post, user)
 }
 
-function sortByModified(list: Post[]): Post[] {
-  return [...list].sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
-}
+const PER_PAGE = 30
 
-function paginate(list: Post[], req: import('express').Request) {
-  const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : ''
-  const page = Math.max(1, Number(req.query.page) || 1)
-  const perPage = 30
-
-  const filtered = q
-    ? list.filter(
-        (post) =>
-          post.title.toLowerCase().includes(q) ||
-          post.content.some((block) => blockText(block).toLowerCase().includes(q)),
-      )
-    : list
-
-  const sorted = filtered.sort((a, b) => b.date.localeCompare(a.date))
-  const totalPages = Math.max(1, Math.ceil(sorted.length / perPage))
-  const list_ = sorted.slice((page - 1) * perPage, page * perPage)
-  return { list: list_, total: sorted.length, totalPages }
+/** The posts of one status, by date descending, per page, with optional search (`?q=`, `?page=`) - all in SQL. */
+async function paginate(status: PostStatus, req: import('express').Request) {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 200) : ''
+  const page = Math.max(1, Math.floor(Number(req.query.page)) || 1)
+  const filter = { status, search: q || undefined }
+  const [posts, total] = await Promise.all([
+    findPosts(filter, { order: 'date_desc', limit: PER_PAGE, offset: (page - 1) * PER_PAGE }),
+    countPosts(filter),
+  ])
+  return { posts, total, totalPages: Math.max(1, Math.ceil(total / PER_PAGE)) }
 }
 
 type SaveResult =
@@ -398,7 +400,7 @@ async function saveAuthoredPost(
   }
 
   // No allow-list any more: every account may use every category and tag
-  // (AGENT.md 6.16), so the only check is that the ids really exist - read
+  // (AGENTS.md "Server" (permissions)), so the only check is that the ids really exist - read
   // fresh, since a term created moments ago in the same editor must count.
   const categoryIds = sanitizeTermIds(parseIdList(req.body?.categoryIds), await termIdsOfKind('category'))
   const tagIds = sanitizeTermIds(parseIdList(req.body?.tagIds), await termIdsOfKind('tag'))

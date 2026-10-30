@@ -11,12 +11,23 @@ function initialLang(): Lang {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "hu" || stored === "en") return stored;
   } catch {
-    // privát módban a tárolás nem elérhető: marad az alapnyelv
+    // in private mode storage is unavailable, so the default language stays
   }
   return "hu";
 }
 
-/** A weboldal nyelve (magyar / angol): a választást a böngésző megjegyzi, a <html lang> követi. */
+/** Site language (Hungarian / English): the browser remembers the choice, and <html lang> follows it. */
+const reported = new Set<string>();
+
+/** An untranslated label stays Hungarian; in development it is also reported once, so gaps are visible. */
+function missing(hu: string): string {
+  if (import.meta.env.DEV && !reported.has(hu)) {
+    reported.add(hu);
+    console.warn(`[i18n] missing English translation: ${JSON.stringify(hu)} (src/i18n/en.ts)`);
+  }
+  return hu;
+}
+
 export default function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
 
@@ -32,11 +43,11 @@ export default function LanguageProvider({ children }: { children: ReactNode }) 
         try {
           localStorage.setItem(STORAGE_KEY, next);
         } catch {
-          // lásd fent
+          // see above
         }
       },
-      /** Magyar felirat → az aktuális nyelven; ismeretlen szöveg magyarul marad. */
-      tr: (hu: string) => (lang === "en" ? (en[hu] ?? hu) : hu),
+      /** Hungarian label → in the current language; unknown text stays Hungarian. */
+      tr: (hu: string) => (lang === "en" ? (en[hu] ?? missing(hu)) : hu),
     }),
     [lang],
   );

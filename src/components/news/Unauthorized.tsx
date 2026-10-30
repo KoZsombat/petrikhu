@@ -1,7 +1,7 @@
 import { btnCls } from "../../pages/SchemaForm";
 import { card } from "./ui";
 
-/** Tiltó képernyő: ehhez a nézethez a fióknak nincs meg a szükséges jogosultsága. */
+/** Access-denied screen: the account lacks the permission required for this view. */
 export default function Unauthorized({
   onLogout,
   title = "Nincs hírkezelési jogosultságod",

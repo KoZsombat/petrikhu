@@ -37,7 +37,7 @@ export type CardGridProps =
   | { variant: "news"; columns?: 3 | 4; items: CardGridNewsItem[]; className?: string; limit?: number }
   | { variant: "highlight"; title?: string; text: string; className?: string };
 
-/* A teljes osztálynevek szándékosan szerepelnek, hogy a Tailwind felismerje őket. */
+/* Full class names are written out on purpose so Tailwind can detect them. */
 const COLUMNS: Record<2 | 3 | 4, string> = {
   2: "grid-cols-1 sm:grid-cols-2",
   3: "grid-cols-1 sm:grid-cols-2 md:grid-cols-3",
@@ -45,11 +45,11 @@ const COLUMNS: Record<2 | 3 | 4, string> = {
 };
 
 const CARD = "relative rounded-lg border border-petriklinesoft bg-petrikcard";
-/* Kattintható kártya: a link ::after rétege lefedi az egész kártyát. */
+/* Clickable card: the link's ::after layer covers the whole card. */
 const STRETCH = "after:absolute after:inset-0 after:content-['']";
 const CARD_FOCUS = "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-petrikaccent";
 
-/** Az első `limit` elemet jeleníti meg; nélküle az összeset. */
+/** Shows the first `limit` items; all of them when omitted. */
 function take<T>(items: T[], limit?: number): T[] {
   return limit === undefined ? items : items.slice(0, Math.max(0, limit));
 }

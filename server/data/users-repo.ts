@@ -1,10 +1,9 @@
 /**
- * Hírkezelő accounts, in PostgreSQL (see AGENT.md 6.15) - replaces the earlier
+ * Hírkezelő accounts, in PostgreSQL (see AGENTS.md "Server") - replaces the earlier
  * hardcoded seed-users.ts now that accounts are managed from inside the app
  * (Users.tsx) rather than by editing source and restarting the server.
  *
- * An account carries a plain list of capabilities and **no role** (AGENT.md
- * 6.16); the SQLite import script converts the old `role` column into one of these lists.
+ * An account carries a plain list of capabilities and **no role** (AGENTS.md "Server" (permissions)); the SQLite import script converts the old `role` column into one of these lists.
  */
 import { randomUUID } from 'node:crypto'
 import bcrypt from 'bcryptjs'
@@ -27,17 +26,12 @@ type Row = {
   username: string
   display_name: string
   password_hash: string
-  permissions: string
+  permissions: unknown
 }
 
-function parsePermissions(raw: string): Capability[] {
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(isCapability)
-  } catch {
-    return []
-  }
+/** The JSONB column already arrives as an array; unknown (e.g. retired) rights are dropped. */
+function parsePermissions(raw: unknown): Capability[] {
+  return Array.isArray(raw) ? raw.filter(isCapability) : []
 }
 
 function fromRow(row: Row): UserRecord {
@@ -99,12 +93,12 @@ export async function removeUser(id: string): Promise<void> {
 }
 
 /**
- * The three original demo accounts (see 6.15), seeded once into an empty
+ * The three original demo accounts (see AGENTS.md "Server"), seeded once into an empty
  * table - so a fresh database still boots with working logins, but after
  * that these are ordinary rows, editable/removable from the Users.tsx
  * screen exactly like any account created there. Their permission sets are
- * what the deleted roles used to grant them (AGENT.md 6.16), plus the
- * Szerkesztő's right for the two leaders (6.19).
+ * what the deleted roles used to grant them (AGENTS.md "Server" (permissions)), plus the
+ * Szerkesztő's right for the two leaders (AGENTS.md "Server" (/creator)).
  */
 export async function seedInitialUsers(): Promise<void> {
   const { n } = (await one<{ n: number }>('SELECT COUNT(*)::int AS n FROM users'))!
@@ -116,7 +110,7 @@ export async function seedInitialUsers(): Promise<void> {
     CAPABILITY.VIEW_AUDIT_LOG,
     CAPABILITY.MANAGE_TERMS,
     CAPABILITY.MANAGE_USERS,
-    // The Szerkesztő (AGENT.md 6.19); mk.vezeto deliberately has no such right.
+    // The Szerkesztő (AGENTS.md "Server" (/creator)); mk.vezeto deliberately has no such right.
     CAPABILITY.MANAGE_PAGES,
     CAPABILITY.MANAGE_LIBRARY,
   ]
@@ -154,7 +148,7 @@ export async function seedInitialUsers(): Promise<void> {
   }
 }
 
-/** A repóban nyilvános demó-jelszavak: élesben egyik fióknál sem maradhatnak érvényben. */
+/** Public demo passwords in the repo: in production none of the accounts may keep one. */
 const DEMO_PASSWORDS: Record<string, string> = {
   'mk.vezeto': 'PetrikMK2026!',
   helyettes: 'PetrikHelyettes2026!',
@@ -162,8 +156,8 @@ const DEMO_PASSWORDS: Record<string, string> = {
 }
 
 /**
- * Élesben a nyilvánosan ismert demó-jelszavú fiókok jelszavát lecseréli a `PNW_SEED_PASSWORD`-re. Visszaadja, mely
- * fiókok jelszava volt még a demó (az üres lista a jó eset); ha nincs mire cserélni, a hívó dönt (leállás).
+ * In production the passwords of accounts with a publicly known demo password are replaced with `PNW_SEED_PASSWORD`. Returns which
+ * accounts still had the demo password (an empty list is the good case); if there is nothing to replace it with, the caller decides (stop).
  */
 export async function replaceDemoPasswords(replacement: string | undefined): Promise<string[]> {
   const affected: string[] = []

@@ -17,7 +17,7 @@ import AuditTimeline from "./AuditTimeline";
 import { asBlocks, hk } from "./helpers";
 import { btnDanger, btnPrimary, card, emptyCls, kicker, labelCls } from "./ui";
 
-/** Vezetői ellenőrzés: szerkesztés, jóváhagyás (azonnal vagy időzítve), visszaküldés megjegyzéssel. */
+/** Manager review: editing, approval (immediately or scheduled), return with a note. */
 export default function Review({ user, postId }: { user: ApiUser; postId: string }) {
   const navigate = useNavigate();
   const authors = useUsers();
@@ -68,7 +68,7 @@ export default function Review({ user, postId }: { user: ApiUser; postId: string
   const author = authors.get(post.authorId);
 
   if (!canReview(user)) {
-    // A szerző a saját beküldött vagy elbírált hírét nézi.
+    // The author is viewing their own submitted or reviewed post.
     return (
       <section className="flex flex-col gap-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -177,7 +177,7 @@ export default function Review({ user, postId }: { user: ApiUser; postId: string
           canCreateTerms={canManageTerms(user)}
           currentImage={post.featuredImage}
           onImageChange={() => {
-            /* a vezető csak szöveget/kategóriát szerkeszt, a szerver reviewer végpontja nem fogad képet */
+            /* the manager only edits text/categories; the server reviewer endpoint does not accept images */
           }}
           imagePosition={imagePosition}
           onImagePositionChange={setImagePosition}
@@ -187,7 +187,7 @@ export default function Review({ user, postId }: { user: ApiUser; postId: string
             <button type="button" className={btnCls} onClick={() => setPreviewOpen(true)}>
               Előnézet
             </button>
-            {/* A mentett változat valódi oldalként, új lapon. */}
+            {/* The saved version as a real page, in a new tab. */}
             <a className={btnCls} href={`/hirkezelo/elonezet/${post.id}`} target="_blank" rel="noreferrer">
               Megtekintés publikáltként ↗
             </a>

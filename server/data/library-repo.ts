@@ -7,8 +7,8 @@ import type { DocLibrary } from '../../shared/pnw/page-types.ts'
 import { row, run } from './db.ts'
 
 export async function getLibrary(): Promise<{ library: DocLibrary; modifiedAt: string } | null> {
-  const found = await row<{ data: string; modified_at: string }>('SELECT data, modified_at FROM site_library WHERE id = 1')
-  return found ? { library: JSON.parse(found.data), modifiedAt: found.modified_at } : null
+  const found = await row<{ data: DocLibrary; modified_at: string }>('SELECT data, modified_at FROM site_library WHERE id = 1')
+  return found ? { library: found.data, modifiedAt: found.modified_at } : null
 }
 
 export async function putLibrary(library: DocLibrary): Promise<void> {

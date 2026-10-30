@@ -1,6 +1,6 @@
 /**
  * Ported from PNW_Notifications - but there is no mail transport here, so
- * each call is a no-op beyond a server-side console log. See AGENT.md 6.15:
+ * each call is a no-op beyond a server-side console log. See AGENTS.md "Server":
  * nothing in the manager UI depends on the email actually arriving, so this
  * doesn't change what a user sees.
  */

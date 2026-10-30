@@ -2,7 +2,7 @@ import { cx } from "./utils";
 
 export type DateTagProps = { date: string; className?: string };
 
-/** Zöld, nagybetűs mono dátum-címke (kártyákon és hírsorokon). */
+/** Green, uppercase mono date tag (on cards and news rows). */
 export function DateTag({ date, className }: DateTagProps) {
   return (
     <span

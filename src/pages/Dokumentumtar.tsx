@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { PageTemplate } from "../components";
+import { PageRenderer, PageTemplate } from "../components";
+import type { PageBlock } from "../components";
 import { Container } from "../components/creator/Container";
 import { useSiteContent } from "../lib/siteContext";
 import { useDocumentHead } from "../lib/useDocumentHead";
@@ -9,11 +10,32 @@ import type { DocLibrary } from "../../shared/pnw/page-types";
 
 const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-/** A fájl típusa a kiterjesztésből (PDF, DOC…), a jelvényhez. */
+/** File type from the extension (PDF, DOC…), for the badge. */
 const fileType = (file: string) => (/\.([a-z0-9]+)$/i.exec(file)?.[1] ?? "fájl").slice(0, 4).toUpperCase();
 
-/** /dokumentumtar: kategóriánként a dokumentumok, kereséssel és oldalsó kategóriamenüvel; a szerkesztő által mentett tár felülírja a beépítettet. */
+/**
+ * /dokumentumtar: if a page with the same slug was published in the Creator, that is shown (in Hungarian), like every built-in
+ * subpage (BuiltInPage, App.tsx); otherwise the built-in library.
+ */
 export default function Dokumentumtar() {
+  const { lang } = useLang();
+  const edited = useSiteContent().pages.get("dokumentumtar");
+  const shown = lang === "hu" ? edited : undefined;
+  if (shown) return <EditedPage page={shown} />;
+  return <Library />;
+}
+
+function EditedPage({ page }: { page: { title: string; description: string; blocks: unknown[] } }) {
+  useDocumentHead({ title: page.title, description: page.description });
+  return (
+    <PageTemplate>
+      <PageRenderer content={page.blocks as PageBlock[]} />
+    </PageTemplate>
+  );
+}
+
+/** Documents by category, with search and a side category menu; a library saved in the Creator overrides the built-in one. */
+function Library() {
   const { tr } = useLang();
   useDocumentHead({ title: tr("Dokumentumtár") });
   const library: DocLibrary = useSiteContent().library ?? (builtIn as DocLibrary);

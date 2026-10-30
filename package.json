@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test --test-reporter=spec --test-concurrency=4 \"tests/**/*.test.ts\"",
     "preview": "vite preview",
     "server": "node --env-file-if-exists=.env --experimental-strip-types server/index.ts",
     "db:import": "node --env-file-if-exists=.env --experimental-strip-types server/scripts/import-sqlite.ts"
@@ -25,7 +26,8 @@
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.4",
     "sanitize-html": "^2.18.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

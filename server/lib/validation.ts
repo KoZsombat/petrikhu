@@ -45,7 +45,7 @@ const optMediaSize = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 10_000 ? value : undefined
 
 /**
- * Rebuilds a media block's own field from scratch (AGENT.md 6.24) - unknown
+ * Rebuilds a media block's own field from scratch (AGENTS.md "Server" (document library)) - unknown
  * keys dropped, every URL checked - or returns null to reject the document.
  */
 function sanitizeMedia(block: Record<string, unknown>): Partial<RichTextBlock> | null {
@@ -94,7 +94,7 @@ function sanitizeMedia(block: Record<string, unknown>): Partial<RichTextBlock> |
 /**
  * Keeps only ids that really exist as terms of the right kind. There is no
  * per-account allow-list any more - every account may use every category and
- * tag (AGENT.md 6.16) - so the only thing left to check is existence, which
+ * tag (AGENTS.md "Server" (permissions)) - so the only thing left to check is existence, which
  * the caller reads fresh from the terms table (a term created a second ago
  * has to be usable immediately).
  */
@@ -133,7 +133,7 @@ export function parseRichText(raw: unknown): RichTextDocument | null {
           if (!Array.isArray(row) || row.length > 30 || row.some((cell: unknown) => typeof cell !== 'string' || cell.length > 2000)) return null
         }
       }
-      // Media blocks (AGENT.md 6.24) carry URLs the renderer puts into src/href attributes.
+      // Media blocks (AGENTS.md "Server" (document library)) carry URLs the renderer puts into src/href attributes.
       const media = sanitizeMedia(block)
       if (!media) return null
       delete block.image
@@ -148,7 +148,7 @@ export function parseRichText(raw: unknown): RichTextDocument | null {
   }
 }
 
-/* --- the Szerkesztő (AGENT.md 6.20) ---------------------------------------
+/* --- the Szerkesztő (AGENTS.md "Core idea: a page is JSON") ---------------------------------------
  *
  * Everything below rebuilds the value from scratch rather than passing the
  * parsed JSON through: unknown keys are dropped, unknown module kinds and

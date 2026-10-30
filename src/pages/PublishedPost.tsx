@@ -7,12 +7,12 @@ import { publicPost } from "../lib/api";
 import { useLang } from "../i18n/languageContext";
 import { useDocumentHead } from "../lib/useDocumentHead";
 
-/** /hirek/:slug - a Hírkezelőből kiadott hír nyilvános oldala (GET /api/public/posts/:slug). */
+/** /hirek/:slug - public page of a post published from the Hírkezelő (GET /api/public/posts/:slug). */
 export default function PublishedPost({ slug: fixedSlug }: { slug?: string }) {
   const { tr } = useLang();
   const params = useParams<{ slug: string }>();
   const slug = fixedSlug ?? params.slug ?? "";
-  // A betöltött hír a saját slugjával együtt él, így slugváltáskor nem kell külön nullázni.
+  // The loaded post is kept together with its own slug, so it does not need a separate reset when the slug changes.
   const [loaded, setLoaded] = useState<{ slug: string; post: Post | null } | null>(null);
 
   useEffect(() => {

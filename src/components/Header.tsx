@@ -3,14 +3,14 @@ import { useLocation } from "react-router-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { FiFacebook, FiInstagram } from "react-icons/fi";
 import { menu as defaultMenu, socialLinks, upperLinks } from "../lib/constants";
-import { linkProps } from "./creator/utils";
+import { SmartLink } from "./SmartLink";
 import type { MenuItem } from "../../shared/pnw/creator-types";
 import { useSiteContent } from "../lib/siteContext";
 import { useLang } from "../i18n/languageContext";
 import LanguageSwitch from "../i18n/LanguageSwitch";
 import Logo from "../assets/logo_nagy_ed8ce51ced.png";
 
-// Több menüpont is mutathat ugyanarra az oldalra (pl. /hirek): csak az első találat aktív.
+// Several menu items may point to the same page (e.g. /hirek): only the first match is active.
 function ownersOf(menu: MenuItem[]) {
   const owner = new Map<string, string>();
   for (const item of menu) {
@@ -24,7 +24,7 @@ function ownersOf(menu: MenuItem[]) {
 export default function Header() {
   const { pathname } = useLocation();
   const { tr } = useLang();
-  // A szerkesztő által mentett menü, ennek hiányában a beépített.
+  // The menu saved by the editor; the built-in one if there is none.
   const menu: MenuItem[] = useSiteContent().menu ?? defaultMenu;
   const hrefOwner = ownersOf(menu);
   const isActive = (label: string, href: string) =>
@@ -33,6 +33,12 @@ export default function Header() {
     item.children?.some((c) => isActive(c.label, c.href)) ?? false;
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Navigation is client-side now (SmartLink), so close the mobile menu when the route changes.
+  const [shownFor, setShownFor] = useState(pathname);
+  if (shownFor !== pathname) {
+    setShownFor(pathname);
+    setOpen(false);
+  }
 
   return (
     <div className="p-4 bg-petrikcream w-full sticky top-0 z-50 shadow-md">
@@ -75,26 +81,26 @@ export default function Header() {
                         <ul className="pb-2 pl-4">
                           {item.children.map((child) => (
                             <li key={child.label}>
-                              <a
+                              <SmartLink
                                 href={child.href}
                                 aria-current={isActive(child.label, child.href) ? "page" : undefined}
                                 className={`block py-2 ${isActive(child.label, child.href) ? "text-petrikaccentdark font-semibold" : "text-black/60"}`}
                               >
                                 {tr(child.label)}
-                              </a>
+                              </SmartLink>
                             </li>
                           ))}
                         </ul>
                       )}
                     </>
                   ) : (
-                    <a
+                    <SmartLink
                       href={item.href}
                       aria-current={isActive(item.label, item.href ?? "") ? "page" : undefined}
                       className={`block py-3 ${isActive(item.label, item.href ?? "") ? "text-petrikaccentdark font-semibold" : "text-black/60"}`}
                     >
                       {tr(item.label)}
-                    </a>
+                    </SmartLink>
                   )}
                 </li>
               ))}
@@ -102,19 +108,19 @@ export default function Header() {
             <ul className="mt-4 grid grid-cols-2 gap-x-4 text-sm">
               {upperLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} {...linkProps(link.href)} className="block py-2 text-black/60">
+                  <SmartLink href={link.href} className="block py-2 text-black/60">
                     {tr(link.label)}
-                  </a>
+                  </SmartLink>
                 </li>
               ))}
             </ul>
             <div className="mt-2 flex items-center gap-4 text-black/60">
-              <a href={socialLinks.facebook} {...linkProps(socialLinks.facebook)} aria-label="Facebook">
+              <SmartLink href={socialLinks.facebook} aria-label="Facebook">
                 <FiFacebook size={20} />
-              </a>
-              <a href={socialLinks.instagram} {...linkProps(socialLinks.instagram)} aria-label="Instagram">
+              </SmartLink>
+              <SmartLink href={socialLinks.instagram} aria-label="Instagram">
                 <FiInstagram size={20} />
-              </a>
+              </SmartLink>
               <LanguageSwitch tone="light" className="ml-auto" />
             </div>
           </div>
@@ -133,25 +139,25 @@ export default function Header() {
                     <ul className="absolute left-0 top-8 z-50 w-60 p-2 bg-white/90 shadow-md text-left invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity rounded-lg">
                       {item.children.map((child) => (
                         <li key={child.label}>
-                          <a
+                          <SmartLink
                             href={child.href}
                             aria-current={isActive(child.label, child.href) ? "page" : undefined}
                             className={`block w-full px-5 py-1.5 hover:bg-petrikpale/20 rounded-lg cursor-pointer ${isActive(child.label, child.href) ? "text-petrikaccentdark font-semibold" : "text-black/60"}`}
                           >
                             {tr(child.label)}
-                          </a>
+                          </SmartLink>
                         </li>
                       ))}
                     </ul>
                   </>
                 ) : (
-                  <a
+                  <SmartLink
                     href={item.href}
                     aria-current={isActive(item.label, item.href ?? "") ? "page" : undefined}
                     className={`flex items-center gap-1 my-2 border-b-2 hover:border-petrikaccent transition-colors duration-200 cursor-pointer ${isActive(item.label, item.href ?? "") ? "text-petrikaccentdark border-petrikaccent" : "text-black/60 border-transparent"}`}
                   >
                     {tr(item.label)}
-                  </a>
+                  </SmartLink>
                 )}
               </li>
             ))}

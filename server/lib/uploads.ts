@@ -1,22 +1,45 @@
 /**
  * Uploads - one multer config shared by the Hírkezelő's featured image
  * (routes/posts.ts), the Szerkesztő's media picker (routes/pages.ts,
- * AGENT.md 6.19) and the Dokumentumtár (routes/library.ts). The bytes are kept
+ * AGENTS.md "Server" (/creator)) and the Dokumentumtár (routes/library.ts). The bytes are kept
  * in memory just long enough to be written to the database (data/media-repo.ts)
  * and are served from there at /uploads - nothing touches the disk.
  */
 import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
+import type { RequestHandler } from 'express'
 import multer from 'multer'
 import { slugify } from '../../shared/pnw/slug.ts'
 import { UPLOADS_URL_PREFIX } from '../config.ts'
 import { listImageMedia, putMedia } from '../data/media-repo.ts'
 import { mimeFor } from './media.ts'
 
+// Browsers send the file name as UTF-8; multer decodes it as latin1 by default, which would garble accented names.
 export const upload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: 8 * 1024 * 1024 },
 })
+
+/**
+ * Upload of one multer field, with uniform error handling: exceeding the size limit gives 413 `file_too_large`, every other
+ * multer error (e.g. an unexpected field name) gives 400 `upload_failed`. Every upload endpoint uses this, so the error
+ * never reaches the global error handler (which would return 500).
+ */
+export function acceptUpload(instance: multer.Multer, field: string): RequestHandler {
+  const handler = instance.single(field)
+  return (req, res, next) => {
+    handler(req, res, (error: unknown) => {
+      if (!error) {
+        next()
+        return
+      }
+      const code = (error as { code?: unknown }).code
+      if (code === 'LIMIT_FILE_SIZE') res.status(413).json({ error: 'file_too_large' })
+      else res.status(400).json({ error: 'upload_failed' })
+    })
+  }
+}
 
 /** What an uploaded image may be called - the extension decides the MIME /uploads serves it with. */
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif'])
@@ -38,7 +61,7 @@ export async function storeImage(file: Express.Multer.File | undefined): Promise
   return `${UPLOADS_URL_PREFIX}/${filename}`
 }
 
-/** A fájl eleje (a "magic bytes") egyezik-e a kiterjesztés szerinti képtípussal - átnevezett, nem kép fájl ne kerüljön be. */
+/** Whether the file's start (its "magic bytes") matches the image type of its extension - a renamed non-image file must not get in. */
 function looksLikeImage(buffer: Buffer, extension: string): boolean {
   const head = buffer.subarray(0, 16)
   const ascii = (from: number, to: number) => head.subarray(from, to).toString('latin1')
@@ -76,10 +99,11 @@ export async function listImages(): Promise<MediaItem[]> {
 /** nginx allows 10 MB per request (apps/client/nginx.conf), so a document stays just under that. */
 export const uploadDocument = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: 9 * 1024 * 1024 },
 })
 
-/** What the Dokumentumtár accepts - the extension is also what /uploads serves the MIME by. */
+/** What the Dokumentumtár (document library) accepts - the extension is also what /uploads uses to pick the MIME type. */
 const DOCUMENT_EXTENSIONS = new Set([
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp', '.rtf', '.txt', '.csv', '.zip',
 ])

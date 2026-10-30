@@ -5,7 +5,7 @@ export type LogoGridProps = {
   label?: string;
   logos: { alt: string; src?: string; href?: string }[];
   className?: string;
-  /** Legfeljebb ennyi logót jelenít meg. */
+  /** Shows at most this many logos. */
   limit?: number;
 };
 

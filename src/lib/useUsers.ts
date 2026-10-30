@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import * as api from "./api";
 import type { ApiUser } from "./api";
 
-// A fiókok listája futás közben alig változik, ezért oldalbetöltésenként egy
-// lekérés (modulszinten gyorsítótárazva) elég minden megjelenített névhez.
+// The account list hardly changes while running, so one fetch per page load
+// (cached at module level) is enough for every displayed name.
 let cache: Map<string, ApiUser> | null = null;
 let inflight: Promise<Map<string, ApiUser>> | null = null;
 
@@ -22,7 +22,7 @@ function load(): Promise<Map<string, ApiUser>> {
   return inflight;
 }
 
-/** Azonosító → fiók; amíg nem érkezik meg a lista, üres. */
+/** ID → account; empty until the list arrives. */
 export function useUsers(): Map<string, ApiUser> {
   const [users, setUsers] = useState<Map<string, ApiUser>>(cache ?? new Map());
   useEffect(() => {

@@ -6,9 +6,9 @@ import PostArticle from "../components/news/PostArticle";
 import { getPost } from "../lib/api";
 
 /**
- * /hirkezelo/elonezet/:id - a még nem publikus hír mentett változata úgy, ahogy
- * jóváhagyás után megjelenik. Új lapon nyílik, belépést kér (GET /api/posts/:id
- * ellenőrzi, ki láthatja), és nincs indexelve.
+ * /hirkezelo/elonezet/:id - the saved version of a post that is not public yet, as it
+ * will appear after approval. Opens in a new tab, requires login (GET /api/posts/:id
+ * checks who may see it), and is not indexed.
  */
 export default function PostPreviewPage() {
   const { id = "" } = useParams<{ id: string }>();

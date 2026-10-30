@@ -5,10 +5,10 @@ import { useNewsRows } from "../lib/news";
 import { useLang } from "../i18n/languageContext";
 import { useDocumentHead } from "../lib/useDocumentHead";
 
-/** Kis- és nagybetű, ékezet nélkül hasonlít össze (á → a). */
+/** Compares case- and accent-insensitively (á → a). */
 const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-/** /kereses?q=…: a hírek (élő és beépített) között keres cím és kivonat alapján. */
+/** /kereses?q=…: searches live and built-in posts by title and excerpt. */
 export default function Search() {
   const { tr } = useLang();
   useDocumentHead({ title: tr("Keresés") });

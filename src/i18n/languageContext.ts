@@ -5,7 +5,7 @@ export type Lang = "hu" | "en";
 export type LanguageValue = {
   lang: Lang;
   setLang: (lang: Lang) => void;
-  /** Magyar felirat → az aktuális nyelven (a szótár: src/i18n/en.ts). */
+  /** Hungarian label → in the current language (the dictionary: src/i18n/en.ts). */
   tr: (hu: string) => string;
 };
 

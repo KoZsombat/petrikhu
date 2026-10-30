@@ -8,10 +8,10 @@ const PER_PAGE = 10;
 const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
 /**
- * A /hirek oldal: a beépített blokkok közül a hírlista helyére a kiadott
- * hírek kerülnek (ha nincs, a beépített minta-sorok maradnak), valódi
- * lapozással (?oldal=N) és kategóriaszűrővel (?kategoria=<név>, mint a régi
- * oldal kategória-archívumai: egy főkategória az alkategóriák híreit is mutatja).
+ * The /hirek page: in place of the news list among the built-in blocks, the published
+ * posts go in (if there are none, the built-in sample rows stay), with real
+ * paging (?oldal=N) and a category filter (?kategoria=<name>, like the old
+ * site's category archives: a main category also shows the posts of its subcategories).
  */
 export function NewsFeed({ content }: { content: PageBlock[] }) {
   const { rows: all, terms } = useNews();
@@ -32,7 +32,7 @@ export function NewsFeed({ content }: { content: PageBlock[] }) {
             ...block.values,
             rows: slice,
             pagination: { current, total },
-            // A kiválasztott szűrő legyen aktív.
+            // The selected filter should be active.
             filters: (block.values.filters as { label: string; href: string }[] | undefined)?.map((f) => ({
               ...f,
               active: category ? fold(f.label) === fold(category) : f.href === "/hirek",

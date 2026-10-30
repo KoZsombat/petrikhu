@@ -1,6 +1,6 @@
 /**
  * Shared between the Vite frontend (src/) and the Express backend (server/) -
- * see AGENT.md 6.15. Both run modern TS-stripping tooling, so this is plain
+ * see AGENTS.md "Server". Both run modern TS-stripping tooling, so this is plain
  * `.ts` with no build step, imported by relative path from either side.
  */
 
@@ -8,7 +8,7 @@ export type Align = 'left' | 'center' | 'right'
 
 /**
  * The inline styles the mirror's text carries and the Szerkesztő may write
- * (AGENT.md 6.20): the properties `styleProp()` in scripts/extract.ts meets in
+ * (AGENTS.md "Core idea: a page is JSON"): the properties `styleProp()` in scripts/extract.ts meets in
  * the mirror, camelCased like React's `style`. Validated server-side - never
  * free CSS.
  */
@@ -29,8 +29,7 @@ export type RichStyle = Partial<Record<RichStyleKey, string>>
 
 /**
  * One styled stretch of text. `bold`/`italic` are all the Hírkezelő's editor
- * writes; `color`, `href` and `underline` exist for the Szerkesztő (AGENT.md
- * 6.19), whose content comes from the mirror's own markup - coloured spans,
+ * writes; `color`, `href` and `underline` exist for the Szerkesztő (AGENTS.md "Server" (/creator)), whose content comes from the mirror's own markup - coloured spans,
  * links, underlines. A `\n` inside `text` renders as a line break.
  */
 export type TextRun = {
@@ -48,7 +47,7 @@ export type TextRun = {
 
 /**
  * The plugin's real editor is WordPress TinyMCE - full HTML. This repo never
- * renders raw HTML (no dangerouslySetInnerHTML, see AGENT.md), so the content
+ * renders raw HTML (no dangerouslySetInnerHTML, see AGENTS.md "Conventions and pitfalls"), so the content
  * is this small structured model instead: one block per paragraph/heading/
  * list-item/quote, each holding styled runs. It renders through real JSX
  * everywhere (editor, preview modal, review screen, published view).
@@ -59,14 +58,14 @@ export type BlockType =
   | 'bulleted-list'
   | 'numbered-list'
   | 'blockquote'
-  /** The mirror's non-`<p>` inline wrapper (AGENT.md 4.2) - Divi gives `<p>` a margin, a `<div>` none. */
+  /** The mirror's non-`<p>` inline wrapper (AGENTS.md "Conventions and pitfalls") - Divi gives `<p>` a margin, a `<div>` none. */
   | 'div'
   /** Inline content straight in the module, with no block element around it. */
   | 'plain'
   /** A table (Hírkezelő): the cells are in `table`, `runs` stays a single empty run. */
   | 'table'
   /**
-   * The media blocks of a news post imported from the mirror (AGENT.md 6.24):
+   * The media blocks of a news post imported from the mirror (AGENTS.md "Server" (document library)):
    * a picture, a gallery and an embedded iframe. Like `table`, their data sits
    * in its own field and `runs` stays a single empty run. The editor keeps them
    * but cannot create them.
@@ -153,8 +152,7 @@ export type PostStatus = (typeof STATUS)[keyof typeof STATUS]
 
 /**
  * Accounts carry a plain set of these and nothing else - there are **no
- * roles** anywhere in this re-implementation (user decision, see AGENT.md
- * 6.16). The real plugin bundles the same `pnw_*` capabilities into three
+ * roles** anywhere in this re-implementation (user decision, see AGENTS.md "Server" (permissions)). The real plugin bundles the same `pnw_*` capabilities into three
  * WordPress roles; here every account is given its permissions one by one on
  * the Fiókok screen, so any mix is possible.
  */
@@ -172,18 +170,18 @@ export const CAPABILITY = {
   /**
    * Create new categories and tags from inside the editor. Using existing
    * ones needs no permission at all - every account may pick any category
-   * or tag (see AGENT.md 6.16).
+   * or tag (see AGENTS.md "Server" (permissions)).
    */
   MANAGE_TERMS: 'pnw_manage_terms',
   /**
    * The Szerkesztő (/szerkeszto/): edit the content of the mirrored pages,
-   * create/delete new pages and edit the main menu (AGENT.md 6.19). No
+   * create/delete new pages and edit the main menu (AGENTS.md "Server" (/creator)). No
    * equivalent in the real plugin.
    */
   MANAGE_PAGES: 'pnw_manage_pages',
   /**
    * The Dokumentumtár section of the Szerkesztő: add, remove, replace and
-   * organise the documents of the library (AGENT.md 6.24). Separate from
+   * organise the documents of the library (AGENTS.md "Server" (document library)). Separate from
    * MANAGE_PAGES so someone can look after the documents without being able
    * to rewrite the site's pages.
    */
@@ -230,7 +228,7 @@ export type ImagePosition = 'top' | 'bottom'
 
 /**
  * Where a post came from: written in the Hírkezelő, or imported from the
- * mirror of the old petrik.hu (AGENT.md 6.24). An imported post lives at its
+ * mirror of the old petrik.hu (AGENTS.md "Server" (document library)). An imported post lives at its
  * original URL (`/<slug>/`) and is already listed by the mirror's own
  * archives, so it is left out of the "latest live news" the site prepends.
  */
@@ -280,9 +278,33 @@ export type AuditAction =
   | 'published_archived'
   | 'archived_restored'
   | 'imported'
+  | 'untrashed'
+  | 'deleted'
+  // Non-post events (AuditEntityType)
+  | 'page_created'
+  | 'page_updated'
+  | 'page_trashed'
+  | 'page_restored'
+  | 'page_deleted'
+  | 'menu_updated'
+  | 'menu_reset'
+  | 'library_updated'
+  | 'library_reset'
+  | 'user_created'
+  | 'user_updated'
+  | 'user_deleted'
+
+/** What a log entry refers to. */
+export type AuditEntityType = 'post' | 'page' | 'menu' | 'library' | 'user'
 
 export type AuditEntry = {
   id: string
+  entityType: AuditEntityType
+  /** The subject's id (post, page, account); empty for the menu and the library. */
+  entityId: string
+  /** The subject's name at the time of the event (page title, account name) - still readable after deletion. */
+  subject?: string
+  /** For a post entry, the post's id (the same as entityId), otherwise empty. */
   postId: string
   userId: string | null
   action: AuditAction
@@ -303,6 +325,8 @@ export type NoticeCode =
   | 'schedule_invalid'
   | 'rejected'
   | 'trashed'
+  | 'untrashed'
+  | 'deleted'
   | 'published_updated'
   | 'published_archived'
   | 'archived_restored'

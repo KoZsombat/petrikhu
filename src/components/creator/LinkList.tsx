@@ -8,7 +8,7 @@ export type LinkListProps = {
   limit?: number;
 };
 
-/** Linkek / letölthető dokumentumok listája két hasábban, nyíllal. */
+/** List of links / downloadable documents in two columns, with arrows. */
 export function LinkList({ heading, items, className, limit }: LinkListProps) {
   return (
     <section data-component="LinkList" className={cx("py-12 md:py-16", className)}>
@@ -32,7 +32,7 @@ export function LinkList({ heading, items, className, limit }: LinkListProps) {
                   </span>
                 </a>
               ) : (
-                // Link nélküli tétel: csak felsorolás (pl. dokumentum, ami kérésre érhető el).
+                // Item without a link: plain listing only (e.g. a document available on request).
                 <div className="flex items-center gap-3 rounded-lg border border-petriklinesoft bg-petrikcard px-5 py-4">
                   <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-petrikaccent" />
                   <span>

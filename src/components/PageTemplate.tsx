@@ -4,8 +4,8 @@ import Footer from "./Footer";
 import UpperHeader from "./UpperHeader";
 
 /**
- * Az oldal kerete (fejléc, lábléc). A Creatorban összerakott komponensek
- * `children`-ként kerülnek bele. Ugyanazt a fejlécet/láblécet használja, mint a Layout.
+ * Page frame (header, footer). Components assembled in the Creator
+ * passed in as `children`. Uses the same header/footer as Layout.
  */
 export function PageTemplate({ children }: { children: ReactNode }) {
   return (

@@ -1,7 +1,7 @@
 /**
- * A Creator-oldalak `html` mezői (RichText, Feature, Accordion, Callout) nyers HTML-ként jelennek meg az oldalon
- * (dangerouslySetInnerHTML), ezért mentéskor fehérlistás szűrőn mennek át: szkript, eseménykezelő, `javascript:` cím,
- * ismeretlen címke vagy attribútum nem maradhat. Beágyazás (iframe) csak YouTube-ról.
+ * The `html` fields of Creator pages (RichText, Feature, Accordion, Callout) are rendered as raw HTML on the site
+ * (dangerouslySetInnerHTML), so on save they pass an allowlist filter: no script, event handler, `javascript:` address,
+ * unknown tag or attribute may survive. Embedding (iframe) is YouTube only.
  */
 import sanitizeHtml from 'sanitize-html'
 

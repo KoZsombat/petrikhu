@@ -1,6 +1,6 @@
 /**
- * A Creator-ben mentett oldalak. Ugyanaz a forma, mint a posts-repo.ts:
- * fromRow/toRow, JSON szöveges oszlop, aszinkron (pg) hívások.
+ * Pages saved in the Creator. The same shape as posts-repo.ts:
+ * fromRow/toRow, JSON text column, asynchronous (pg) calls.
  */
 import type { CreatorPageStatus, CreatorPageSummary, PageBlock, StoredCreatorPage } from '../../shared/pnw/creator-types.ts'
 import { row as one, rows as many, run } from './db.ts'
@@ -10,10 +10,10 @@ type Row = {
   slug: string
   title: string
   description: string
-  blocks: string
+  blocks: unknown
   status: string
-  deleted: number
-  author_id: string
+  deleted: boolean
+  author_id: string | null
   created_at: string
   modified_at: string
   modified_by_id: string | null
@@ -25,10 +25,10 @@ function fromRow(row: Row): StoredCreatorPage {
     slug: row.slug,
     title: row.title,
     description: row.description,
-    blocks: JSON.parse(row.blocks) as PageBlock[],
+    blocks: row.blocks as PageBlock[],
     status: row.status as CreatorPageStatus,
-    deleted: row.deleted === 1,
-    authorId: row.author_id,
+    deleted: row.deleted,
+    authorId: row.author_id ?? '',
     createdAt: row.created_at,
     modifiedAt: row.modified_at,
   }
@@ -42,7 +42,7 @@ export async function listPages(): Promise<StoredCreatorPage[]> {
   return (await many<Row>(`SELECT ${COLUMNS} FROM creator_pages ORDER BY modified_at DESC`)).map(fromRow)
 }
 
-/** A lista nézet blokkok nélkül kapja az oldalakat: azok több száz KB-osak is lehetnek. */
+/** The list view gets the pages without blocks: those can be several hundred KB each. */
 export async function listSummaries(): Promise<CreatorPageSummary[]> {
   return (await listPages()).map(({ blocks, ...summary }) => {
     void blocks
@@ -64,7 +64,7 @@ export async function existingPageSlugs(): Promise<Set<string>> {
   return new Set((await many<{ slug: string }>('SELECT slug FROM creator_pages')).map((r) => r.slug))
 }
 
-/** Új oldalt szúr be, vagy módosítja az adott id-jút. A slug sosem változik: ez az oldal nyilvános címe. */
+/** Inserts a new page, or updates the one with the given id. The slug never changes: it is the page's public address. */
 export async function savePage(page: StoredCreatorPage): Promise<StoredCreatorPage> {
   await run(
     `INSERT INTO creator_pages (${COLUMNS})
@@ -75,7 +75,7 @@ export async function savePage(page: StoredCreatorPage): Promise<StoredCreatorPa
        modified_at = excluded.modified_at, modified_by_id = excluded.modified_by_id`,
     [
       page.id, page.slug, page.title, page.description, JSON.stringify(page.blocks), page.status,
-      page.deleted ? 1 : 0, page.authorId, page.createdAt, page.modifiedAt, page.modifiedById ?? null,
+      page.deleted, page.authorId || null, page.createdAt, page.modifiedAt, page.modifiedById ?? null,
     ],
   )
   return page

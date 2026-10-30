@@ -1,5 +1,5 @@
 /**
- * The Dokumentumtár's API (AGENT.md 6.24), mounted at /api/pages/library. Kept
+ * The Dokumentumtár's API (AGENTS.md "Server" (document library)), mounted at /api/pages/library. Kept
  * out of routes/pages.ts, which gates everything on MANAGE_PAGES: the library
  * has a permission of its own.
  */
@@ -8,7 +8,8 @@ import { CAPABILITY } from '../../shared/pnw/types.ts'
 import { requireCapability } from '../middleware/auth.ts'
 import { clearLibrary, getLibrary, putLibrary } from '../data/library-repo.ts'
 import { sanitizeLibrary } from '../lib/validation.ts'
-import { storeDocument, uploadDocument } from '../lib/uploads.ts'
+import { acceptUpload, storeDocument, uploadDocument } from '../lib/uploads.ts'
+import { logEvent } from '../lib/audit.ts'
 
 const router = Router()
 
@@ -26,26 +27,21 @@ router.put('/', async (req, res) => {
     return
   }
   await putLibrary(library)
+  const documents = library.categories.reduce((n, category) => n + category.docs.length, 0)
+  await logEvent('library', 'library_updated', req.pnwUser!.id, { note: `${library.categories.length} kategória, ${documents} dokumentum` })
   res.json({ library })
 })
 
-/** "Visszaállítás az eredetire" - the site falls back to src/data/docs.ts. */
-router.delete('/', async (_req, res) => {
+/** "Visszaállítás az eredetire" (restore the original) - the site falls back to src/data/docs.ts. */
+router.delete('/', async (req, res) => {
   await clearLibrary()
+  await logEvent('library', 'library_reset', req.pnwUser!.id)
   res.json({ ok: true })
 })
 
 router.post(
   '/file',
-  (req, res, next) => {
-    uploadDocument.single('file')(req, res, (error) => {
-      if (error) {
-        res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : 'upload_failed' })
-        return
-      }
-      next()
-    })
-  },
+  acceptUpload(uploadDocument, 'file'),
   async (req, res) => {
     const url = await storeDocument(req.file)
     if (!url) {

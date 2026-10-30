@@ -3,11 +3,11 @@ import { Container } from "./Container";
 import { cx, linkProps } from "./utils";
 
 export type PageTitleProps = {
-  /** Az utolsó elem az aktuális oldal, annak nincs href-je. */
+  /** The last item is the current page and has no href. */
   breadcrumb: { label: string; href?: string }[];
   title: string;
   intro?: string;
-  /** "Borítóképes" változat. */
+  /** "Cover image" variant. */
   cover?: { src: string; alt: string };
   className?: string;
 };

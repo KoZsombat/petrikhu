@@ -1,5 +1,6 @@
 import { uploadMedia } from "../lib/api";
 import type { Field, Fields } from "./creatorSchema";
+import { emptyValues } from "./creatorSchema";
 
 type Values = Record<string, unknown>;
 
@@ -8,27 +9,6 @@ export const inputCls =
 export const btnCls =
   "rounded-md border border-petrikaccent px-3 py-1.5 text-sm font-semibold text-petrikaccentdark transition-colors hover:bg-petrikaccent hover:text-petrikcard";
 
-/** Egy mező üres kezdőértéke. */
-function emptyValue(field: Field): unknown {
-  switch (field.type) {
-    case "list":
-      return [];
-    case "object":
-      return emptyValues(field.fields);
-    case "number":
-      return field.default ?? "";
-    case "select":
-      return field.default ?? "";
-    default:
-      return "";
-  }
-}
-
-export function emptyValues(fields: Fields): Values {
-  return Object.fromEntries(
-    Object.entries(fields).map(([key, field]) => [key, emptyValue(field)]),
-  );
-}
 
 function FieldInput({
   field,
@@ -62,7 +42,7 @@ function FieldInput({
             onChange={(e) => onChange(e.target.value)}
           />
           {field.type === "image" && (
-            // Feltöltés a szerver médiatárába; csak bejelentkezve működik (a szerkesztő úgyis az).
+            // Upload to the server media library; only works when logged in (the Creator always is).
             <input
               type="file"
               accept="image/*"
@@ -78,6 +58,13 @@ function FieldInput({
               }}
             />
           )}
+        </label>
+      );
+    case "boolean":
+      return (
+        <label className="my-3 flex items-center gap-2 font-body text-sm font-medium text-petriksoft">
+          <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
+          {label}
         </label>
       );
     case "textarea":

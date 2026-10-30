@@ -21,13 +21,13 @@ type Props = {
   onCategoryIdsChange: (value: string[]) => void;
   tagIds: string[];
   onTagIdsChange: (value: string[]) => void;
-  /** `pnw_manage_terms`: megjelenik az "új kategória/címke" sor. */
+  /** `pnw_manage_terms`: shows the "new category/tag" row. */
   canCreateTerms: boolean;
   currentImage?: string;
   onImageChange: (file: File | null) => void;
   imagePosition: ImagePosition;
   onImagePositionChange: (value: ImagePosition) => void;
-  /** Hírsablonok a cím fölött - új hírt író szerzőnek. */
+  /** Post templates above the title - for authors writing a new post. */
   templates?: boolean;
 };
 
@@ -39,8 +39,8 @@ const TERM_ERROR_MESSAGES: Record<string, string> = {
 };
 
 /**
- * A hír közös mezői (szerző, vezető és publikált szerkesztés). Minden kategória
- * mindenkinek elérhető, mellette címkék is vannak ugyanazokkal a szabályokkal.
+ * Common post fields (author, manager and published editing). Every category
+ * is available to everyone; tags sit alongside, under the same rules.
  */
 export default function PostFields({
   editorId,
@@ -63,7 +63,7 @@ export default function PostFields({
 }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState("");
-  // Növelve újraépíti a (nem kontrollált) fájlválasztót, amikor az űrlapot kiürítik.
+  // Incrementing it rebuilds the (uncontrolled) file picker when the form is cleared.
   const [fileKey, setFileKey] = useState(0);
   const terms = useTerms();
 
@@ -82,7 +82,7 @@ export default function PostFields({
   const shownImage = preview ?? currentImage;
   const template = NEWS_TEMPLATES.find((entry) => entry.id === templateId);
 
-  /** Csere előtt rákérdez, és felajánlja a sablon címkezdetét. */
+  /** Asks before replacing, and offers the template's title start. */
   function applyTemplate(): void {
     if (!template) return;
     if ((title.trim() || !isBlank(content)) && !window.confirm("A sablon a jelenlegi cím/szöveg egy részét lecserélheti. Biztosan alkalmazod?")) return;
@@ -90,7 +90,7 @@ export default function PostFields({
     onContentChange(template.build());
   }
 
-  /** Az egész űrlap kiürítése, hogy tiszta lappal indulhasson az új hír. */
+  /** Clears the whole form so the new post starts from a blank slate. */
   function clearForm(): void {
     if (!window.confirm("Biztosan kitörlöd a cím, a szöveg, a kivonat, a kategóriák, a címkék és a kép tartalmát?")) return;
     onTitleChange("");
@@ -244,9 +244,9 @@ type PickerProps = {
 };
 
 /**
- * Egy kategória- vagy címkelista jelölőnégyzetekkel. Minden elem minden fióknak
- * elérhető; az "új" sor csak `pnw_manage_terms` joggal látszik. A létrehozott
- * elem rögtön be van jelölve.
+ * A category or tag list with checkboxes. Every item is available to every account;
+ * the "new" row is only shown with the `pnw_manage_terms` permission. A newly created
+ * item is checked straight away.
  */
 function TermPicker({ kind, legend, required, emptyText, terms, selectedIds, onChange, canCreateTerms }: PickerProps) {
   const [newName, setNewName] = useState("");
@@ -306,7 +306,7 @@ function TermPicker({ kind, legend, required, emptyText, terms, selectedIds, onC
             onChange={(event) => setNewName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key !== "Enter") return;
-              // Enter itt mindig létrehozás, soha nem mentés.
+              // Here, Enter always creates, never saves.
               event.preventDefault();
               create();
             }}

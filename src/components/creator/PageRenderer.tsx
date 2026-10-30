@@ -16,7 +16,7 @@ import {
   VideoEmbed,
 } from "./index";
 
-/** Az oldal JSON egy eleme: melyik komponens, melyik variáns, milyen propokkal. */
+/** One element of the page JSON: which component, which variant, with which props. */
 export type PageBlock = {
   component: string;
   variant?: string;
@@ -41,14 +41,14 @@ const registry: Record<string, ComponentType<any>> = {
   DataTable,
 };
 
-/** Az üres űrlapmezőket (üres string) nem adjuk át propként. */
+/** Empty form fields (empty strings) are not passed as props. */
 function cleanProps(values: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(values).filter(([, v]) => v !== "" && v !== undefined),
   );
 }
 
-/** Az aktuális keresési paraméterek (pl. ?kategoria=…) megmaradnak, csak az oldalszám változik. */
+/** Current search parameters (e.g. ?kategoria=…) are kept; only the page number changes. */
 function pageHref(page: number): string {
   const params = new URLSearchParams(window.location.search);
   if (page === 1) params.delete("oldal");
@@ -64,13 +64,13 @@ function Block({ block }: { block: PageBlock }) {
     if (import.meta.env.DEV) {
       return <div className="p-4 text-red-600">Ismeretlen blokk: {block.component}</div>;
     }
-    return null; // prodban csendben kihagyjuk
+    return null; // silently skipped in production
   }
 
   const props: Record<string, unknown> = cleanProps(block.values);
   if (block.variant) props.variant = block.variant;
 
-  // A lapozó linkjeit függvény generálja, a JSON-ban csak a számok vannak.
+  // A function generates the pagination links; the JSON only holds the numbers.
   const pagination = props.pagination as { current: number; total: number } | undefined;
   if (pagination) {
     props.pagination = { ...pagination, hrefFor: (p: number) => pageHref(p) };

@@ -1,8 +1,8 @@
-# Egy folyamat, egy port: az Express szerver kiszolgálja az API-t, a médiát és a buildelt oldalt (Cloudflare Tunnelhez is ez kell).
+# One process, one port: the Express server serves the API, the media and the built site (the Cloudflare Tunnel needs this).
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package*.json ./
-# A better-sqlite3 (csak az egyszeri importhoz kell) itt, a build fázisban nem szükséges: kihagyjuk a telepítő szkriptjét.
+# better-sqlite3 (only needed for the one-off import) is not needed in the build stage, so its install script is skipped.
 RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
@@ -20,7 +20,9 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY shared ./shared
-# Nem root felhasználóval fut.
+# The built-in page titles/intros, for the Open Graph tags the server injects (server/lib/page-meta.ts).
+COPY src/pages/samples ./src/pages/samples
+# Runs as a non-root user.
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \

@@ -7,19 +7,19 @@ import { card, emptyCls, labelCls, th } from "./ui";
 type ListResponse = { posts: Post[]; totalPages: number; testMode?: boolean };
 
 type Props = {
-  /** Lekérés: keresőszó + oldalszám. */
+  /** Query: search term + page number. */
   fetchPage: (query: string, page: number) => Promise<ListResponse>;
   searchLabel: string;
   emptyText: string;
   columns: string[];
-  /** Egy sor cellái (a táblázat <tr>-jét a lista adja). */
+  /** Cells of one row (the list provides the table <tr>). */
   row: (post: Post, reload: () => Promise<void>, testMode: boolean) => ReactNode;
-  /** A lista fölé kerülő extra tartalom (pl. teszt mód figyelmeztetés). */
+  /** Extra content shown above the list (e.g. a test-mode warning). */
   banner?: (testMode: boolean) => ReactNode;
   searchId: string;
 };
 
-/** A "Kint lévő hírek" és az "Archívum" közös listája: keresés, táblázat, lapozás. */
+/** Shared list of the "Published" and "Archive" screens: search, table, paging. */
 export default function PostList({ fetchPage, searchLabel, emptyText, columns, row, banner, searchId }: Props) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -40,14 +40,14 @@ export default function PostList({ fetchPage, searchLabel, emptyText, columns, r
     }
   }
 
-  // Oldalváltáskor újratölt: a szerverrel szinkronizálás, nem származtatott állapot.
+  // Reloads on page change: it syncs with the server rather than deriving state.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(query, page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  /** Művelet (archiválás/visszaállítás) után: az utolsó sor eltűnésekor egy oldallal vissza. */
+  /** After an action (archive/restore): when the last row disappears, go back one page. */
   async function reload(): Promise<void> {
     if (posts.length === 1 && page > 1) setPage(page - 1);
     else await load(query, page);

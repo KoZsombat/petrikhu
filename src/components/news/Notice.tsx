@@ -10,7 +10,9 @@ const MESSAGES: Record<NoticeCode, [type: keyof typeof noticeCls, text: string]>
   scheduled: ["success", "A hír jóváhagyva és időzítve. A megadott időpontban automatikusan megjelenik."],
   schedule_invalid: ["error", "Az időzített publikáláshoz adj meg egy érvényes, jövőbeli időpontot."],
   rejected: ["warning", "A hír javításra visszaküldve."],
-  trashed: ["success", "A piszkozat a lomtárba került."],
+  trashed: ["success", "A hír a lomtárba került (az Áttekintésen visszaállítható)."],
+  untrashed: ["success", "A hír visszakerült piszkozatként."],
+  deleted: ["success", "A hír véglegesen törölve."],
   published_updated: ["success", "A publikált hír módosításai elmentve."],
   published_archived: ["success", "A hír archiválva. Le került a nyilvános weboldalról, de az Archívumból bármikor visszaállítható."],
   archived_restored: ["success", "Az archivált hír visszaállítva és újra publikálva."],
@@ -22,7 +24,7 @@ const MESSAGES: Record<NoticeCode, [type: keyof typeof noticeCls, text: string]>
   save_error: ["error", "A mentés nem sikerült. Próbáld újra."],
 };
 
-/** A ?pnw_notice= kódhoz tartozó értesítés. */
+/** Notification for the ?pnw_notice= code. */
 export default function Notice() {
   const [params] = useSearchParams();
   const key = params.get("pnw_notice") as NoticeCode | null;

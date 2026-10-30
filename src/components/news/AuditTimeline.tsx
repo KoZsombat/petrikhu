@@ -7,12 +7,12 @@ import { emptyCls } from "./ui";
 type Props = {
   entries: AuditEntry[];
   authors: Map<string, ApiUser>;
-  /** postId → cím; csak a teljes naplóban látszik, a hír saját naplójában nem. */
+  /** postId → title; shown only in the full log, not in a post's own log. */
   postTitles?: Map<string, string>;
   compact?: boolean;
 };
 
-/** Naplóbejegyzések idővonala. */
+/** Timeline of log entries. */
 export default function AuditTimeline({ entries, authors, postTitles, compact }: Props) {
   if (entries.length === 0) return <div className={emptyCls}>Még nincs naplóbejegyzés.</div>;
 

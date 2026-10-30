@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLang } from "../i18n/languageContext";
 import type { Post, Term } from "../../shared/pnw/types";
 
-/** A GET /api/public/posts listaeleme: a hír tartalom nélkül, miniatűrrel. */
+/** One item of GET /api/public/posts: the post without content, with a thumbnail. */
 export type PostSummary = Omit<Post, "content"> & { thumbnail?: string };
 import type { RowListNewsRow } from "../components/creator/RowList";
 import { pageBlocks } from "../i18n/pages";
@@ -12,7 +12,7 @@ const MONTHS = {
   en: ["JAN.", "FEB.", "MAR.", "APR.", "MAY", "JUN.", "JUL.", "AUG.", "SEP.", "OCT.", "NOV.", "DEC."],
 };
 
-/** `2026-09-21T…` → `SZEPT. 21.` (a DateTag formátuma). */
+/** `2026-09-21T…` → `SZEPT. 21.` (the DateTag format). */
 function dateLabel(iso: string, lang: "hu" | "en"): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -25,12 +25,12 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-/** A pages.json-ban lévő, kézzel írt hírsorok (a `hirek` oldal hírlistája) az adott nyelven. */
+/** The hand-written news rows in pages.json (the `hirek` page list), in the given language. */
 const staticRowsFor = (lang: "hu" | "en"): RowListNewsRow[] =>
   (pageBlocks("hirek", lang)?.find((b) => b.component === "RowList" && b.variant === "news")?.values.rows ?? []) as RowListNewsRow[];
 const STATIC = { hu: staticRowsFor("hu"), en: staticRowsFor("en") };
 
-/** A legfrissebb kiadott hírek a kezdőlapnak; amíg nincsenek (vagy a szerver nem elérhető), üres lista. */
+/** The latest published posts for the home page; an empty list while there are none (or the server is unreachable). */
 export function useLatestPosts(limit: number): { rows: RowListNewsRow[]; loaded: boolean } {
   const { lang } = useLang();
   const rows = useNewsRows();
@@ -38,15 +38,15 @@ export function useLatestPosts(limit: number): { rows: RowListNewsRow[]; loaded:
   return { rows: live ? rows.slice(0, limit) : [], loaded: live };
 }
 
-/** Egy hírsor a kategória-azonosítókkal (a szűréshez); a RowList a többletmezőt figyelmen kívül hagyja. */
+/** A news row with category IDs (for filtering); RowList ignores the extra field. */
 export type NewsRow = RowListNewsRow & { categoryIds?: string[] };
 
-/** A kiadott hírek (legfrissebb elöl); amíg nincs egy sem (vagy a szerver nem elérhető), a beépített minta-sorok. */
+/** Published posts (newest first); the built-in sample rows while there are none (or the server is unreachable). */
 export function useNewsRows(): NewsRow[] {
   return useNews().rows;
 }
 
-/** A hírsorok és a kategóriák (a szűrőkhöz). */
+/** The news rows and the categories (for the filters). */
 export function useNews(): { rows: NewsRow[]; terms: Term[] } {
   const { lang } = useLang();
   const [posts, setPosts] = useState<PostSummary[]>([]);

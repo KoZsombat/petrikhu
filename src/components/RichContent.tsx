@@ -7,7 +7,7 @@ import { isSafeHref } from "../../shared/pnw/richtext";
 import { isFileHref, isLegacyBlocks, isValidStyleValue, toRichContent } from "../../shared/pnw/rich-content";
 import type { RichNode } from "../../shared/pnw/rich-content";
 
-/** A cikk szövegének tipográfiája: a wrapper osztály formáz minden belső elemet. */
+/** Article text typography: the wrapper class styles every inner element. */
 export const proseCls =
   "font-body text-[17px] leading-[1.75] text-petrikink break-words " +
   "[&_p]:mb-4 [&_h1]:mb-3 [&_h2]:mb-3 [&_h3]:mb-3 [&_h4]:mb-3 [&_h5]:mb-2 [&_h6]:mb-2 " +
@@ -22,7 +22,7 @@ export const proseCls =
 
 type Group = { list: "bulleted-list" | "numbered-list"; blocks: RichTextBlock[] } | { list: null; block: RichTextBlock };
 
-/** Az egymás utáni listaelem-blokkok egy <ul>/<ol>-ba kerülnek. */
+/** Consecutive list item blocks are wrapped in one <ul>/<ol>. */
 function groupBlocks(document: RichTextDocument): Group[] {
   const groups: Group[] = [];
   for (const block of document) {
@@ -40,7 +40,7 @@ function groupBlocks(document: RichTextDocument): Group[] {
   return groups;
 }
 
-/** Szövegen belüli `\n` sortörés. */
+/** Line break (`\n`) inside text. */
 function withBreaks(text: string): ReactNode {
   if (!text.includes("\n")) return text;
   return text.split("\n").map((line, index) => (
@@ -51,7 +51,7 @@ function withBreaks(text: string): ReactNode {
   ));
 }
 
-/** Belső útvonal: routerlink; fájl/levél/telefon: sima <a>; minden más: új lapon. */
+/** Internal path: router link; file/mail/phone: plain <a>; everything else: new tab. */
 function linkTo(href: string | undefined, children: ReactNode): ReactNode {
   if (!href || !isSafeHref(href)) return children;
   if (isFileHref(href)) return <a href={href}>{children}</a>;
@@ -74,10 +74,10 @@ function renderRuns(runs: TextRun[]) {
   });
 }
 
-/** Feltöltés (/…) vagy http(s) cím - a szerver mást nem tárol, ez csak újra ellenőrzi. */
+/** Upload (/…) or http(s) address - the server stores nothing else; this only re-checks it. */
 const isImageSrc = (src: string) => (src.startsWith("/") && !src.startsWith("//")) || /^https?:\/\//i.test(src);
 
-/** A régi oldalról átvett hírek média blokkjai: kép, galéria, beágyazás. */
+/** Media blocks of news imported from the old site: image, gallery, embed. */
 export function MediaBlock({ block }: { block: RichTextBlock }) {
   if (block.type === "image" && block.image && isImageSrc(block.image.src)) {
     const { src, alt, caption, href, width, height } = block.image;
@@ -203,7 +203,7 @@ function renderGroup(group: Group) {
   );
 }
 
-/** A Szerkesztő tartalomfája (RichContent): elem elemnek, nyers HTML nélkül. */
+/** Creator content tree (RichContent): element by element, without raw HTML. */
 function renderNode(node: RichNode, key: number): ReactNode {
   if (typeof node === "string") return node;
   const style: CSSProperties = {};
@@ -254,9 +254,9 @@ function renderNode(node: RichNode, key: number): ReactNode {
 }
 
 /**
- * Csak olvasható megjelenítő. Elfogad hírblokkokat (RichTextDocument - a Hírkezelő
- * és a régi oldalról átvett hírek formátuma) és Szerkesztő-tartalomfát is
- * (RichContent). Mindig valódi JSX, dangerouslySetInnerHTML nélkül.
+ * Read-only renderer. Accepts news blocks (RichTextDocument - the Hírkezelő
+ * and the format of news imported from the old site) and also a Creator content tree
+ * (RichContent). Always real JSX, without dangerouslySetInnerHTML.
  */
 export default function RichContent({ content, className }: { content: unknown; className?: string }) {
   const body = isLegacyBlocks(content)

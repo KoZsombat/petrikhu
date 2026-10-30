@@ -1,19 +1,20 @@
-import type { Post } from '../../shared/pnw/types.ts'
+import type { Post, PostStatus } from '../../shared/pnw/types.ts'
 import { row as one, rows as many, run } from './db.ts'
+import { likePattern, searchTextOf } from './post-search.ts'
 
 /** The DB row shape (snake_case columns) before it's turned back into a Post. */
 type Row = {
   id: string
   slug: string
   title: string
-  content: string
+  content: unknown
   excerpt: string
-  category_ids: string
-  tag_ids: string
+  category_ids: unknown
+  tag_ids: unknown
   featured_image: string | null
   image_position: string
   origin: string
-  author_id: string
+  author_id: string | null
   status: string
   review_note: string | null
   last_reviewer_id: string | null
@@ -32,14 +33,15 @@ function fromRow(row: Row): Post {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    content: JSON.parse(row.content),
+    content: row.content as Post['content'],
     excerpt: row.excerpt,
-    categoryIds: JSON.parse(row.category_ids),
-    tagIds: JSON.parse(row.tag_ids),
+    categoryIds: row.category_ids as string[],
+    tagIds: row.tag_ids as string[],
     featuredImage: row.featured_image ?? undefined,
     imagePosition: row.image_position === 'bottom' ? 'bottom' : 'top',
     origin: row.origin === 'mirror' ? 'mirror' : 'hirkezelo',
-    authorId: row.author_id,
+    // Deleted account (ON DELETE SET NULL): empty id, the UI shows "—".
+    authorId: row.author_id ?? '',
     status: row.status as Post['status'],
     reviewNote: row.review_note ?? undefined,
     lastReviewerId: row.last_reviewer_id ?? undefined,
@@ -66,7 +68,7 @@ function toRow(post: Post): Row {
     featured_image: post.featuredImage ?? null,
     image_position: post.imagePosition === 'bottom' ? 'bottom' : 'top',
     origin: post.origin ?? 'hirkezelo',
-    author_id: post.authorId,
+    author_id: post.authorId || null,
     status: post.status,
     review_note: post.reviewNote ?? null,
     last_reviewer_id: post.lastReviewerId ?? null,
@@ -88,8 +90,94 @@ const PLACEHOLDERS = (count: number) => Array.from({ length: count }, (_, i) => 
 const ROW_KEYS = COLUMNS.split(', ') as (keyof Row)[]
 const valuesOf = (row: Row) => ROW_KEYS.map((key) => row[key])
 
-export async function allPosts(): Promise<Post[]> {
-  return (await many<Row>(`SELECT ${COLUMNS} FROM posts`)).map(fromRow)
+/** What a post list can be filtered by; every field is optional, the ones given are combined with AND. */
+export type PostFilter = {
+  status?: PostStatus | PostStatus[]
+  /** Everything that is NOT this status. */
+  statusNot?: PostStatus
+  authorId?: string
+  origin?: 'mirror' | 'hirkezelo'
+  /** Only a `date` not later than this (the scheduled sweep: what is already due). */
+  dateUntil?: string
+  /** The posts of one day (YYYY-MM-DD, UTC). */
+  day?: string
+  /** A substring in the title or the text (post-search.ts). */
+  search?: string
+}
+
+export type PostOrder = 'date_desc' | 'date_asc' | 'modified_desc' | 'modified_asc'
+
+const ORDER_SQL: Record<PostOrder, string> = {
+  date_desc: 'date DESC, id',
+  date_asc: 'date ASC, id',
+  modified_desc: 'modified_at DESC, id',
+  modified_asc: 'modified_at ASC, id',
+}
+
+function whereOf(filter: PostFilter): { sql: string; params: unknown[] } {
+  const parts: string[] = []
+  const params: unknown[] = []
+  const add = (sql: string, value: unknown) => {
+    params.push(value)
+    parts.push(sql.replace('?', `$${params.length}`))
+  }
+  if (filter.status !== undefined) {
+    if (Array.isArray(filter.status)) add('status = ANY(?)', filter.status)
+    else add('status = ?', filter.status)
+  }
+  if (filter.statusNot !== undefined) add('status <> ?', filter.statusNot)
+  if (filter.authorId !== undefined) add('author_id = ?', filter.authorId)
+  if (filter.origin === 'mirror') add('origin = ?', 'mirror')
+  if (filter.origin === 'hirkezelo') add('origin <> ?', 'mirror')
+  if (filter.dateUntil !== undefined) add('date <= ?', filter.dateUntil)
+  if (filter.day !== undefined) add("(date AT TIME ZONE 'UTC')::date = ?::date", filter.day)
+  if (filter.search) add("search_text LIKE ? ESCAPE '\\'", likePattern(filter.search))
+  return { sql: parts.length ? `WHERE ${parts.join(' AND ')}` : '', params }
+}
+
+/** The posts matching the filter, sorted and paged - filtering, sorting and paging run in the database. */
+export async function findPosts(
+  filter: PostFilter,
+  options: { order?: PostOrder; limit?: number; offset?: number } = {},
+): Promise<Post[]> {
+  const { sql, params } = whereOf(filter)
+  let text = `SELECT ${COLUMNS} FROM posts ${sql} ORDER BY ${ORDER_SQL[options.order ?? 'date_desc']}`
+  if (options.limit !== undefined) {
+    params.push(options.limit)
+    text += ` LIMIT $${params.length}`
+  }
+  if (options.offset) {
+    params.push(options.offset)
+    text += ` OFFSET $${params.length}`
+  }
+  return (await many<Row>(text, params)).map(fromRow)
+}
+
+export async function countPosts(filter: PostFilter): Promise<number> {
+  const { sql, params } = whereOf(filter)
+  return (await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM posts ${sql}`, params))!.n
+}
+
+/** Count per status (a missing status counts as 0 for the caller). */
+export async function countByStatus(filter: PostFilter = {}): Promise<Partial<Record<PostStatus, number>>> {
+  const { sql, params } = whereOf(filter)
+  const found = await many<{ status: PostStatus; n: number }>(`SELECT status, COUNT(*)::int AS n FROM posts ${sql} GROUP BY status`, params)
+  return Object.fromEntries(found.map((r) => [r.status, r.n]))
+}
+
+export async function postSlugs(filter: PostFilter): Promise<string[]> {
+  const { sql, params } = whereOf(filter)
+  return (await many<{ slug: string }>(`SELECT slug FROM posts ${sql} ORDER BY slug`, params)).map((r) => r.slug)
+}
+
+/** After the import (or any time): fills in the missing search texts. */
+export async function fillMissingSearchText(): Promise<number> {
+  const missing = await many<Row>(`SELECT ${COLUMNS} FROM posts WHERE search_text IS NULL`)
+  for (const r of missing) {
+    const post = fromRow(r)
+    await run('UPDATE posts SET search_text = $2 WHERE id = $1', [post.id, searchTextOf(post.title, post.content)])
+  }
+  return missing.length
 }
 
 export async function findPost(id: string): Promise<Post | undefined> {
@@ -102,16 +190,15 @@ export async function findPostBySlug(slug: string): Promise<Post | undefined> {
   return found ? fromRow(found) : undefined
 }
 
-export async function postsByStatus(status: string): Promise<Post[]> {
-  return (await many<Row>(`SELECT ${COLUMNS} FROM posts WHERE status = $1 ORDER BY date DESC`, [status])).map(fromRow)
-}
-
 export async function existingSlugs(): Promise<Set<string>> {
   return new Set((await many<{ slug: string }>('SELECT slug FROM posts')).map((r) => r.slug))
 }
 
 export async function insertPost(post: Post): Promise<void> {
-  await run(`INSERT INTO posts (${COLUMNS}) VALUES (${PLACEHOLDERS(ROW_KEYS.length)})`, valuesOf(toRow(post)))
+  await run(`INSERT INTO posts (${COLUMNS}, search_text) VALUES (${PLACEHOLDERS(ROW_KEYS.length + 1)})`, [
+    ...valuesOf(toRow(post)),
+    searchTextOf(post.title, post.content),
+  ])
 }
 
 export async function updatePost(id: string, updater: (post: Post) => Post): Promise<Post> {
@@ -125,12 +212,12 @@ export async function updatePost(id: string, updater: (post: Post) => Post): Pro
        featured_image = $7, image_position = $8, status = $9, review_note = $10,
        last_reviewer_id = $11, last_reviewed_at = $12,
        scheduled_for = $13, scheduled_by_id = $14,
-       archived_at = $15, archived_by_id = $16, modified_at = $17, date = $18
+       archived_at = $15, archived_by_id = $16, modified_at = $17, date = $18, search_text = $19
      WHERE id = $1`,
     [
       r.id, r.title, r.content, r.excerpt, r.category_ids, r.tag_ids, r.featured_image, r.image_position, r.status,
       r.review_note, r.last_reviewer_id, r.last_reviewed_at, r.scheduled_for, r.scheduled_by_id, r.archived_at,
-      r.archived_by_id, r.modified_at, r.date,
+      r.archived_by_id, r.modified_at, r.date, searchTextOf(next.title, next.content),
     ],
   )
   return next

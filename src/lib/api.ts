@@ -1,7 +1,7 @@
 /**
- * Vékony fetch-wrapper a szerverhez (server/). Fejlesztésben a Vite proxy
- * (vite.config.ts), élesben ugyanaz az Express folyamat szolgálja ki, ezért a
- * relatív /api/... útvonal mindig jó.
+ * Thin fetch wrapper for the server (server/). In development the Vite proxy
+ * (vite.config.ts) forwards it; in production the same Express process serves both, so the
+ * relative /api/... path always works.
  */
 import type { AuditEntry, Capability, Post, Term, TermKind } from "../../shared/pnw/types";
 import { rememberTerm } from "./terms";
@@ -17,10 +17,10 @@ import type {
 
 export type ApiUser = {
   id: string;
-  /** Csak a fiókkezelő listában (GET /users) van meg, a munkamenet saját felhasználóján nincs. */
+  /** Only present in the account list (GET /users), not on the session's own user. */
   username?: string;
   displayName: string;
-  /** A fiók teljes jogosultsága - szerepkörök nincsenek. */
+  /** The account's full set of permissions - there are no roles. */
   permissions: Capability[];
 };
 
@@ -49,7 +49,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-// --- belépés ------------------------------------------------------------
+// --- login ------------------------------------------------------------
 
 export const login = (loginValue: string, password: string) =>
   request<{ user: ApiUser }>("/auth/login", {
@@ -61,7 +61,7 @@ export const logout = () => request<{ ok: true }>("/auth/logout", { method: "POS
 
 export const me = () => request<{ user: ApiUser }>("/auth/me");
 
-// --- oldalak ------------------------------------------------------------
+// --- pages ------------------------------------------------------------
 
 export type PageInput = {
   title: string;
@@ -84,14 +84,14 @@ export const updatePage = (id: string, input: PageInput) =>
     body: JSON.stringify(input),
   });
 
-/** Az első hívás a kukába teszi az oldalt, a kukában lévőn a második véglegesen töröl. */
+/** The first call moves the page to the trash; calling it again on a page already in the trash deletes it permanently. */
 export const deletePage = (id: string) =>
   request<{ ok: true; permanent: boolean }>(`/pages/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 export const restorePage = (id: string) =>
   request<{ page: StoredCreatorPage }>(`/pages/${encodeURIComponent(id)}/restore`, { method: "POST" });
 
-// --- menü ---------------------------------------------------------------
+// --- menu ---------------------------------------------------------------
 
 export const getMenu = () => request<{ menu: MenuItem[] | null; modifiedAt: string | null }>("/pages/menu");
 
@@ -100,7 +100,7 @@ export const saveMenu = (menu: MenuItem[]) =>
 
 export const resetMenu = () => request<{ ok: true }>("/pages/menu", { method: "DELETE" });
 
-// --- média --------------------------------------------------------------
+// --- media --------------------------------------------------------------
 
 export type MediaItem = { url: string; name: string; size: number; modifiedAt: string };
 
@@ -112,17 +112,17 @@ export function uploadMedia(file: File): Promise<{ url: string }> {
   return request("/pages/media", { method: "POST", body: form });
 }
 
-// --- nyilvános ----------------------------------------------------------
+// --- public ----------------------------------------------------------
 
 export const publicSite = () => request<PublicSite>("/public/site");
 
-// --- Hírkezelő: fiókok ---------------------------------------------------
+// --- Hírkezelő: accounts ---------------------------------------------------
 
 export type AccountInput = {
   username: string;
   displayName: string;
   permissions: Capability[];
-  /** Szerkesztésnél üresen hagyva a jelenlegi jelszó marad. */
+  /** When editing, leaving it empty keeps the current password. */
   password?: string;
 };
 
@@ -136,18 +136,19 @@ export const updateAccount = (id: string, input: AccountInput) =>
 
 export const deleteAccount = (id: string) => request<{ ok: true }>(`/users/${id}`, { method: "DELETE" });
 
-// --- Hírkezelő: kategóriák és címkék ---------------------------------------
+// --- Hírkezelő: categories and tags ---------------------------------------
 
-/** Az új elem rögtön bekerül a közös listába (terms.ts), így újratöltés nélkül látszik mindenhol. */
+/** The new item goes straight into the shared list (terms.ts), so it shows everywhere without a reload. */
 export async function createTerm(kind: TermKind, name: string): Promise<Term> {
   const { term } = await request<{ term: Term }>("/terms", { method: "POST", body: JSON.stringify({ kind, name }) });
   rememberTerm(term);
   return term;
 }
 
-// --- Hírkezelő: vezérlőpult ------------------------------------------------
+// --- Hírkezelő: dashboard ------------------------------------------------
 
-export type AuthorDashboard = { view: "author"; counts: Record<string, number>; posts: Post[] };
+/** `trash`: posts in the trash (the author's own), restorable or permanently deletable. */
+export type AuthorDashboard = { view: "author"; counts: Record<string, number>; posts: Post[]; trash: Post[] };
 
 export type ReviewerDashboard = {
   view: "reviewer";
@@ -159,11 +160,12 @@ export type ReviewerDashboard = {
   pending: Post[];
   scheduled: Post[];
   recent: Post[];
+  trash: Post[];
 };
 
 export const dashboard = () => request<AuthorDashboard | ReviewerDashboard>("/posts/dashboard");
 
-// --- Hírkezelő: egy hír ----------------------------------------------------
+// --- Hírkezelő: one post ----------------------------------------------------
 
 export const getPost = (id: string) => request<{ post: Post }>(`/posts/${id}`);
 
@@ -185,7 +187,9 @@ export const decide = (
   data: { decision: "approve" | "reject"; note: string; publishMode?: "now" | "schedule"; publishAt?: string },
 ) => request<{ notice: string }>(`/posts/${id}/decision`, { method: "POST", body: JSON.stringify(data) });
 
-export const trashPost = (id: string) => request<{ notice: string }>(`/posts/${id}`, { method: "DELETE" });
+/** The first call moves it to the trash; a post already in the trash is deleted permanently. */
+export const trashPost = (id: string) => request<{ notice: string; permanent: boolean }>(`/posts/${id}`, { method: "DELETE" });
+export const untrashPost = (id: string) => request<{ notice: string }>(`/posts/${id}/untrash`, { method: "POST" });
 
 export const updatePublished = (id: string, form: FormData) =>
   request<SaveResponse>(`/posts/${id}/published`, { method: "PUT", body: form });
@@ -194,7 +198,7 @@ export const archivePost = (id: string) => request<{ notice: string }>(`/posts/$
 
 export const restorePost = (id: string) => request<{ notice: string }>(`/posts/${id}/restore`, { method: "POST" });
 
-// --- Hírkezelő: kint lévő és archivált hírek ----------------------------------
+// --- Hírkezelő: published and archived posts ----------------------------------
 
 type ListResponse = { posts: Post[]; total: number; totalPages: number; testMode?: boolean };
 
@@ -204,14 +208,13 @@ export const listPublished = (query: string, page: number) =>
 export const listArchived = (query: string, page: number) =>
   request<ListResponse>(`/posts/archived?q=${encodeURIComponent(query)}&page=${page}`);
 
-// --- Hírkezelő: napló és statisztika -------------------------------------------
+// --- Hírkezelő: log and statistics -------------------------------------------
 
 export const fullAuditLog = (limit = 100, imported = false) =>
   request<{ entries: AuditEntry[] }>(`/audit?limit=${limit}${imported ? "&imported=1" : ""}`);
 
 export type Statistics = {
   liveAll: number;
-  liveManaged: number;
   scheduled: number;
   pending: number;
   archived: number;
@@ -224,7 +227,7 @@ export type Statistics = {
 
 export const statistics = () => request<Statistics>("/statistics");
 
-// --- nyilvános hír ---------------------------------------------------------
+// --- public post ---------------------------------------------------------
 
 export const publicPost = (slug: string) => request<{ post: Post }>(`/public/posts/${encodeURIComponent(slug)}`);
 
@@ -243,7 +246,7 @@ export function uploadLibraryFile(file: File): Promise<{ url: string }> {
   return request("/pages/library/file", { method: "POST", body: form });
 }
 
-/** Kép a hír szövegébe (a hírkezelő szerkesztőjéből): visszaadja a /uploads/... címet. */
+/** Image for a post's text (from the Hírkezelő editor): returns the /uploads/... URL. */
 export function uploadPostImage(file: File): Promise<{ url: string }> {
   const form = new FormData();
   form.append("file", file);

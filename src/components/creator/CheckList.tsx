@@ -4,11 +4,11 @@ import { cx } from "./utils";
 export type CheckListProps = {
   title?: string;
   items: string[];
-  /** Ha van sideTitle/sideText, a második hasáb ez a szöveg, különben a lista tör oszlopokra. */
+  /** If sideTitle/sideText is set, the second column is this text; otherwise the list wraps into columns. */
   sideTitle?: string;
   sideText?: string;
   className?: string;
-  /** Legfeljebb ennyi elemet jelenít meg. */
+  /** Shows at most this many items. */
   limit?: number;
 };
 

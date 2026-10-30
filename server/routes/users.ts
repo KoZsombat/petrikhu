@@ -2,7 +2,7 @@
  * Hírkezelő account management - no equivalent in the real plugin, which
  * relies on wp-admin's own user screen. Added by user request; an account is
  * a name, a login and a **set of permissions** - there are no roles
- * (AGENT.md 6.16), so this is where every capability is handed out one by
+ * (AGENTS.md "Server" (permissions)), so this is where every capability is handed out one by
  * one.
  */
 import { randomUUID } from 'node:crypto'
@@ -14,6 +14,7 @@ import { canManageUsers, isCapability } from '../../shared/pnw/permissions.ts'
 import { allUsers, findUserByUsername, findUserById, insertUser, removeUser, updateUser } from '../data/users-repo.ts'
 import type { UserRecord } from '../data/users-repo.ts'
 import { requireCapability, requireLogin } from '../middleware/auth.ts'
+import { logEvent } from '../lib/audit.ts'
 
 const router = Router()
 
@@ -43,7 +44,7 @@ function sanitizePermissions(value: unknown): Capability[] {
  * account managers) power the Users.tsx screen.
  */
 router.get('/', requireLogin, async (req, res) => {
-  // Felhasználónevet és jogosultságot csak a fiókkezelők látnak; mindenki másnak elég a név a hírek szerzőjéhez.
+  // Only account managers see usernames and permissions; everyone else gets the name, enough for a post's author.
   const manager = canManageUsers(req.pnwUser!)
   res.json({ users: (await allUsers()).map((user) => (manager ? toPublic(user) : { id: user.id, displayName: user.displayName, permissions: [] })) })
 })
@@ -75,6 +76,7 @@ router.post('/', requireCapability(CAPABILITY.MANAGE_USERS), async (req, res) =>
     passwordHash: bcrypt.hashSync(password, 10),
   }
   await insertUser(user)
+  await logEvent('user', 'user_created', req.pnwUser!.id, { entityId: user.id, subject: user.username, note: permissionNote(permissions) })
   res.json({ user: toPublic(user) })
 })
 
@@ -117,6 +119,7 @@ router.put('/:id', requireCapability(CAPABILITY.MANAGE_USERS), async (req, res) 
     permissions,
     passwordHash: password ? bcrypt.hashSync(password, 10) : user.passwordHash,
   }))
+  await logEvent('user', 'user_updated', req.pnwUser!.id, { entityId: updated.id, subject: updated.username, note: changeNote(existing, updated, Boolean(password)) })
   res.json({ user: toPublic(updated) })
 })
 
@@ -137,8 +140,26 @@ router.delete('/:id', requireCapability(CAPABILITY.MANAGE_USERS), async (req, re
   }
 
   await removeUser(existing.id)
+  await logEvent('user', 'user_deleted', req.pnwUser!.id, { entityId: existing.id, subject: existing.username })
   res.json({ ok: true })
 })
+
+function permissionNote(permissions: Capability[]): string {
+  return permissions.length ? `Jogok: ${permissions.join(', ')}` : 'Nincs jogosultság'
+}
+
+/** What changed on an account - rights changes itemised (+ / -), the password only as "changed". */
+function changeNote(before: UserRecord, after: UserRecord, passwordChanged: boolean): string | undefined {
+  const parts: string[] = []
+  const added = after.permissions.filter((p) => !before.permissions.includes(p))
+  const removed = before.permissions.filter((p) => !after.permissions.includes(p))
+  if (added.length) parts.push(`+ ${added.join(', ')}`)
+  if (removed.length) parts.push(`- ${removed.join(', ')}`)
+  if (before.username !== after.username) parts.push(`Felhasználónév: ${before.username} → ${after.username}`)
+  if (before.displayName !== after.displayName) parts.push(`Név: ${before.displayName} → ${after.displayName}`)
+  if (passwordChanged) parts.push('Jelszó megváltoztatva')
+  return parts.length ? parts.join('\n') : undefined
+}
 
 /** Is there anyone *other* than this account who can still manage accounts? */
 async function hasOtherManager(exceptId: string): Promise<boolean> {

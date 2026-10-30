@@ -1,5 +1,5 @@
 /**
- * The Szerkesztő's content model for text (AGENT.md 6.20): a small, faithful
+ * The Szerkesztő's content model for text (AGENTS.md "Core idea: a page is JSON"): a small, faithful
  * HTML tree.
  *
  * Why a tree and not the Hírkezelő's blocks-and-runs: a mirrored page must

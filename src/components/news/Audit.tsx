@@ -5,7 +5,7 @@ import { useUsers } from "../../lib/useUsers";
 import AuditTable from "./AuditTable";
 import { card, emptyCls } from "./ui";
 
-/** A teljes hírkezelési napló (legutóbbi 100 esemény; az importálások külön kapcsolóval). */
+/** Full Hírkezelő audit log (latest 100 events; imports behind a separate toggle). */
 export default function Audit() {
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
   const [postTitles, setPostTitles] = useState<Map<string, string>>(new Map());
@@ -27,7 +27,7 @@ export default function Audit() {
             const { post } = await api.getPost(id);
             titles.set(id, post.title || "(Névtelen hír)");
           } catch {
-            // A lomtárba tett hír teljesen törlődik: ott az azonosító látszik.
+            // A post moved to the trash is deleted entirely, so only its ID is visible there.
           }
         }),
       );

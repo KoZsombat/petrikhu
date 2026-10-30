@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 
-/** A /bejelentkezes a szerkesztő felület (Dashboard) kapujára visz, ami maga kéri a belépést. */
+/** /bejelentkezes leads to the editor (Dashboard) gate, which asks for login itself. */
 export default function Login() {
   return <Navigate to="/dashboard" replace />;
 }

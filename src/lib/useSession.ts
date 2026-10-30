@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import * as api from "./api";
 import type { ApiUser } from "./api";
 
-/** A bejelentkezett felhasználó, a szerver sütije alapján (server/middleware/auth.ts). */
+/** The logged-in user, based on the server cookie (server/middleware/auth.ts). */
 export function useSession() {
   const [user, setUser] = useState<ApiUser | null>(null);
-  // Addig igaz, amíg az első GET /api/auth/me válasza meg nem érkezik.
+  // True until the first GET /api/auth/me response arrives.
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

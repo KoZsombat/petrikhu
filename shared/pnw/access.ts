@@ -13,6 +13,15 @@ export function canEditWorkflowPost(post: Post, user: SessionUser): boolean {
   )
 }
 
+/**
+ * Whether it may move the post to the trash, restore it from there or delete it permanently: the approver any of these, the author the
+ * own draft / returned post, and anything already in the trash.
+ */
+export function canTrashWorkflowPost(post: Post, user: SessionUser): boolean {
+  if (canReview(user)) return true
+  return canSubmit(user) && post.authorId === user.id && (post.status === STATUS.DRAFT || post.status === STATUS.REVISION || post.status === STATUS.TRASH)
+}
+
 /** Ported from PNW_Access::can_view_workflow_post(). */
 export function canViewWorkflowPost(post: Post, user: SessionUser): boolean {
   if (canReview(user)) return true
@@ -22,6 +31,6 @@ export function canViewWorkflowPost(post: Post, user: SessionUser): boolean {
 /*
  * PNW_Access::allowed_category_ids() has no counterpart here any more: by
  * user request every account may use every category and tag, so there is
- * nothing to filter (AGENT.md 6.16). Creating a *new* category or tag is the
+ * nothing to filter (AGENTS.md "Server" (permissions)). Creating a *new* category or tag is the
  * only taxonomy action behind a permission (pnw_manage_terms).
  */

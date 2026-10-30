@@ -5,8 +5,10 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, relative, sep } from 'node:path'
+import { once } from 'node:events'
 import { Router } from 'express'
-import { getMedia, hasMedia, mediaKey, putMediaIfMissing } from '../data/media-repo.ts'
+import type { Response } from 'express'
+import { getMediaInfo, hasMedia, mediaChunks, mediaKey, putMediaIfMissing } from '../data/media-repo.ts'
 
 const MIME: Record<string, string> = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
@@ -50,7 +52,7 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
       next()
       return
     }
-    const file = await getMedia(`${prefix}${path}`)
+    const file = await getMediaInfo(`${prefix}${path}`)
     if (!file) {
       next()
       return
@@ -58,6 +60,7 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
     const etag = `"${file.size}-${Date.parse(file.modifiedAt)}"`
     res.setHeader('ETag', etag)
     res.setHeader('Cache-Control', `public, max-age=${maxAgeSeconds}`)
+    res.setHeader('Accept-Ranges', 'bytes')
     if (req.headers['if-none-match'] === etag) {
       res.status(304).end()
       return
@@ -68,10 +71,62 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
     if (!INLINE_SAFE.test(file.mime)) {
       res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:")
     }
-    res.setHeader('Content-Length', String(file.data.length))
-    res.end(file.data)
+
+    // A single byte range (video seeking, resuming an interrupted download); multiple ranges are not served.
+    let start = 0
+    let end = file.size - 1
+    const range = parseRange(req.headers.range, file.size)
+    if (range === 'invalid') {
+      res.setHeader('Content-Range', `bytes */${file.size}`)
+      res.status(416).end()
+      return
+    }
+    if (range) {
+      ;[start, end] = range
+      res.status(206)
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${file.size}`)
+    }
+    res.setHeader('Content-Length', String(file.size === 0 ? 0 : end - start + 1))
+    if (req.method === 'HEAD' || file.size === 0) {
+      res.end()
+      return
+    }
+    try {
+      await streamTo(res, mediaChunks(file.path, start, end))
+    } catch (error) {
+      // The headers have already been sent: the response can only be aborted.
+      console.error('[pnw] media stream failed', error)
+      res.destroy()
+    }
   })
   return router
+}
+
+/** `bytes=a-b`, `bytes=a-`, `bytes=-n` → [start, end]; undefined if there is none (or several ranges), and the whole file is sent. */
+export function parseRange(header: string | undefined, size: number): [number, number] | 'invalid' | undefined {
+  if (!header) return undefined
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!match || (match[1] === '' && match[2] === '')) return undefined
+  let start: number
+  let end: number
+  if (match[1] === '') {
+    start = Math.max(0, size - Number(match[2]))
+    end = size - 1
+  } else {
+    start = Number(match[1])
+    end = match[2] === '' ? size - 1 : Math.min(Number(match[2]), size - 1)
+  }
+  if (start > end || start >= size) return 'invalid'
+  return [start, end]
+}
+
+/** Writes the response chunk by chunk, waiting until the client takes each one (backpressure); stops on a broken connection. */
+async function streamTo(res: Response, chunks: AsyncIterable<Buffer>): Promise<void> {
+  for await (const chunk of chunks) {
+    if (res.destroyed) return
+    if (!res.write(chunk)) await Promise.race([once(res, 'drain'), once(res, 'close')])
+  }
+  res.end()
 }
 
 function* walk(dir: string): Generator<string> {

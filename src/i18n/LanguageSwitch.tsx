@@ -1,6 +1,6 @@
 import { useLang } from "./languageContext";
 
-/** HU | EN váltó; a kiválasztott nyelv kiemelve. */
+/** HU | EN switch; the selected language is highlighted. */
 export default function LanguageSwitch({ className = "", tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
   const { lang, setLang } = useLang();
   const btn = (code: "hu" | "en", label: string) => (
