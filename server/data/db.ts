@@ -1,17 +1,17 @@
 /**
- * A Hírkezelő / Szerkesztő PostgreSQL adatbázisa. A kapcsolat a `DATABASE_URL`-ből jön; a sémát a
- * verziózott migrációk (data/migrate.ts, data/migrations/) hozzák létre és frissítik induláskor.
+ * The PostgreSQL database of the Hírkezelő / Szerkesztő. The connection comes from `DATABASE_URL`; the schema is
+ * created and updated on startup by the versioned migrations (data/migrate.ts, data/migrations/).
  *
- * A JSON-oszlopok (blocks, content, permissions...) szövegként tárolódnak, ahogy korábban is: a validálás a
- * belépéskor történik (server/lib/validation.ts), a repók JSON.parse-olnak.
+ * JSON columns (blocks, content, permissions...) are stored as text, as before: validation happens on
+ * input (server/lib/validation.ts), and the repos JSON.parse them.
  */
 import pg from 'pg'
 import { DATABASE_URL } from '../config.ts'
 import { migrate } from './migrate.ts'
 
-// A BIGINT (20) és a NUMERIC alapból string: a munkamenet-lejárat ms-ben van, belefér egy Number-be.
+// BIGINT (20) and NUMERIC come back as strings by default: the session expiry is in ms and fits into a Number.
 pg.types.setTypeParser(20, (value) => Number(value))
-// TIMESTAMPTZ (1184): az alkalmazás mindenhol UTC ISO-szöveggel dolgozik (toISOString()), az API is ezt adja.
+// TIMESTAMPTZ (1184): the application works with UTC ISO strings everywhere (toISOString()), and the API returns them too.
 pg.types.setTypeParser(1184, (value) => new Date(value).toISOString())
 
 export const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 10 })
@@ -19,7 +19,7 @@ pool.on('error', (error) => console.error('[pnw] postgres pool error', error))
 
 export type Queryable = Pick<pg.Pool, 'query'>
 
-/** Egy lekérdezés; a sorokat adja vissza. */
+/** One query; returns the rows. */
 export async function rows<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T[]> {
   return (await pool.query(text, params)).rows as T[]
 }
@@ -28,7 +28,7 @@ export async function row<T = Record<string, unknown>>(text: string, params: unk
   return (await rows<T>(text, params))[0]
 }
 
-/** INSERT/UPDATE/DELETE: az érintett sorok száma. */
+/** INSERT/UPDATE/DELETE: the number of affected rows. */
 export async function run(text: string, params: unknown[] = []): Promise<number> {
   return (await pool.query(text, params)).rowCount ?? 0
 }
@@ -49,7 +49,7 @@ export async function transaction<T>(work: (client: pg.PoolClient) => Promise<T>
 }
 
 
-/** Induláskor egyszer: megvárja az adatbázist (compose-ban a Postgres kicsit később áll fel), majd lefuttatja a hiányzó migrációkat. */
+/** Once on startup: waits for the database (under compose, Postgres comes up a bit later), then runs the missing migrations. */
 export async function initDb(): Promise<void> {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -57,12 +57,12 @@ export async function initDb(): Promise<void> {
       break
     } catch (error) {
       if (attempt >= 30) throw error
-      console.log(`[pnw] várakozás a PostgreSQL-re (${attempt}/30)...`)
+      console.log(`[pnw] waiting for PostgreSQL (${attempt}/30)...`)
       await new Promise((resolve) => setTimeout(resolve, 2000))
     }
   }
   const applied = await migrate(pool)
-  if (applied.length > 0) console.log(`[pnw] migrációk lefutottak: ${applied.join(', ')}`)
+  if (applied.length > 0) console.log(`[pnw] migrations applied: ${applied.join(', ')}`)
 }
 
 export async function closeDb(): Promise<void> {

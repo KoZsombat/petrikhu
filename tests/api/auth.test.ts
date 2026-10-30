@@ -1,4 +1,4 @@
-// Belépés: siker, hiba, munkamenet-azonosító csere, fiókonkénti korlát (8 / 15 perc).
+// Login: success, failure, session id rotation, per-account limit (8 / 15 min).
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, startTestServer } from '../helpers/server.ts'
@@ -11,7 +11,7 @@ before(async () => {
 })
 after(() => server.close())
 
-test('sikeres belépés: süti és felhasználó', async () => {
+test('successful login: cookie and user', async () => {
   const client = server.client()
   const res = await client.post('/api/auth/login', DEMO.reviewer)
   assert.equal(res.status, 200)
@@ -23,12 +23,12 @@ test('sikeres belépés: süti és felhasználó', async () => {
   assert.equal(me.status, 200)
 })
 
-test('a felhasználónév kis-nagybetűtől független', async () => {
+test('the username is case-insensitive', async () => {
   const res = await server.client().post('/api/auth/login', { login: 'HELYETTES', password: DEMO.reviewer.password })
   assert.equal(res.status, 200)
 })
 
-test('hibás jelszó és ismeretlen fiók: ugyanaz a válasz', async () => {
+test('wrong password and unknown account: the same response', async () => {
   const wrong = await server.client().post('/api/auth/login', { login: DEMO.director.login, password: 'rossz' })
   const unknown = await server.client().post('/api/auth/login', { login: 'nincs-ilyen', password: 'rossz' })
   assert.equal(wrong.status, 401)
@@ -36,13 +36,13 @@ test('hibás jelszó és ismeretlen fiók: ugyanaz a válasz', async () => {
   assert.deepEqual(unknown.body, wrong.body)
 })
 
-test('üres mezők', async () => {
+test('empty fields', async () => {
   const res = await server.client().post('/api/auth/login', { login: '', password: '' })
   assert.equal(res.status, 401)
   assert.deepEqual(res.body, { error: 'empty_fields' })
 })
 
-test('belépéskor új munkamenet-azonosító, a régi érvénytelen', async () => {
+test('new session id on login, the old one is invalid', async () => {
   const client = await server.login(DEMO.director)
   const first = client.cookie
   await client.post('/api/auth/login', DEMO.director)
@@ -53,7 +53,7 @@ test('belépéskor új munkamenet-azonosító, a régi érvénytelen', async () 
   assert.equal((await client.get('/api/auth/me')).status, 200)
 })
 
-test('kijelentkezés után a munkamenet nem él', async () => {
+test('the session is dead after logout', async () => {
   const client = await server.login(DEMO.author)
   const cookie = client.cookie
   assert.equal((await client.post('/api/auth/logout')).status, 200)
@@ -62,7 +62,7 @@ test('kijelentkezés után a munkamenet nem él', async () => {
   assert.equal((await stale.get('/api/auth/me')).status, 401)
 })
 
-test('fiókonként 8 sikertelen próba után 429, helyes jelszóval is', async () => {
+test('after 8 failed attempts per account: 429, even with the right password', async () => {
   const login = 'mk.vezeto'
   for (let i = 0; i < 8; i += 1) {
     const res = await server.client().post('/api/auth/login', { login, password: `rossz-${i}` })
@@ -72,12 +72,12 @@ test('fiókonként 8 sikertelen próba után 429, helyes jelszóval is', async (
   assert.equal(blocked.status, 429)
   assert.deepEqual(blocked.body, { error: 'too_many_attempts' })
   assert.ok(Number(blocked.headers.get('retry-after')) > 0)
-  // Más fiók ugyanarról az IP-ről még beléphet.
+  // Another account from the same IP can still log in.
   assert.equal((await server.client().post('/api/auth/login', DEMO.reviewer)).status, 200)
 })
 
-// Az IP-korlát (30) az egész fájlra közös: ez a teszt kevés próbával bizonyít (4 + 5 > 8).
-test('a sikeres belépés nullázza a fiók számlálóját', async () => {
+// The IP limit (30) is shared by the whole file: this test proves it with few attempts (4 + 5 > 8).
+test('a successful login resets the account counter', async () => {
   const login = DEMO.director.login
   for (let i = 0; i < 4; i += 1) await server.client().post('/api/auth/login', { login, password: 'rossz' })
   assert.equal((await server.client().post('/api/auth/login', DEMO.director)).status, 200)

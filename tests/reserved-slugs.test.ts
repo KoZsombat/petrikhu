@@ -1,4 +1,4 @@
-// 1.2: a RESERVED_SLUGS nem csúszhat el az src/App.tsx útvonalaitól.
+// 1.2: RESERVED_SLUGS must not drift from the routes in src/App.tsx.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -8,10 +8,10 @@ const root = new URL('..', import.meta.url)
 const appSource = readFileSync(new URL('src/App.tsx', root), 'utf8')
 const builtInSlugs = Object.keys(JSON.parse(readFileSync(new URL('src/pages/samples/pages.json', root), 'utf8')))
 
-/** Rögzített útvonalak, amelyeket egy kiadott, azonos slugú oldal szándékosan felülír (nem foglaltak). */
+/** Fixed routes that a published page with the same slug deliberately overrides (not reserved). */
 const OVERRIDABLE = new Set([...builtInSlugs, 'dokumentumtar'])
 
-/** Az App.tsx minden `path="/valami..."` útvonalának első, nem paraméteres szakasza. */
+/** The first, non-parameter segment of every `path="/something..."` route in App.tsx. */
 function fixedTopSegments(source: string): string[] {
   const segments = new Set<string>()
   for (const match of source.matchAll(/path=\{?["'`]\/([^"'`/]+)/g)) {
@@ -21,18 +21,18 @@ function fixedTopSegments(source: string): string[] {
   return [...segments]
 }
 
-test('az App.tsx minden rögzített útvonala foglalt vagy felülírható', () => {
+test('every fixed route in App.tsx is either reserved or overridable', () => {
   const segments = fixedTopSegments(appSource)
-  assert.ok(segments.length >= 8, `túl kevés útvonalat talált: ${segments.join(', ')}`)
+  assert.ok(segments.length >= 8, `found too few routes: ${segments.join(', ')}`)
   const missing = segments.filter((segment) => !RESERVED_SLUGS.includes(segment) && !OVERRIDABLE.has(segment))
-  assert.deepEqual(missing, [], `hiányzik a RESERVED_SLUGS-ból: ${missing.join(', ')}`)
+  assert.deepEqual(missing, [], `missing from RESERVED_SLUGS: ${missing.join(', ')}`)
 })
 
-test('a felülírható útvonalak nem foglaltak', () => {
+test('the overridable routes are not reserved', () => {
   const clash = RESERVED_SLUGS.filter((slug) => OVERRIDABLE.has(slug))
   assert.deepEqual(clash, [])
 })
 
-test('a szerver saját útvonalai foglaltak', () => {
+test('the server\'s own routes are reserved', () => {
   for (const slug of ['api', 'uploads', 'media', 'healthz']) assert.ok(RESERVED_SLUGS.includes(slug), slug)
 })

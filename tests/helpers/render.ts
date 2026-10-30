@@ -1,6 +1,6 @@
 /**
- * Kliensoldali komponensek tesztje build nélkül: a Vite SSR-módban tölti be a .tsx modulokat (JSX, JSON-importok),
- * a react-dom/server pedig szöveggé rendereli őket. Nincs böngésző és nincs új függőség.
+ * Client-side component tests without a build: loads the .tsx modules in Vite SSR mode (JSX, JSON imports),
+ * and react-dom/server renders them to text. No browser and no new dependency.
  */
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'

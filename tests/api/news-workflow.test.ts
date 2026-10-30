@@ -1,4 +1,4 @@
-// A hírek állapotgépe HTTP-n át: vázlat → beküldés → jóváhagyás/elutasítás/időzítés → archiválás → visszaállítás.
+// The post state machine over HTTP: draft → submission → approval/rejection/scheduling → archiving → restoring.
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, startTestServer } from '../helpers/server.ts'
@@ -12,7 +12,7 @@ let sweepScheduledPosts: () => Promise<void>
 
 before(async () => {
   server = await startTestServer()
-  // Ugyanaz a modulpéldány, amit a teszt-segéd töltött be.
+  // The same module instance the test helper loaded.
   ;({ sweepScheduledPosts } = await import('../../server/app.ts'))
   author = await server.login(DEMO.author)
   reviewer = await server.login(DEMO.reviewer)
@@ -23,7 +23,7 @@ after(() => server.close())
 let counter = 0
 const uniqueTitle = (label: string) => `Teszt hír ${label} ${Date.now()} ${counter++}`
 
-/** Érvényes hírtörzs: a content JSON-szövegként megy, a kategóriák tömbként. */
+/** A valid post body: content goes as JSON text, the categories as an array. */
 function body(title: string, extra: Record<string, unknown> = {}) {
   return {
     title,
@@ -60,7 +60,7 @@ async function publicSlugs(): Promise<string[]> {
   return (res.body as { posts: { slug: string }[] }).posts.map((p) => p.slug)
 }
 
-test('vázlat mentése → draft, beküldés → pending', async () => {
+test('saving a draft → draft, submission → pending', async () => {
   const post = await createPost('draft')
   assert.equal(post.status, 'draft')
 
@@ -70,7 +70,7 @@ test('vázlat mentése → draft, beküldés → pending', async () => {
   assert.equal(await statusOf(post.id), 'pending')
 })
 
-test('jóváhagyás → publish, megjelenik a nyilvános listában és slug szerint', async () => {
+test('approval → publish, appears in the public list and by slug', async () => {
   const post = await createPost('submit')
   assert.equal(post.status, 'pending')
   assert.ok(!(await publicSlugs()).includes(post.slug))
@@ -85,7 +85,7 @@ test('jóváhagyás → publish, megjelenik a nyilvános listában és slug szer
   assert.equal((single.body as PostBody).post.id, post.id)
 })
 
-test('elutasítás indoklás nélkül → 422 rejection_note_required, a hír pending marad', async () => {
+test('rejection without a note → 422 rejection_note_required, the post stays pending', async () => {
   const post = await createPost('submit')
   const res = await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'reject' })
   assert.equal(res.status, 422)
@@ -93,7 +93,7 @@ test('elutasítás indoklás nélkül → 422 rejection_note_required, a hír pe
   assert.equal(await statusOf(post.id), 'pending')
 })
 
-test('elutasítás indoklással → revision, a szerző szerkesztheti és újra beküldheti', async () => {
+test('rejection with a note → revision, the author can edit and resubmit', async () => {
   const post = await createPost('submit')
   const res = await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'reject', note: 'Javítsd a címet.' })
   assert.equal(res.status, 200, res.text)
@@ -113,7 +113,7 @@ test('elutasítás indoklással → revision, a szerző szerkesztheti és újra 
   assert.equal((after_.body as PostBody).post.reviewNote, undefined)
 })
 
-test('időzítés: túl közeli időpont → 422 schedule_invalid', async () => {
+test('scheduling: time too close → 422 schedule_invalid', async () => {
   const post = await createPost('submit')
   const soon = new Date(Date.now() + 30_000).toISOString()
   const res = await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'approve', publishMode: 'schedule', publishAt: soon })
@@ -125,7 +125,7 @@ test('időzítés: túl közeli időpont → 422 schedule_invalid', async () => 
   assert.equal(bad.status, 422)
 })
 
-test('időzítés: jövőbeli időpont → future, nem nyilvános; a söprés után publish + scheduled_published', async () => {
+test('scheduling: future time → future, not public; after the sweep publish + scheduled_published', async () => {
   const post = await createPost('submit')
   const later = new Date(Date.now() + 3_600_000).toISOString()
   const res = await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'approve', publishMode: 'schedule', publishAt: later })
@@ -134,7 +134,7 @@ test('időzítés: jövőbeli időpont → future, nem nyilvános; a söprés ut
   assert.ok(!(await publicSlugs()).includes(post.slug))
   assert.equal((await server.client().get(`/api/public/posts/${post.slug}`)).status, 404)
 
-  // Még nem járt le: a söprés nem nyúl hozzá.
+  // Not yet due: the sweep does not touch it.
   await sweepScheduledPosts()
   assert.equal(await statusOf(post.id), 'future')
 
@@ -148,7 +148,7 @@ test('időzítés: jövőbeli időpont → future, nem nyilvános; a söprés ut
   assert.ok(actions.includes('scheduled_published'))
 })
 
-test('archiválás → archived, eltűnik a nyilvános listából; visszaállítás → publish', async () => {
+test('archiving → archived, disappears from the public list; restoring → publish', async () => {
   const post = await createPost('submit')
   await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'approve' })
   assert.ok((await publicSlugs()).includes(post.slug))
@@ -168,7 +168,7 @@ test('archiválás → archived, eltűnik a nyilvános listából; visszaállít
   assert.ok(actions.includes('archived_restored'))
 })
 
-test('nem megjelent hír archiválása → 404; nem archivált hír visszaállítása → 404', async () => {
+test('archiving an unpublished post → 404; restoring a non-archived post → 404', async () => {
   const post = await createPost('draft')
   const res = await reviewer.post(`/api/posts/${post.id}/archive`)
   assert.equal(res.status, 404)
@@ -177,7 +177,7 @@ test('nem megjelent hír archiválása → 404; nem archivált hír visszaállí
   assert.equal(restore.status, 404)
 })
 
-test('hiányzó mezők → 422 missing_fields', async () => {
+test('missing fields → 422 missing_fields', async () => {
   const noTitle = await author.post('/api/posts', body('', { command: 'submit' }))
   assert.equal(noTitle.status, 422)
   assert.deepEqual(noTitle.body, { error: 'missing_fields' })
@@ -191,7 +191,7 @@ test('hiányzó mezők → 422 missing_fields', async () => {
   assert.deepEqual(noContent.body, { error: 'missing_fields' })
 })
 
-test('kategória nélkül → 422 category_required', async () => {
+test('without a category → 422 category_required', async () => {
   const none = await author.post('/api/posts', body(uniqueTitle('kat'), { categoryIds: [] }))
   assert.equal(none.status, 422)
   assert.deepEqual(none.body, { error: 'category_required' })
@@ -201,7 +201,7 @@ test('kategória nélkül → 422 category_required', async () => {
   assert.deepEqual(unknown.body, { error: 'category_required' })
 })
 
-test('minden lépésről audit-bejegyzés készül', async () => {
+test('every step writes an audit entry', async () => {
   const post = await createPost('draft')
   await author.put(`/api/posts/${post.id}`, body('Auditált ' + counter++, { command: 'draft' }))
   await author.put(`/api/posts/${post.id}`, body('Auditált ' + counter++, { command: 'submit' }))
@@ -212,16 +212,16 @@ test('minden lépésről audit-bejegyzés készül', async () => {
 
   const actions = await auditActions(reviewer, post.id)
   for (const expected of ['created_draft', 'updated_draft', 'submitted', 'rejected', 'approved', 'published_archived']) {
-    assert.ok(actions.includes(expected), `hiányzik: ${expected} (volt: ${actions.join(', ')})`)
+    assert.ok(actions.includes(expected), `missing: ${expected} (was: ${actions.join(', ')})`)
   }
 
-  // A teljes napló is látja (audit-jogú fiók).
+  // The full log is visible too (an account with the audit right).
   const log = await reviewer.get('/api/audit?limit=200')
   assert.equal(log.status, 200)
   assert.ok((log.body as { entries: { action: string }[] }).entries.some((e) => e.action === 'rejected'))
 })
 
-test('a szerző törölheti a saját vázlatát', async () => {
+test('the author can delete their own draft', async () => {
   const post = await createPost('draft')
   const res = await author.delete(`/api/posts/${post.id}`)
   assert.equal(res.status, 200, res.text)
@@ -229,5 +229,5 @@ test('a szerző törölheti a saját vázlatát', async () => {
   const after_ = await author.get(`/api/posts/${post.id}`)
   const gone = after_.status === 404
   const trashed = after_.status === 200 && (after_.body as PostBody).post.status === 'trash'
-  assert.ok(gone || trashed, `váratlan válasz: ${after_.status} ${after_.text}`)
+  assert.ok(gone || trashed, `unexpected response: ${after_.status} ${after_.text}`)
 })

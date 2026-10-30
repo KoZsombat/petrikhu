@@ -1,4 +1,4 @@
-// Az egyszeri SQLite-import (server/scripts/import-sqlite.ts) egy kicsi, régi formátumú adatbázissal.
+// The one-off SQLite import (server/scripts/import-sqlite.ts) with a small database in the old format.
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -38,7 +38,7 @@ function legacyFile(): string {
     '2020-05-01T10:00:00.000Z', '2020-05-01T10:00:00.000Z', '2020-05-01T10:00:00.000Z',
   )
   db.prepare('INSERT INTO audit_log VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('a1', 'p1', null, 'imported', '', 'publish', null, '2020-05-01T10:00:00.000Z')
-  // Árvák (törölt fiók / véglegesen törölt hír) és időzóna nélküli régi dátum.
+  // Orphans (a deleted account / a permanently deleted post) and an old date without a time zone.
   db.prepare('INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
     'p2', 'arva-hir', 'Árva hír', '[]', '', '[]', '[]', null, 'top', 'mirror', 'torolt-fiok', 'publish', null, null, null, null, null, null, null,
     '2019-03-04 08:30:00', '2019-03-04 08:30:00', '2019-03-04 08:30:00',
@@ -48,7 +48,7 @@ function legacyFile(): string {
   return file
 }
 
-test('a régi adatbázis sorai átkerülnek, kétszer futtatva sem duplikál', async () => {
+test('the rows of the old database are moved over, running it twice does not duplicate them', async () => {
   const file = legacyFile()
   await admin.connect()
   await admin.query(`CREATE SCHEMA ${schema}`)
@@ -60,8 +60,8 @@ test('a régi adatbázis sorai átkerülnek, kétszer futtatva sem duplikál', a
       encoding: 'utf8',
     })
   const output = run()
-  assert.match(output, /posts: 2 sor a forrásban, 2 új került be, 1 árva hivatkozás NULL lett/)
-  assert.match(run(), /posts: 2 sor a forrásban, 0 új került be/)
+  assert.match(output, /posts: 2 rows in the source, 2 new inserted, 1 orphaned references set to NULL/)
+  assert.match(run(), /posts: 2 rows in the source, 0 new inserted/)
 
   const q = async (sql: string) => (await admin.query(`SET search_path = ${schema}; ${sql}`) as unknown as pg.QueryResult[])[1].rows
   const [user] = await q("SELECT username, permissions FROM users WHERE id = 'u1'")

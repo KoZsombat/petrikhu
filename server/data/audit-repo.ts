@@ -21,7 +21,7 @@ function fromRow(row: Row): AuditEntry {
     entityType: row.entity_type as AuditEntityType,
     entityId: row.entity_id ?? '',
     subject: row.subject ?? undefined,
-    // A véglegesen törölt hír bejegyzése megmarad (ON DELETE SET NULL), üres hírazonosítóval.
+    // The entry of a permanently deleted post is kept (ON DELETE SET NULL), with an empty post id.
     postId: row.post_id ?? '',
     userId: row.user_id,
     action: row.action as AuditEntry['action'],
@@ -43,7 +43,7 @@ export async function insertAuditEntry(entry: AuditEntry): Promise<void> {
   )
 }
 
-/** A legfrissebb bejegyzések; `postId`-vel egy hírre szűkítve, `excludeImported`-dal az importáltak nélkül - mind SQL-ben. */
+/** The latest entries; narrowed to one post with `postId`, without the imported ones with `excludeImported` - all in SQL. */
 export async function recentAuditEntries(limit: number, options: { postId?: string; excludeImported?: boolean } = {}): Promise<AuditEntry[]> {
   const where: string[] = []
   const params: unknown[] = []

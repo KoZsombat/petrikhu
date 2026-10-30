@@ -280,7 +280,7 @@ export type AuditAction =
   | 'imported'
   | 'untrashed'
   | 'deleted'
-  // Nem hír tárgyú események (AuditEntityType)
+  // Non-post events (AuditEntityType)
   | 'page_created'
   | 'page_updated'
   | 'page_trashed'
@@ -294,17 +294,17 @@ export type AuditAction =
   | 'user_updated'
   | 'user_deleted'
 
-/** Mire vonatkozik egy naplóbejegyzés. */
+/** What a log entry refers to. */
 export type AuditEntityType = 'post' | 'page' | 'menu' | 'library' | 'user'
 
 export type AuditEntry = {
   id: string
   entityType: AuditEntityType
-  /** A tárgy azonosítója (hír, oldal, fiók); a menünél és a tárnál üres. */
+  /** The subject's id (post, page, account); empty for the menu and the library. */
   entityId: string
-  /** A tárgy neve az esemény idején (oldalcím, fióknév) - törlés után is olvasható. */
+  /** The subject's name at the time of the event (page title, account name) - still readable after deletion. */
   subject?: string
-  /** Hír tárgyú bejegyzésnél a hír azonosítója (ugyanaz, mint az entityId), különben üres. */
+  /** For a post entry, the post's id (the same as entityId), otherwise empty. */
   postId: string
   userId: string | null
   action: AuditAction

@@ -1,4 +1,4 @@
-// Verziózott migrációk (server/data/migrate.ts): üres és régi (migrációk előtti) adatbázison is.
+// Versioned migrations (server/data/migrate.ts): on an empty and on an old (pre-migration) database too.
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
@@ -11,7 +11,7 @@ const admin = new pg.Pool({ connectionString: TEST_DATABASE_URL, max: 2 })
 const schemas: string[] = []
 const pools: pg.Pool[] = []
 
-/** Egy friss, üres séma és egy rá mutató kapcsolat. */
+/** A fresh, empty schema and a connection pointing to it. */
 async function freshSchema(): Promise<pg.Pool> {
   const schema = `m_${randomBytes(6).toString('hex')}`
   await admin.query(`CREATE SCHEMA ${schema}`)
@@ -35,13 +35,13 @@ after(async () => {
 
 const versions = async (pool: pg.Pool) => (await pool.query('SELECT version FROM schema_migrations ORDER BY version')).rows.map((r) => r.version)
 
-test('a migrációs fájlok sorszáma egyedi és növekvő', () => {
+test('the migration file numbers are unique and increasing', () => {
   assert.ok(all.length >= 1)
   assert.equal(all[0].version, 1)
   for (let i = 1; i < all.length; i += 1) assert.ok(all[i].version > all[i - 1].version)
 })
 
-test('üres adatbázison mindet lefuttatja, másodszorra semmit', async () => {
+test('on an empty database it runs all of them, the second time nothing', async () => {
   const pool = await freshSchema()
   assert.equal((await migrate(pool)).length, all.length)
   assert.deepEqual(await versions(pool), all.map((m) => m.version))
@@ -50,9 +50,9 @@ test('üres adatbázison mindet lefuttatja, másodszorra semmit', async () => {
   for (const table of ['posts', 'users', 'creator_pages', 'audit_log', 'media_files', 'sessions']) assert.ok(tables.includes(table), table)
 })
 
-test('migrációk előtti adatbázison elindul, és az adatot megtartja', async () => {
+test('starts on a pre-migration database and keeps the data', async () => {
   const pool = await freshSchema()
-  // A régi db.ts sémája: a 001 pontosan ezt futtatta minden induláskor, schema_migrations nélkül.
+  // The old db.ts schema: 001 ran exactly this on every startup, without schema_migrations.
   const client = await pool.connect()
   await all[0].up(client)
   client.release()
@@ -62,7 +62,7 @@ test('migrációk előtti adatbázison elindul, és az adatot megtartja', async 
   assert.equal((await pool.query("SELECT display_name FROM users WHERE id = 'u1'")).rows[0].display_name, 'Régi Fiók')
 })
 
-test('hibás migráció visszagörgetődik, és nem rögzül', async () => {
+test('a broken migration is rolled back and not recorded', async () => {
   const pool = await freshSchema()
   await migrate(pool)
   const broken: Migration = {
@@ -77,25 +77,25 @@ test('hibás migráció visszagörgetődik, és nem rögzül', async () => {
   assert.ok(!(await versions(pool)).includes(9999))
   const leftover = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'half_done'")
   assert.equal(leftover.rowCount, 0)
-  // Javítva újra lefut.
+  // Once fixed, it runs again.
   const fixed: Migration = { ...broken, up: async (c) => void (await c.query('CREATE TABLE half_done (id INT)')) }
   assert.deepEqual(await migrate(pool, [...all, fixed]), ['9999_broken'])
 })
 
-test('két egyszerre induló folyamat sem futtat semmit kétszer', async () => {
+test('two processes starting at once do not run anything twice', async () => {
   const pool = await freshSchema()
   const [a, b] = await Promise.all([migrate(pool), migrate(pool)])
   assert.equal(a.length + b.length, all.length)
 })
 
-/** A 001-003 állapotú séma (a 004 előtti szöveges oszlopokkal). */
+/** The schema in the 001-003 state (with the text columns from before 004). */
 async function beforeTyped(): Promise<pg.Pool> {
   const pool = await freshSchema()
   await migrate(pool, all.filter((m) => m.version < 4))
   return pool
 }
 
-test('004: régi formájú adat átalakul, az árva hivatkozások NULL-ok lesznek', async () => {
+test('004: old-format data is converted, the orphan references become NULL', async () => {
   const pool = await beforeTyped()
   await pool.query("INSERT INTO users (id, username, display_name, password_hash, permissions) VALUES ('u1', 'a', 'A', 'x', '[\"pnw_submit_news\"]')")
   const post = (id: string, author: string, date: string) =>
@@ -129,16 +129,16 @@ test('004: régi formájú adat átalakul, az árva hivatkozások NULL-ok leszne
   ])
   assert.deepEqual((await pool.query('SELECT post_id, user_id FROM audit_log')).rows, [{ post_id: null, user_id: null }])
   assert.equal((await pool.query("SELECT deleted FROM creator_pages WHERE id = 'c1'")).rows[0].deleted, true)
-  // Az idegen kulcs él: fiók törlésekor a hivatkozás NULL lesz, a hír megmarad.
+  // The foreign key is active: when an account is deleted the reference becomes NULL, the post stays.
   await pool.query("DELETE FROM users WHERE id = 'u1'")
   assert.equal((await pool.query("SELECT author_id FROM posts WHERE id = 'p1'")).rows[0].author_id, null)
   await assert.rejects(pool.query("INSERT INTO audit_log (id, post_id, action, from_status, to_status, created_at) VALUES ('a2', 'nincs', 'x', '', '', now())"), /foreign key/)
 })
 
-test('004: átalakíthatatlan érték esetén olvasható hibával leáll, és semmi nem változik', async () => {
+test('004: an unconvertible value stops with a readable error, and nothing changes', async () => {
   const pool = await beforeTyped()
   await pool.query("INSERT INTO terms (id, kind, name, created_at) VALUES ('t1', 'tag', 'X', 'tegnap délután')")
-  await assert.rejects(migrate(pool), /terms\.created_at \(t1\): "tegnap délután" nem timestamptz/)
+  await assert.rejects(migrate(pool), /terms\.created_at \(t1\): "tegnap délután" not timestamptz/)
   assert.ok(!(await versions(pool)).includes(4))
   const type = (await pool.query("SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'posts' AND column_name = 'date'")).rows[0]
   assert.equal(type.data_type, 'text')

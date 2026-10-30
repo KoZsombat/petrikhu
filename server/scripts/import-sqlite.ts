@@ -1,11 +1,11 @@
 /**
- * Egyszeri import: a régi SQLite adatbázis (server/data/db/hirkezelo.db) minden táblája a PostgreSQL-be.
+ * One-off import: every table of the old SQLite database (server/data/db/hirkezelo.db) into PostgreSQL.
  *
  *   DATABASE_URL=postgres://... npm run db:import [-- /út/a/hirkezelo.db]
  *
- * Idempotens (`ON CONFLICT DO NOTHING`): többször is lefuttatható, a már meglévő sorokat nem írja felül.
- * A `better-sqlite3` csak fejlesztői függőség, a futó szerver nem használja. A munkamenetek nem kerülnek át
- * (mindenkinek újra be kell lépnie).
+ * Idempotent (`ON CONFLICT DO NOTHING`): it can be run several times, and existing rows are not overwritten.
+ * `better-sqlite3` is only a dev dependency, the running server does not use it. Sessions are not copied
+ * (everyone has to log in again).
  */
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -17,21 +17,21 @@ import { fillMissingSearchText } from '../data/posts-repo.ts'
 
 const file = process.argv[2] ? resolve(process.argv[2]) : LEGACY_SQLITE_FILE
 if (!existsSync(file)) {
-  console.error(`Nincs ilyen SQLite fájl: ${file}`)
+  console.error(`No such SQLite file: ${file}`)
   process.exit(1)
 }
 
 const sqlite = new Database(file, { readonly: true, fileMustExist: true })
-// A régi, időzóna nélküli dátumok UTC-nek számítanak (mint a 004-es migrációban).
+// Old dates without a time zone count as UTC (as in migration 004).
 pool.on('connect', (client) => {
   client.query("SET timezone = 'UTC'").catch(() => undefined)
 })
 await initDb()
 
-// Az idegen kulcsok miatt a hivatkozott tábla előbb jön (fiókok → kategóriák → oldalak → hírek → napló).
+// Because of the foreign keys, the referenced table comes first (accounts → categories → pages → posts → log).
 const TABLES = ['users', 'terms', 'creator_pages', 'posts', 'audit_log', 'site_menu', 'site_library', 'media_files'] as const
 
-/** Hivatkozó oszlopok (004-es migráció): a nem létező fiókra / hírre mutató érték NULL-ként kerül be. */
+/** Referencing columns (migration 004): a value pointing to a non-existent account / post is inserted as NULL. */
 const REFERENCES: Partial<Record<(typeof TABLES)[number], Record<string, 'users' | 'posts'>>> = {
   terms: { created_by_id: 'users' },
   creator_pages: { author_id: 'users', modified_by_id: 'users' },
@@ -43,7 +43,7 @@ async function idsOf(table: 'users' | 'posts'): Promise<Set<string>> {
   return new Set((await pool.query<{ id: string }>(`SELECT id FROM ${table}`)).rows.map((r) => r.id))
 }
 
-/** A régi, szerepkör-alapú fiókok jogai (a db.ts régi migrációja ugyanezt csinálta). */
+/** The rights of the old, role-based accounts (the old db.ts migration did the same). */
 const LEGACY_ROLES: Record<string, string[]> = {
   petrik_mk_leader: [CAPABILITY.SUBMIT_NEWS],
   petrik_deputy_director: [CAPABILITY.REVIEW_NEWS, CAPABILITY.MANAGE_PUBLISHED, CAPABILITY.VIEW_AUDIT_LOG, CAPABILITY.MANAGE_TERMS, CAPABILITY.MANAGE_USERS],
@@ -61,7 +61,7 @@ async function pgColumns(table: string): Promise<string[]> {
 
 for (const table of TABLES) {
   if (!hasTable(table)) {
-    console.log(`${table}: nincs a forrásban, kihagyom`)
+    console.log(`${table}: not in the source, skipping`)
     continue
   }
   const source = new Set((sqlite.pragma(`table_info(${table})`) as { name: string }[]).map((c) => c.name))
@@ -87,11 +87,11 @@ for (const table of TABLES) {
     total += 1
     if (total % 500 === 0) console.log(`${table}: ${total}...`)
   }
-  console.log(`${table}: ${total} sor a forrásban, ${added} új került be${orphans ? `, ${orphans} árva hivatkozás NULL lett` : ''}`)
+  console.log(`${table}: ${total} rows in the source, ${added} new inserted${orphans ? `, ${orphans} orphaned references set to NULL` : ''}`)
 }
 
 sqlite.close()
-// A régi adatbázisban nincs keresőszöveg (003-as migráció): az importált hírekét itt számoljuk ki.
-console.log(`posts: ${await fillMissingSearchText()} keresőszöveg kitöltve`)
+// The old database has no search text (migration 003): the imported posts' search text is computed here.
+console.log(`posts: ${await fillMissingSearchText()} search texts filled in`)
 await closeDb()
-console.log('Kész.')
+console.log('Done.')

@@ -93,7 +93,7 @@ router.get('/:id', async (req, res) => {
 })
 
 /** Mirrors PNW_Actions::save_news() for a brand-new draft. */
-/** Kép a hír szövegébe (egy kép vagy egy galéria elemei): mindenki tölthet fel, aki hírt írhat vagy kezelhet. */
+/** An image for the text of a post (a single image or the items of a gallery): anyone who can write or manage posts may upload. */
 router.post('/media', acceptUpload(upload, 'file'), async (req, res) => {
   const user = req.pnwUser
   const allowed = [CAPABILITY.SUBMIT_NEWS, CAPABILITY.REVIEW_NEWS, CAPABILITY.MANAGE_PUBLISHED].some((c) => user && hasCapability(user, c))
@@ -253,8 +253,8 @@ router.post('/:id/decision', requireCapability(CAPABILITY.REVIEW_NEWS), async (r
 })
 
 /**
- * Mirrors delete_news(), két lépésben, mint az oldalaknál: az első DELETE a lomtárba teszi a hírt (visszaállítható),
- * a lomtárban lévőé véglegesen törli. A napló a végleges törlés után is megmarad (a hír címével).
+ * Mirrors delete_news(), in two steps, like for pages: the first DELETE moves the post to the trash (restorable),
+ * a DELETE of a trashed post removes it permanently. The log is kept after the permanent deletion (with the post's title).
  */
 router.delete('/:id', async (req, res) => {
   const existing = await findPost(String(req.params.id))
@@ -275,7 +275,7 @@ router.delete('/:id', async (req, res) => {
   res.json({ notice: 'trashed', permanent: false })
 })
 
-/** Ki a lomtárból - piszkozatként, hogy semmi ne kerüljön ki véletlenül (mint az oldalaknál). */
+/** Restore from the trash - as a draft, so nothing goes public by accident (as with pages). */
 router.post('/:id/untrash', async (req, res) => {
   const existing = await findPost(String(req.params.id))
   if (!existing || existing.status !== STATUS.TRASH || !canTrashWorkflowPost(existing, req.pnwUser!)) {
@@ -368,7 +368,7 @@ function canViewPost(post: Post, user: import('../../shared/pnw/types.ts').Sessi
 
 const PER_PAGE = 30
 
-/** Egy státusz hírei dátum szerint csökkenően, oldalanként, opcionális kereséssel (`?q=`, `?page=`) - mind SQL-ben. */
+/** The posts of one status, by date descending, per page, with optional search (`?q=`, `?page=`) - all in SQL. */
 async function paginate(status: PostStatus, req: import('express').Request) {
   const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 200) : ''
   const page = Math.max(1, Math.floor(Number(req.query.page)) || 1)

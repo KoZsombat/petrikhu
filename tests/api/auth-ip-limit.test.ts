@@ -1,4 +1,4 @@
-// Belépés: IP-nként 30 próba / 15 perc. Külön fájl (külön folyamat), mert a korlátozó a modul állapota.
+// Login: 30 attempts per IP / 15 minutes. Separate file (separate process), because the limiter is module state.
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, startTestServer } from '../helpers/server.ts'
@@ -11,11 +11,11 @@ before(async () => {
 })
 after(() => server.close())
 
-test('IP-nként a 31. próba 429, akármelyik fiókra', async () => {
+test('the 31st attempt per IP gives 429, for any account', async () => {
   for (let i = 0; i < 30; i += 1) {
-    // Mindig más fióknév, hogy a fiókonkénti korlát ne szóljon közbe.
+    // Always a different username, so the per-account limit does not interfere.
     const res = await server.client().post('/api/auth/login', { login: `nincs-${i}`, password: 'x' })
-    assert.equal(res.status, 401, `próba ${i + 1}`)
+    assert.equal(res.status, 401, `attempt ${i + 1}`)
   }
   const blocked = await server.client().post('/api/auth/login', DEMO.reviewer)
   assert.equal(blocked.status, 429)

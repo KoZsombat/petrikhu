@@ -72,7 +72,7 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
       res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:")
     }
 
-    // Egyetlen bájttartomány (videó tekerése, megszakadt letöltés folytatása); több tartományt nem szolgálunk ki.
+    // A single byte range (video seeking, resuming an interrupted download); multiple ranges are not served.
     let start = 0
     let end = file.size - 1
     const range = parseRange(req.headers.range, file.size)
@@ -94,7 +94,7 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
     try {
       await streamTo(res, mediaChunks(file.path, start, end))
     } catch (error) {
-      // A fejlécek már kimentek: csak megszakítani lehet a választ.
+      // The headers have already been sent: the response can only be aborted.
       console.error('[pnw] media stream failed', error)
       res.destroy()
     }
@@ -102,7 +102,7 @@ export function mediaRouter(prefix: string, maxAgeSeconds: number): Router {
   return router
 }
 
-/** `bytes=a-b`, `bytes=a-`, `bytes=-n` → [kezdet, vég]; undefined, ha nincs (vagy több tartomány van) és teljes fájl megy. */
+/** `bytes=a-b`, `bytes=a-`, `bytes=-n` → [start, end]; undefined if there is none (or several ranges), and the whole file is sent. */
 export function parseRange(header: string | undefined, size: number): [number, number] | 'invalid' | undefined {
   if (!header) return undefined
   const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
@@ -120,7 +120,7 @@ export function parseRange(header: string | undefined, size: number): [number, n
   return [start, end]
 }
 
-/** Darabonként írja ki a választ, és megvárja, míg a kliens felveszi (backpressure); bontott kapcsolatnál leáll. */
+/** Writes the response chunk by chunk, waiting until the client takes each one (backpressure); stops on a broken connection. */
 async function streamTo(res: Response, chunks: AsyncIterable<Buffer>): Promise<void> {
   for await (const chunk of chunks) {
     if (res.destroyed) return

@@ -40,7 +40,7 @@ function fromRow(row: Row): Post {
     featuredImage: row.featured_image ?? undefined,
     imagePosition: row.image_position === 'bottom' ? 'bottom' : 'top',
     origin: row.origin === 'mirror' ? 'mirror' : 'hirkezelo',
-    // Törölt fiók (ON DELETE SET NULL): üres azonosító, a felület "—"-t mutat.
+    // Deleted account (ON DELETE SET NULL): empty id, the UI shows "—".
     authorId: row.author_id ?? '',
     status: row.status as Post['status'],
     reviewNote: row.review_note ?? undefined,
@@ -90,18 +90,18 @@ const PLACEHOLDERS = (count: number) => Array.from({ length: count }, (_, i) => 
 const ROW_KEYS = COLUMNS.split(', ') as (keyof Row)[]
 const valuesOf = (row: Row) => ROW_KEYS.map((key) => row[key])
 
-/** Mire szűrhető egy hírlista; minden mező opcionális, a megadottak ÉS-kapcsolatban állnak. */
+/** What a post list can be filtered by; every field is optional, the ones given are combined with AND. */
 export type PostFilter = {
   status?: PostStatus | PostStatus[]
-  /** Minden, ami NEM ez a státusz. */
+  /** Everything that is NOT this status. */
   statusNot?: PostStatus
   authorId?: string
   origin?: 'mirror' | 'hirkezelo'
-  /** Csak ennél nem későbbi `date` (az időzített söprés: ami már esedékes). */
+  /** Only a `date` not later than this (the scheduled sweep: what is already due). */
   dateUntil?: string
-  /** Egy nap (YYYY-MM-DD, UTC) hírei. */
+  /** The posts of one day (YYYY-MM-DD, UTC). */
   day?: string
-  /** Részszó a címben vagy a szövegben (post-search.ts). */
+  /** A substring in the title or the text (post-search.ts). */
   search?: string
 }
 
@@ -135,7 +135,7 @@ function whereOf(filter: PostFilter): { sql: string; params: unknown[] } {
   return { sql: parts.length ? `WHERE ${parts.join(' AND ')}` : '', params }
 }
 
-/** A szűrőnek megfelelő hírek, rendezve és lapozva - a szűrés, rendezés és lapozás az adatbázisban fut. */
+/** The posts matching the filter, sorted and paged - filtering, sorting and paging run in the database. */
 export async function findPosts(
   filter: PostFilter,
   options: { order?: PostOrder; limit?: number; offset?: number } = {},
@@ -158,7 +158,7 @@ export async function countPosts(filter: PostFilter): Promise<number> {
   return (await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM posts ${sql}`, params))!.n
 }
 
-/** Státuszonkénti darabszám (a hiányzó státusz 0-nak számít a hívónál). */
+/** Count per status (a missing status counts as 0 for the caller). */
 export async function countByStatus(filter: PostFilter = {}): Promise<Partial<Record<PostStatus, number>>> {
   const { sql, params } = whereOf(filter)
   const found = await many<{ status: PostStatus; n: number }>(`SELECT status, COUNT(*)::int AS n FROM posts ${sql} GROUP BY status`, params)
@@ -170,7 +170,7 @@ export async function postSlugs(filter: PostFilter): Promise<string[]> {
   return (await many<{ slug: string }>(`SELECT slug FROM posts ${sql} ORDER BY slug`, params)).map((r) => r.slug)
 }
 
-/** Az import után (vagy bármikor): kitölti a hiányzó keresőszövegeket. */
+/** After the import (or any time): fills in the missing search texts. */
 export async function fillMissingSearchText(): Promise<number> {
   const missing = await many<Row>(`SELECT ${COLUMNS} FROM posts WHERE search_text IS NULL`)
   for (const r of missing) {

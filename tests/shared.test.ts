@@ -1,4 +1,4 @@
-// A shared/pnw tiszta függvényei: jogosultságok, hozzáférés, slug, rich text.
+// The pure functions of shared/pnw: permissions, access, slug, rich text.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { CAPABILITY, STATUS } from '../shared/pnw/types.ts'
@@ -43,7 +43,7 @@ function post(status: PostStatus, authorId = 'a'): Post {
 
 /* --- permissions.ts --- */
 
-test('minden jogosultságnak van címkéje és leírása', () => {
+test('every permission has a label and a description', () => {
   assert.equal(new Set(ALL_CAPABILITIES).size, Object.values(CAPABILITY).length)
   for (const capability of ALL_CAPABILITIES) {
     assert.ok(CAPABILITY_LABEL[capability])
@@ -51,7 +51,7 @@ test('minden jogosultságnak van címkéje és leírása', () => {
   }
 })
 
-test('isCapability csak az ismert értékeket fogadja el', () => {
+test('isCapability only accepts the known values', () => {
   assert.equal(isCapability('pnw_submit_news'), true)
   assert.equal(isCapability('administrator'), false)
   assert.equal(isCapability(undefined), false)
@@ -61,7 +61,7 @@ test('isCapability csak az ismert értékeket fogadja el', () => {
 test('hasCapability / hasNewsPermission / canUseEditor', () => {
   assert.equal(hasCapability(author, CAPABILITY.SUBMIT_NEWS), true)
   assert.equal(hasCapability(author, CAPABILITY.REVIEW_NEWS), false)
-  // A Szerkesztő két joga önmagában nem enged be a Hírkezelőbe.
+  // The two Szerkesztő rights alone do not let you into the Hírkezelő.
   assert.equal(hasNewsPermission(user('x', CAPABILITY.MANAGE_PAGES, CAPABILITY.MANAGE_LIBRARY)), false)
   assert.equal(hasNewsPermission(user('x', CAPABILITY.VIEW_AUDIT_LOG)), true)
   assert.equal(canUseEditor(user('x', CAPABILITY.MANAGE_LIBRARY)), true)
@@ -70,7 +70,7 @@ test('hasCapability / hasNewsPermission / canUseEditor', () => {
 
 test('permissionSummary', () => {
   assert.equal(permissionSummary(nobody), 'Nincs jogosultság')
-  // A sorrend az ALL_CAPABILITIES-é, nem a tárolt listáé.
+  // The order is that of ALL_CAPABILITIES, not of the stored list.
   assert.equal(
     permissionSummary(user('x', CAPABILITY.REVIEW_NEWS, CAPABILITY.SUBMIT_NEWS)),
     `${CAPABILITY_LABEL[CAPABILITY.SUBMIT_NEWS]} · ${CAPABILITY_LABEL[CAPABILITY.REVIEW_NEWS]}`,
@@ -79,7 +79,7 @@ test('permissionSummary', () => {
 
 /* --- access.ts --- */
 
-test('canEditWorkflowPost: a szerző csak a saját piszkozatát / visszaküldött hírét', () => {
+test('canEditWorkflowPost: the author only their own draft / returned post', () => {
   assert.equal(canEditWorkflowPost(post(STATUS.DRAFT), author), true)
   assert.equal(canEditWorkflowPost(post(STATUS.REVISION), author), true)
   for (const status of [STATUS.PENDING, STATUS.PUBLISH, STATUS.FUTURE, STATUS.ARCHIVED, STATUS.TRASH]) {
@@ -87,16 +87,16 @@ test('canEditWorkflowPost: a szerző csak a saját piszkozatát / visszaküldöt
   }
 })
 
-test('canEditWorkflowPost: más piszkozata soha', () => {
+test('canEditWorkflowPost: never a draft of someone else', () => {
   assert.equal(canEditWorkflowPost(post(STATUS.DRAFT), otherAuthor), false)
   assert.equal(canEditWorkflowPost(post(STATUS.REVISION), otherAuthor), false)
 })
 
-test('canEditWorkflowPost: beküldési jog nélkül a saját hír sem', () => {
+test('canEditWorkflowPost: without the submit right, not even own post', () => {
   assert.equal(canEditWorkflowPost(post(STATUS.DRAFT), user('a')), false)
 })
 
-test('canEditWorkflowPost: a jóváhagyó mindent', () => {
+test('canEditWorkflowPost: the approver can edit everything', () => {
   for (const status of Object.values(STATUS)) assert.equal(canEditWorkflowPost(post(status, 'z'), reviewer), true)
 })
 
@@ -110,7 +110,7 @@ test('canViewWorkflowPost', () => {
 
 /* --- slug.ts --- */
 
-test('slugify: ékezetek, írásjelek, szóközök', () => {
+test('slugify: accents, punctuation, spaces', () => {
   assert.equal(slugify('Árvíztűrő tükörfúrógép'), 'arvizturo-tukorfurogep')
   assert.equal(slugify('  Hello, World!  '), 'hello-world')
   assert.equal(slugify('ŐŰ őű'), 'ou-ou')
@@ -118,12 +118,12 @@ test('slugify: ékezetek, írásjelek, szóközök', () => {
   assert.equal(slugify('../../etc/passwd'), 'etc-passwd')
 })
 
-test('slugify: üres eredmény helyett "hir"', () => {
+test('slugify: "hir" instead of an empty result', () => {
   assert.equal(slugify(''), 'hir')
   assert.equal(slugify('!!!'), 'hir')
 })
 
-test('uniqueSlug: sorszámot fűz a foglaltakhoz', () => {
+test('uniqueSlug: appends a number to taken slugs', () => {
   assert.equal(uniqueSlug('Hír', new Set()), 'hir')
   assert.equal(uniqueSlug('Hír', new Set(['hir'])), 'hir-2')
   assert.equal(uniqueSlug('Hír', new Set(['hir', 'hir-2', 'hir-3'])), 'hir-4')
@@ -142,7 +142,7 @@ test('blockText / documentText', () => {
   assert.equal(documentText([block({ runs: [{ text: 'x' }] }), block({ runs: [{ text: 'y' }] })]), 'x\ny')
 })
 
-test('isBlank: a szóköz üres, a kép / galéria / beágyazás tartalom', () => {
+test('isBlank: whitespace is blank, image / gallery / embed is content', () => {
   assert.equal(isBlank([block({ runs: [{ text: '  ' }] })]), true)
   assert.equal(isBlank([]), true)
   assert.equal(isBlank([block({ type: 'image', runs: [] })]), false)
@@ -165,7 +165,7 @@ test('isSafeColor', () => {
   for (const bad of ['red;background:url(x)', 'expression(alert(1))', '#fff"', 'url(x)']) assert.equal(isSafeColor(bad), false, bad)
 })
 
-test('canTrashWorkflowPost: a szerző a saját piszkozatát, visszaküldöttjét és lomtárban lévőjét', async () => {
+test('canTrashWorkflowPost: the author can trash their own draft, returned post and one already in the trash', async () => {
   const { canTrashWorkflowPost } = await import('../shared/pnw/access.ts')
   for (const status of [STATUS.DRAFT, STATUS.REVISION, STATUS.TRASH]) assert.equal(canTrashWorkflowPost(post(status), author), true, status)
   for (const status of [STATUS.PENDING, STATUS.PUBLISH, STATUS.FUTURE, STATUS.ARCHIVED]) assert.equal(canTrashWorkflowPost(post(status), author), false, status)

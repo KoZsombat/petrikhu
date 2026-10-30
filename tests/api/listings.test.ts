@@ -1,5 +1,5 @@
-// A hírlisták, a statisztika és a napló: rögzített adatkészleten, pontos várt értékekkel. Ezek őrzik a
-// viselkedést, amikor a szűrés / rendezés / lapozás JavaScriptből SQL-be kerül.
+// Post lists, statistics and the log: on a fixed data set, with exact expected values. These guard the
+// behaviour when filtering / sorting / paging moves from JavaScript into SQL.
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, startTestServer } from '../helpers/server.ts'
@@ -48,7 +48,7 @@ before(async () => {
   const { insertAuditEntry } = await import('../../server/data/audit-repo.ts')
 
   const posts: Post[] = []
-  // 35 megjelent hír a lapozáshoz (30 / oldal); kettő ebben a hónapban.
+  // 35 published posts for paging (30 / page); two of them this month.
   for (let i = 0; i < 35; i += 1) posts.push(makePost({ status: 'publish', authorId: i < 20 ? authorId : reviewerId, date: iso(NOW - (40 + i) * DAY) }))
   posts.push(makePost({ status: 'publish', authorId, title: 'Tavaszi koncert', date: iso(NOW - 1000), categoryIds: ['cat-b', 'cat-a'] }))
   posts.push(
@@ -62,7 +62,7 @@ before(async () => {
     }),
   )
   posts.push(makePost({ status: 'publish', title: 'Képes hír', date: iso(NOW - 3000), content: [{ id: 'b', type: 'image', runs: [], image: { src: '/uploads/elso.png' } } as never] }))
-  // A JSON szerkezet kulcsai ("runs", "paragraph") nem találatok.
+  // The JSON structure's keys ("runs", "paragraph") do not match.
   posts.push(makePost({ status: 'pnw_archived', title: 'Archív hír', date: iso(NOW - 50 * DAY), origin: 'mirror', slug: 'regi-archiv' }))
   posts.push(makePost({ status: 'pnw_archived', title: 'Másik archív', date: iso(NOW - 60 * DAY) }))
   posts.push(makePost({ status: 'publish', origin: 'mirror', slug: 'regi-kint', date: iso(NOW - 70 * DAY) }))
@@ -77,7 +77,7 @@ before(async () => {
 
   const entry = (postId: string, action: AuditAction, at: number) =>
     insertAuditEntry({ id: `${postId}-${action}-${at}`, entityType: 'post', entityId: postId, postId, userId: null, action, fromStatus: '', toStatus: '', createdAt: iso(at) })
-  // Jóváhagyási idők: 1 óra és 3 óra → átlag 2 óra. Egy hír döntés nélkül, egy importált bejegyzés.
+  // Approval times: 1 h and 3 h → average 2 h. One post without a decision, one imported entry.
   await entry('p001', 'submitted', NOW - 10 * DAY)
   await entry('p001', 'approved', NOW - 10 * DAY + 3600_000)
   await entry('p002', 'submitted', NOW - 9 * DAY)
@@ -89,7 +89,7 @@ after(() => server.close())
 
 type ListBody = { posts: Post[]; total: number; totalPages: number }
 
-test('megjelent hírek: dátum szerint csökkenő, 30 / oldal', async () => {
+test('published posts: date descending, 30 / page', async () => {
   const first = (await reviewer.get('/api/posts/published')).body as ListBody
   assert.equal(first.total, 39)
   assert.equal(first.totalPages, 2)
@@ -102,23 +102,23 @@ test('megjelent hírek: dátum szerint csökkenő, 30 / oldal', async () => {
   assert.equal(new Set([...first.posts, ...second.posts].map((p) => p.id)).size, 39)
 })
 
-test('keresés a címben és a szövegben, kis-nagybetűtől függetlenül', async () => {
+test('search in title and text, case-insensitive', async () => {
   const body = (await reviewer.get('/api/posts/published?q=koncert')).body as ListBody
   assert.deepEqual(body.posts.map((p) => p.title), ['Tavaszi koncert', 'Más téma'])
   assert.equal(body.total, 2)
-  // A tárolt JSON szerkezete nem találat.
+  // The stored JSON structure does not match.
   assert.equal(((await reviewer.get('/api/posts/published?q=paragraph')).body as ListBody).total, 0)
   assert.equal(((await reviewer.get('/api/posts/published?q=runs')).body as ListBody).total, 0)
-  // A LIKE különleges jelei szó szerint értendők.
+  // LIKE's special characters are taken literally.
   assert.equal(((await reviewer.get('/api/posts/published?q=%25')).body as ListBody).total, 0)
 })
 
-test('archivált hírek', async () => {
+test('archived posts', async () => {
   const body = (await reviewer.get('/api/posts/archived')).body as ListBody
   assert.deepEqual(body.posts.map((p) => p.title), ['Archív hír', 'Másik archív'])
 })
 
-test('jóváhagyói vezérlőpult', async () => {
+test('approver dashboard', async () => {
   const body = (await reviewer.get('/api/posts/dashboard')).body as Record<string, unknown> & {
     pending: Post[]
     ownWorking: Post[]
@@ -130,7 +130,7 @@ test('jóváhagyói vezérlőpult', async () => {
   assert.equal(body.returnedCount, 1)
   assert.equal(body.scheduledCount, 2)
   assert.equal(body.publishedTodayCount, 3)
-  // A legrégebben várakozó elöl.
+  // The longest-waiting first.
   assert.deepEqual(body.pending.map((p) => p.title), ['Várakozó 2', 'Várakozó 1'])
   assert.deepEqual(body.ownWorking.map((p) => p.title), ['Saját piszkozat'])
   assert.deepEqual(body.scheduled.map((p) => p.title), ['Időzített hamarabb', 'Időzített később'])
@@ -140,7 +140,7 @@ test('jóváhagyói vezérlőpult', async () => {
   assert.deepEqual(modified, [...modified].sort().reverse())
 })
 
-test('szerzői vezérlőpult: csak a saját hírek', async () => {
+test('author dashboard: only own posts', async () => {
   const body = (await author.get('/api/posts/dashboard')).body as { view: string; counts: Record<string, number>; posts: Post[] }
   assert.equal(body.view, 'author')
   assert.deepEqual(body.counts, { draft: 1, pending: 1, pnw_revision: 1, future: 2, publish: 22 })
@@ -150,7 +150,7 @@ test('szerzői vezérlőpult: csak a saját hírek', async () => {
   assert.deepEqual(modified, [...modified].sort().reverse())
 })
 
-test('nyilvános lista: csak megjelent, legfrissebb elöl, tartalom nélkül, miniatűrrel', async () => {
+test('public list: only published, newest first, without content, with thumbnail', async () => {
   const body = (await server.client().get('/api/public/posts?limit=3')).body as { posts: (Post & { thumbnail?: string })[] }
   assert.deepEqual(body.posts.map((p) => p.title), ['Tavaszi koncert', 'Más téma', 'Képes hír'])
   assert.ok(!body.posts.some((p) => 'content' in p))
@@ -159,7 +159,7 @@ test('nyilvános lista: csak megjelent, legfrissebb elöl, tartalom nélkül, mi
   assert.equal(((await server.client().get('/api/public/posts')).body as { posts: Post[] }).posts.length, 20)
 })
 
-test('rejtett tükrözött hírek', async () => {
+test('hidden mirrored posts', async () => {
   const body = (await server.client().get('/api/public/posts/hidden-mirror')).body as { slugs: string[] }
   assert.deepEqual(body.slugs, ['regi-archiv'])
 })
@@ -178,7 +178,7 @@ test('statisztika', async () => {
   const monthKey = new Date().toISOString().slice(0, 7)
   assert.equal(body.monthlyChart.length, 6)
   assert.equal(body.monthlyChart[5].key, monthKey)
-  // Megjelent és archivált hírek hónaponként (a havi szám ugyanez az utolsó hónapra).
+  // Published and archived posts per month (the monthly figure is the same for the last month).
   assert.equal(body.monthPublished, body.monthlyChart[5].count)
   const expectedRecent = 3
   assert.ok(body.monthlyChart[5].count >= expectedRecent)
@@ -192,7 +192,7 @@ test('statisztika', async () => {
   ])
 })
 
-test('napló: az importált bejegyzések alapból kimaradnak, a limit érvényes', async () => {
+test('log: imported entries are left out by default, the limit applies', async () => {
   const body = (await reviewer.get('/api/audit')).body as { entries: { action: string }[] }
   assert.equal(body.entries.length, 5)
   assert.ok(body.entries.every((e) => e.action !== 'imported'))
@@ -203,7 +203,7 @@ test('napló: az importált bejegyzések alapból kimaradnak, a limit érvényes
   assert.equal(limited.entries.length, 2)
 })
 
-test('időzített söprés: csak a lejárt időzítésűek jelennek meg', async () => {
+test('scheduled sweep: only the due ones get published', async () => {
   const { sweepScheduledPosts } = await import('../../server/app.ts')
   await server.sql("UPDATE posts SET date = $1 WHERE title = 'Időzített hamarabb'", [iso(Date.now() - 1000)])
   await sweepScheduledPosts()
@@ -214,7 +214,7 @@ test('időzített söprés: csak a lejárt időzítésűek jelennek meg', async 
   ])
 })
 
-test('a keresőszöveg mentéskor frissül', async () => {
+test('the search text is refreshed on save', async () => {
   const { updatePost } = await import('../../server/data/posts-repo.ts')
   await updatePost('p005', (post) => ({ ...post, title: 'Átnevezett Évzáró' }))
   const body = (await reviewer.get('/api/posts/published?q=%C3%89VZ%C3%81R%C3%93')).body as ListBody

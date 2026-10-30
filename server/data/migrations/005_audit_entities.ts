@@ -1,7 +1,7 @@
 /**
- * A napló már nem csak a híreké: oldal, menü, Dokumentumtár és fiók eseménye is bekerül. Minden bejegyzésnek
- * van tárgytípusa (`entity_type`), azonosítója (`entity_id`) és a tárgy akkori neve (`subject`: egy törölt
- * oldal / fiók neve is olvasható marad). A meglévő bejegyzések hírek.
+ * The log is no longer only for posts: page, menu, library and account events go in too. Every entry
+ * has a subject type (`entity_type`), an id (`entity_id`) and the subject's name at the time (`subject`: a deleted
+ * page's / account's name stays readable). Existing entries are posts.
  */
 import type pg from 'pg'
 

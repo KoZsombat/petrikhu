@@ -26,6 +26,6 @@ export type PageOverrides = {
   extraSections: PageSection[]
   title?: string
   description?: string
-  /** "Rejtés": the page was served as the 404 page. */
+  /** "Rejtés" (hide): the page was served as the 404 page. */
   hidden?: boolean
 }

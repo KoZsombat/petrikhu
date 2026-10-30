@@ -1,4 +1,4 @@
-// 1.3: a /dokumentumtar is figyelembe veszi az azonos slugú, szerkesztőben kiadott oldalt.
+// 1.3: /dokumentumtar also takes into account the page published in the editor with the same slug.
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createElement } from 'react'
@@ -34,18 +34,18 @@ const editedPage = {
   blocks: [{ component: 'PageTitle', values: { breadcrumb: [], title: 'Ez a szerkesztett dokumentumtár' } }],
 }
 
-test('kiadott oldal nélkül a beépített tár látszik', async () => {
+test('without a published page the built-in library is shown', async () => {
   const html = await render(new Map())
   assert.match(html, /Keresés a dokumentumok között/)
 })
 
-test('azonos slugú kiadott oldal felülírja a tárat', async () => {
+test('a published page with the same slug overrides the library', async () => {
   const html = await render(new Map([['dokumentumtar', editedPage]]))
   assert.match(html, /Ez a szerkesztett dokumentumtár/)
   assert.doesNotMatch(html, /Keresés a dokumentumok között/)
 })
 
-test('angolul a szerkesztett (magyar) oldal nem jelenik meg', async () => {
+test('in English the edited (Hungarian) page is not shown', async () => {
   const html = await render(new Map([['dokumentumtar', editedPage]]), 'en')
   assert.doesNotMatch(html, /Ez a szerkesztett dokumentumtár/)
 })

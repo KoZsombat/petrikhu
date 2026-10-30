@@ -1,7 +1,7 @@
 /**
- * A média bájtjai tömörítés nélkül, külön (TOAST) tárolódnak: így a kiszolgálás (lib/media.ts) a
- * `substring()`-gel csak a kért szeletet olvassa, nem az egész fájlt. A képek, PDF-ek úgyis tömörítettek.
- * Csak az új / átírt sorokra hat; a meglévők a régi módon is helyesen olvashatók.
+ * Media bytes are stored uncompressed, out of line (TOAST): so serving (lib/media.ts) uses
+ * `substring()` to read only the requested slice, not the whole file. Images and PDFs are compressed anyway.
+ * It only affects new / rewritten rows; existing ones remain readable the old way.
  */
 import type pg from 'pg'
 

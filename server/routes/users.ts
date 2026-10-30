@@ -44,7 +44,7 @@ function sanitizePermissions(value: unknown): Capability[] {
  * account managers) power the Users.tsx screen.
  */
 router.get('/', requireLogin, async (req, res) => {
-  // Felhasználónevet és jogosultságot csak a fiókkezelők látnak; mindenki másnak elég a név a hírek szerzőjéhez.
+  // Only account managers see usernames and permissions; everyone else gets the name, enough for a post's author.
   const manager = canManageUsers(req.pnwUser!)
   res.json({ users: (await allUsers()).map((user) => (manager ? toPublic(user) : { id: user.id, displayName: user.displayName, permissions: [] })) })
 })
@@ -148,7 +148,7 @@ function permissionNote(permissions: Capability[]): string {
   return permissions.length ? `Jogok: ${permissions.join(', ')}` : 'Nincs jogosultság'
 }
 
-/** Mi változott egy fiókon - a jogok változása tételesen (+ / -), a jelszó csak annyi, hogy megváltozott. */
+/** What changed on an account - rights changes itemised (+ / -), the password only as "changed". */
 function changeNote(before: UserRecord, after: UserRecord, passwordChanged: boolean): string | undefined {
   const parts: string[] = []
   const added = after.permissions.filter((p) => !before.permissions.includes(p))

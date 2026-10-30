@@ -8,11 +8,11 @@ import { RateLimiter } from '../security.ts'
 
 const router = Router()
 
-/** Jelszótippelés ellen: IP-nként 30, fiókonként 8 kísérlet 15 percenként (a sikeres belépés a fiók számlálóját nullázza). */
+/** Against password guessing: 30 attempts per IP and 8 per account every 15 minutes (a successful login resets the account's counter). */
 const byIp = new RateLimiter(30, 15 * 60 * 1000)
 const byAccount = new RateLimiter(8, 15 * 60 * 1000)
 
-/** Ismeretlen felhasználónévnél is lefut egy bcrypt-összehasonlítás, hogy a válaszidőből ne derüljön ki, létezik-e a fiók. */
+/** Even for an unknown username a bcrypt comparison runs, so the response time does not reveal whether the account exists. */
 const DUMMY_HASH = bcrypt.hashSync('nem-letezo-fiok', 12)
 
 const MAX_FIELD = 200
@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
   // (AGENTS.md "Server" (permissions)). An account with an empty permission list can still log
   // in and is shown the "no permission" screen, exactly as the plugin's own
   // render_unauthorized() branch does.
-  // Új munkamenet-azonosító belépéskor (session fixation ellen).
+  // New session id on login (against session fixation).
   req.session.regenerate((error) => {
     if (error) {
       res.status(500).json({ error: 'server_error' })

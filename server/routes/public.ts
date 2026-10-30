@@ -1,7 +1,7 @@
 /**
  * Genuinely public endpoints - no requireLogin, unlike everything under
  * /api/posts (see AGENTS.md "Server"). This is what the site's own static pages
- * (the sidebar's "Legutóbbi bejegyzések" widget, the homepage's feeds, and
+ * (the sidebar's "Legutóbbi bejegyzések" ("recent posts") widget, the homepage's feeds, and
  * the /hirek/:slug/ page) read a published Hírkezelő post through.
  */
 import { Router } from 'express'
@@ -15,13 +15,13 @@ import { getLibrary } from '../data/library-repo.ts'
 
 const router = Router()
 
-// Nyilvános, olvasható adat: egy percig a böngésző és a proxy is megtarthatja (az /api általános no-store-ját felülírja).
+// Public, readable data: the browser and the proxy may keep it for a minute (overriding the general no-store of /api).
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'public, max-age=60')
   next()
 })
 
-/** A hír első képe (kép- vagy galériablokk) - a kártyák miniatűrje, ha nincs kiemelt kép. */
+/** The first image of a post (image or gallery block) - the card thumbnail when there is no featured image. */
 function firstImage(content: Post['content']): string | undefined {
   for (const block of content) {
     const src = block.image?.src ?? block.gallery?.[0]?.src
@@ -31,9 +31,9 @@ function firstImage(content: Post['content']): string | undefined {
 }
 
 /**
- * A kiadott hírek, legfrissebb elöl, tartalom nélkül (a lista nézetnek csak a
- * kivonat kell, a teljes szöveget a GET /posts/:slug adja). A régi oldalról
- * importált (`mirror`) hírek is benne vannak.
+ * The published posts, newest first, without content (the list view only needs the
+ * excerpt; the full text comes from GET /posts/:slug). Posts from the old site
+ * imported (`mirror`) are included too.
  */
 router.get('/posts', async (req, res) => {
   const limit = Math.min(1000, Number(req.query.limit) || 20)
@@ -61,9 +61,9 @@ router.get('/posts/:slug', async (req, res) => {
 })
 
 /**
- * Amit az oldalszerkesztő változtatott, egyben - a nyilvános oldal betöltéskor
- * egyszer kéri le (src/lib/SiteContentProvider.tsx), és sikertelen lekérés esetén
- * minden oldal a beépített tartalmát mutatja. Csak a kiadott, nem kukázott oldalak.
+ * Everything the page editor changed, in one go - the public site, on load,
+ * fetches it once (src/lib/SiteContentProvider.tsx), and if the fetch fails every page
+ * shows its built-in content. Only published, non-trashed pages.
  */
 router.get('/site', async (_req, res) => {
   const pages = (await listPages())
@@ -73,7 +73,7 @@ router.get('/site', async (_req, res) => {
   res.json(body)
 })
 
-/** Egy kiadott oldal önmagában, a /<slug> közvetlen betöltéséhez. */
+/** One published page on its own, for loading /<slug> directly. */
 router.get('/pages/:slug', async (req, res) => {
   const page = await getPageBySlug(req.params.slug)
   if (!page || page.deleted || page.status !== 'publish') {

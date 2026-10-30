@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { AuditAction, AuditEntityType, AuditEntry } from '../../shared/pnw/types.ts'
 import { insertAuditEntry, recentAuditEntries } from '../data/audit-repo.ts'
 
-/** Ported from PNW_Audit::log() - egy hír állapotváltása. */
+/** Ported from PNW_Audit::log() - a post status change. */
 export function logAudit(
   postId: string,
   action: AuditAction,
@@ -27,7 +27,7 @@ export function logAudit(
   })
 }
 
-/** Nem hír tárgyú esemény (oldal, menü, Dokumentumtár, fiók) a közös naplóba. */
+/** A non-post event (page, menu, library, account) into the shared log. */
 export function logEvent(
   entityType: Exclude<AuditEntityType, 'post'>,
   action: AuditAction,

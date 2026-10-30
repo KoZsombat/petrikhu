@@ -1,6 +1,6 @@
 /**
- * A munkamenetek az adatbázisban élnek (nem a memóriában), így újraindítás után is bejelentkezve marad
- * mindenki, és a lejárt munkamenetek nem halmozódnak a memóriában. (A `sessions` táblát a data/db.ts sémája hozza létre.)
+ * Sessions live in the database (not in memory), so everyone stays logged in across restarts,
+ * and expired sessions do not pile up in memory. (The `sessions` table is created by the schema in data/db.ts.)
  */
 import session from 'express-session'
 import { row, run } from '../data/db.ts'

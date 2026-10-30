@@ -1,14 +1,14 @@
 /**
- * Verziózott séma-migrációk. Minden migráció egy `server/data/migrations/NNN_nev.ts` fájl, ami egy
- * `up(client)` függvényt exportál; a sorszám (NNN) a verzió. Induláskor (initDb) a még le nem futottak
- * sorban, egyenként egy-egy tranzakcióban futnak le, és a `schema_migrations` táblába kerülnek - így
- * minden migráció pontosan egyszer fut, akármennyiszer indul a szerver.
+ * Versioned schema migrations. Every migration is a `server/data/migrations/NNN_name.ts` file exporting an
+ * `up(client)` function; the number (NNN) is the version. On startup (initDb) the ones not yet run
+ * run in order, each in its own transaction, and are recorded in the `schema_migrations` table - so
+ * every migration runs exactly once, however often the server starts.
  *
- * Meglévő adatbázison (a migrációk előtti, `CREATE TABLE IF NOT EXISTS`-es korszakból) a 001 csak
- * rögzíti, hogy a séma megvan: az `IF NOT EXISTS` miatt semmit nem ír felül.
+ * On an existing database (from the pre-migration era, with `CREATE TABLE IF NOT EXISTS`) 001 only
+ * records that the schema is there: thanks to `IF NOT EXISTS` it overwrites nothing.
  *
- * Új migráció: új fájl a következő sorszámmal. Már lefutott migrációt soha ne módosíts - éles
- * adatbázisokon már nem futna le újra.
+ * New migration: a new file with the next number. Never modify a migration that has already run - on production
+ * databases it would not run again.
  */
 import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -22,10 +22,10 @@ export type Migration = {
 
 const MIGRATIONS_DIR = new URL('./migrations/', import.meta.url)
 
-/** Két egyszerre induló folyamat (pl. szerver + import) ne futtassa ugyanazt kétszer. */
+/** Two processes starting at once (e.g. server + import) must not run the same thing twice. */
 const LOCK_KEY = 7_303_011
 
-/** A migrations mappa fájljai, verzió szerint; hibát dob, ha két fájlnak ugyanaz a sorszáma. */
+/** The files of the migrations folder, by version; throws if two files share the same number. */
 export async function loadMigrations(dir: URL = MIGRATIONS_DIR): Promise<Migration[]> {
   const files = readdirSync(fileURLToPath(dir)).filter((file) => /^\d{3,}_[a-z0-9_-]+\.ts$/i.test(file)).sort()
   const migrations: Migration[] = []
@@ -39,7 +39,7 @@ export async function loadMigrations(dir: URL = MIGRATIONS_DIR): Promise<Migrati
   return migrations
 }
 
-/** Lefuttatja a hiányzó migrációkat; a lefutottak nevét adja vissza (üres lista: a séma naprakész). */
+/** Runs the missing migrations; returns the names of those that ran (empty list: the schema is up to date). */
 export async function migrate(pool: pg.Pool, migrations?: Migration[]): Promise<string[]> {
   const list = migrations ?? (await loadMigrations())
   const client = await pool.connect()

@@ -32,7 +32,7 @@ router.put('/', async (req, res) => {
   res.json({ library })
 })
 
-/** "Visszaállítás az eredetire" - the site falls back to src/data/docs.ts. */
+/** "Visszaállítás az eredetire" (restore the original) - the site falls back to src/data/docs.ts. */
 router.delete('/', async (req, res) => {
   await clearLibrary()
   await logEvent('library', 'library_reset', req.pnwUser!.id)

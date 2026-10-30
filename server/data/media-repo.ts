@@ -40,7 +40,7 @@ export async function hasMedia(path: string): Promise<boolean> {
 
 export type MediaInfo = Omit<MediaFile, 'data'>
 
-/** A fájl adatai a tartalma nélkül - a kiszolgálás ebből dönt (304, Range), mielőtt egy bájtot is olvasna. */
+/** The file's metadata without its content - serving decides from this (304, Range) before reading a single byte. */
 export async function getMediaInfo(path: string): Promise<MediaInfo | null> {
   const found = await row<{ path: string; mime: string; size: number; modified_at: string }>(
     'SELECT path, mime, size, modified_at FROM media_files WHERE path = $1',
@@ -52,16 +52,16 @@ export async function getMediaInfo(path: string): Promise<MediaInfo | null> {
 export const MEDIA_CHUNK_BYTES = 256 * 1024
 
 /**
- * A fájl `start`-tól `end`-ig (mindkettő bezárólag) darabokban, egyetlen kapcsolaton. Egyszerre csak egy darab
- * van a memóriában; a `data` oszlop STORAGE EXTERNAL (002-es migráció), így a Postgres is csak a kért szeletet
- * olvassa. Ha a hívó idő előtt kilép a ciklusból, a kapcsolat visszakerül a poolba.
+ * The file from `start` to `end` (both inclusive), in chunks, over a single connection. Only one chunk is in memory at a time;
+ * the `data` column is STORAGE EXTERNAL (migration 002), so Postgres also reads only the requested slice.
+ * If the caller leaves the loop early, the connection goes back to the pool.
  */
 export async function* mediaChunks(path: string, start: number, end: number, chunkBytes = MEDIA_CHUNK_BYTES): AsyncGenerator<Buffer> {
   const client = await pool.connect()
   try {
     for (let offset = start; offset <= end; offset += chunkBytes) {
       const length = Math.min(chunkBytes, end - offset + 1)
-      // A substring 1-től számoz.
+      // substring numbers from 1.
       const result = await client.query<{ chunk: Buffer | null }>(
         'SELECT substring(data FROM $2::int FOR $3::int) AS chunk FROM media_files WHERE path = $1',
         [mediaKey(path), offset + 1, length],

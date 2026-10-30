@@ -1,4 +1,4 @@
-// 1.1: a méretkorlátot túllépő feltöltés minden feltöltő végponton 413-at ad (nem 500-at).
+// 1.1: an upload exceeding the size limit gets 413 on every upload endpoint (not 500).
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, fileForm, PNG_BYTES, startTestServer } from '../helpers/server.ts'
@@ -15,7 +15,7 @@ before(async () => {
 })
 after(() => server.close())
 
-/** Érvényes PNG-fejléc, de a megadott méretre felfújva. */
+/** A valid PNG header, but padded to the given size. */
 function bigPng(bytes: number): Uint8Array {
   const buffer = new Uint8Array(bytes)
   buffer.set(PNG_BYTES)
@@ -35,14 +35,14 @@ const cases: { name: string; who: () => Client; method: 'POST' | 'PUT'; path: st
 ]
 
 for (const c of cases) {
-  test(`${c.name}: túl nagy fájl → 413 file_too_large`, async () => {
+  test(`${c.name}: file too large → 413 file_too_large`, async () => {
     const res = await c.who().request(c.method, c.path, fileForm(c.field, c.name_, bigPng(c.size), 'image/png'))
     assert.equal(res.status, 413)
     assert.deepEqual(res.body, { error: 'file_too_large' })
   })
 }
 
-test('váratlan mezőnév → 400 upload_failed', async () => {
+test('unexpected field name → 400 upload_failed', async () => {
   const res = await reviewer.post('/api/pages/media', fileForm('masik', 'a.png', PNG_BYTES, 'image/png'))
   assert.equal(res.status, 400)
   assert.deepEqual(res.body, { error: 'upload_failed' })

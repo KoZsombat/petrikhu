@@ -1,6 +1,6 @@
 import type { DocLibrary } from './page-types.ts'
 
-/** A Creator-oldalak és a szerkesztett menü közös típusai (szerver + kliens). */
+/** Shared types of the Creator pages and the edited menu (server + client). */
 
 export type PageBlock = {
   component: string
@@ -17,7 +17,7 @@ export type StoredCreatorPage = {
   description: string
   blocks: PageBlock[]
   status: CreatorPageStatus
-  /** Kukában van: az útvonal nem él, de visszaállítható. */
+  /** In the trash: the route is not live, but it can be restored. */
   deleted: boolean
   authorId: string
   createdAt: string
@@ -30,28 +30,28 @@ export type CreatorPageSummary = Omit<StoredCreatorPage, 'blocks'>
 export type MenuLeaf = { label: string; href: string }
 export type MenuItem = { label: string; href?: string; children?: MenuLeaf[] }
 
-/** Amit a nyilvános oldal egyszerre tölt le: a kiadott oldalak és a (szerkesztett) menü. */
+/** What the public site downloads at once: the published pages and the (edited) menu. */
 export type PublicSite = {
   pages: Pick<StoredCreatorPage, 'slug' | 'title' | 'description' | 'blocks'>[]
   menu: MenuItem[] | null
-  /** A szerkesztett Dokumentumtár, vagy null: ilyenkor a beépített (dokumentumtar.json) él. */
+  /** The edited Dokumentumtár, or null: then the built-in one (dokumentumtar.json) is used. */
   library: DocLibrary | null
 }
 
 /**
- * Útvonalak, amiket az alkalmazás már használ: ilyen slugú oldal nem hozható létre, mert sosem lenne elérhető.
- * Két forrásból jön: a szerver saját útvonalai (server/app.ts) és az src/App.tsx rögzített útvonalai.
- * A beépített oldalak (pages.json) és a /dokumentumtar NEM foglaltak: azokat egy azonos slugú kiadott oldal
- * szándékosan felülírja. A tests/reserved-slugs.test.ts ellenőrzi, hogy a lista ne csússzon el az App.tsx-től.
+ * Routes the application already uses: a page with such a slug cannot be created, because it would never be reachable.
+ * They come from two sources: the server's own routes (server/app.ts) and the fixed routes of src/App.tsx.
+ * The built-in pages (pages.json) and /dokumentumtar are NOT reserved: a published page with the same slug
+ * deliberately overrides them. tests/reserved-slugs.test.ts checks that the list does not drift from App.tsx.
  */
 export const RESERVED_SLUGS = [
-  // szerver (server/app.ts)
+  // server (server/app.ts)
   'api',
   'uploads',
   'media',
   'healthz',
   'assets',
-  // kliens (src/App.tsx)
+  // client (src/App.tsx)
   'about-us',
   'creator',
   'dashboard',

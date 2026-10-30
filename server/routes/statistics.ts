@@ -6,7 +6,7 @@ import { requireCapability } from '../middleware/auth.ts'
 
 const router = Router()
 
-/** Ported from PNW_Statistics::render()'s data half - the markup is the frontend's job. Minden szám SQL-összesítés. */
+/** Ported from PNW_Statistics::render()'s data half - the markup is the frontend's job. Every figure is an SQL aggregate. */
 router.get('/', requireCapability(CAPABILITY.VIEW_AUDIT_LOG), async (_req, res) => {
   const months = lastMonths(6)
   const [counts, perMonth, averageApproval, authors, categories] = await Promise.all([
@@ -33,9 +33,9 @@ router.get('/', requireCapability(CAPABILITY.VIEW_AUDIT_LOG), async (_req, res) 
 })
 
 /**
- * Az utolsó `count` hónap kulcsa (YYYY-MM), a legrégebbivel kezdve. A `date` mezők UTC ISO-szövegek
- * (toISOString()), ezért a kulcsok is Date.UTC-ből készülnek - a helyi getMonth() egy hónappal
- * visszacsúszna, ha a helyi zóna az UTC előtt jár (pl. Magyarország).
+ * The keys (YYYY-MM) of the last `count` months, starting with the oldest. The `date` fields are UTC ISO strings
+ * (toISOString()), so the keys are built from Date.UTC too - the local getMonth() would slip back a month
+ * if the local zone is ahead of UTC (e.g. Hungary).
  */
 function lastMonths(count: number): string[] {
   const now = new Date()

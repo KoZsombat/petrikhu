@@ -30,7 +30,7 @@ import termsRoutes from './routes/terms.ts'
 import pageRoutes from './routes/pages.ts'
 import libraryRoutes from './routes/library.ts'
 
-/** Az Express alkalmazás, `listen` nélkül: az index.ts indítja, a tesztek (tests/) port 0-n futtatják. */
+/** The Express application, without `listen`: index.ts starts it, the tests (tests/) run it on port 0. */
 export function createApp(): express.Express {
   const app = express()
   app.disable('x-powered-by')
@@ -41,7 +41,7 @@ export function createApp(): express.Express {
     res.json({ ok: true })
   })
 
-  // A Szerkesztő page document (AGENTS.md "Core idea: a page is JSON") easily outgrows express's 100 KB default
+  // The Szerkesztő page document (AGENTS.md "Core idea: a page is JSON") easily outgrows express's 100 KB default
   // (the staff page alone is ~120 KB; nginx's client_max_body_size is 10m).
   app.use(express.json({ limit: '8mb' }))
   app.use(express.urlencoded({ extended: true }))
@@ -52,12 +52,12 @@ export function createApp(): express.Express {
       store: new PgSessionStore(),
       resave: false,
       saveUninitialized: false,
-      // Egy bejelentkezés legfeljebb egy hétig él; használat közben a lejárat tovatolódik.
+      // A login lasts at most a week; the expiry is extended while it is in use.
       rolling: true,
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        // HTTPS mögött (a proxy X-Forwarded-Proto-ja alapján) csak titkosított kapcsolaton megy a süti.
+        // Behind HTTPS (based on the proxy's X-Forwarded-Proto) the cookie is only sent over an encrypted connection.
         secure: 'auto',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       },
@@ -65,7 +65,7 @@ export function createApp(): express.Express {
   )
   app.use(attachUser)
 
-  // API: nincs gyorsítótár, módosító hívás csak a saját oldalról, és IP-nként legfeljebb 600 módosító kérés / 5 perc.
+  // API: no caching; modifying calls only from the site's own origin, and at most 600 modifying requests per IP per 5 minutes.
   app.use('/api', apiNoStore, sameOriginOnly, ipRateLimit(new RateLimiter(600, 5 * 60 * 1000)))
 
   // Uploads get a fresh uuid name each, the mirrored files never change: both cache hard.
@@ -85,10 +85,10 @@ export function createApp(): express.Express {
 
   // The rest of the site is a static pixel-port that needs no server at all;
   // this only serves it too so `npm run server` is a complete way to run the
-  // whole app after `npm run build` in one process. Dockerben is ez fut: egyetlen
-  // port szolgálja ki az API-t és a klienst (Cloudflare Tunnel mögött is).
+  // whole app after `npm run build` in one process. Docker runs this too: a single
+  // port serves the API and the client (also behind the Cloudflare Tunnel).
   if (existsSync(DIST_DIR)) {
-    // A /assets alatti fájlok nevében a tartalom hash-e van: évekig gyorsítótárazhatók. A többi (index.html) mindig frissül.
+    // Files under /assets have a content hash in their name, so they can be cached for years. The rest (index.html) is always refreshed.
     app.use(
       express.static(DIST_DIR, {
         index: false,
@@ -117,7 +117,7 @@ export function createApp(): express.Express {
   }
 
 
-  // Ismeretlen /api cím: JSON 404 (ne az oldal HTML-je). Hibakezelő: a részletek a naplóba mennek, a kliens csak általános hibát kap.
+  // Unknown /api address: JSON 404 (not the site's HTML). Error handler: details go to the log, the client only gets a generic error.
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'not_found' })
   })
@@ -126,7 +126,7 @@ export function createApp(): express.Express {
       next(error)
       return
     }
-    // A body-parser `type`-ot, a multer `code`-ot állít; a feltöltések elvileg acceptUpload-on mennek át, ez csak tartalék.
+    // body-parser sets `type`, multer sets `code`; uploads should go through acceptUpload, this is only a fallback.
     if (error.type === 'entity.too.large' || error.code === 'LIMIT_FILE_SIZE') {
       res.status(413).json({ error: 'payload_too_large' })
       return

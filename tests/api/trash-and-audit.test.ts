@@ -1,4 +1,4 @@
-// 6. fázis: a hírek is lomtárba kerülnek (mint az oldalak), és a napló az oldal / menü / tár / fiók eseményeit is rögzíti.
+// Phase 6: posts also go to the trash (like pages), and the log records the page / menu / library / account events too.
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMO, startTestServer } from '../helpers/server.ts'
@@ -34,7 +34,7 @@ async function draft(client: Client, command: 'draft' | 'submit' = 'draft'): Pro
 const statusOf = async (id: string) => (await server.sql<{ status: string }>('SELECT status FROM posts WHERE id = $1', [id]))[0]?.status
 const auditOf = async (): Promise<AuditEntry[]> => ((await reviewer.get('/api/audit?limit=200')).body as { entries: AuditEntry[] }).entries
 
-test('első törlés: lomtár, nem végleges; a vezérlőpult lomtárában látszik', async () => {
+test('first delete: trash, not permanent; visible in the dashboard trash', async () => {
   const id = await draft(author)
   const res = await author.delete(`/api/posts/${id}`)
   assert.equal(res.status, 200)
@@ -45,31 +45,31 @@ test('első törlés: lomtár, nem végleges; a vezérlőpult lomtárában láts
   assert.ok(dashboard.trash.some((p) => p.id === id))
 })
 
-test('visszaállítás a lomtárból piszkozatként', async () => {
+test('restore from the trash as a draft', async () => {
   const id = await draft(author)
   await author.delete(`/api/posts/${id}`)
   const res = await author.post(`/api/posts/${id}/untrash`)
   assert.equal(res.status, 200)
   assert.equal(await statusOf(id), 'draft')
-  // Nem lomtárban lévőre 404.
+  // 404 for a post not in the trash.
   assert.equal((await author.post(`/api/posts/${id}/untrash`)).status, 404)
 })
 
-test('második törlés: végleges, a napló a címmel megmarad', async () => {
+test('second delete: permanent, the log keeps the title', async () => {
   const id = await draft(author)
   await author.delete(`/api/posts/${id}`)
   const res = await author.delete(`/api/posts/${id}`)
   assert.deepEqual(res.body, { notice: 'deleted', permanent: true })
   assert.equal(await statusOf(id), undefined)
   const deleted = (await auditOf()).find((e) => e.action === 'deleted' && e.subject === `Lomtár teszt ${n}`)
-  assert.ok(deleted, 'a végleges törlés naplóbejegyzése')
+  assert.ok(deleted, 'the permanent-delete log entry')
   assert.equal(deleted.postId, '')
-  // A korábbi bejegyzései is megmaradtak (post_id NULL).
+  // Its earlier entries also remain (post_id NULL).
   const rows = await server.sql<{ n: number }>("SELECT COUNT(*)::int AS n FROM audit_log WHERE entity_id = $1", [id])
   assert.ok(rows[0].n >= 3)
 })
 
-test('jogosultság: más szerző nem törölhet / állíthat vissza, beküldött hírt a szerző nem törölhet', async () => {
+test('permissions: another author cannot delete / restore, the author cannot delete a submitted post', async () => {
   const id = await draft(author)
   const create = await reviewer.post('/api/users', { username: 'masik.szerzo', displayName: 'Másik', password: 'hosszu-jelszo-1', permissions: ['pnw_submit_news'] })
   assert.equal(create.status, 200)
@@ -77,13 +77,13 @@ test('jogosultság: más szerző nem törölhet / állíthat vissza, beküldött
   assert.equal((await other.delete(`/api/posts/${id}`)).status, 403)
   await author.delete(`/api/posts/${id}`)
   assert.equal((await other.post(`/api/posts/${id}/untrash`)).status, 404)
-  // A jóváhagyó bárkiét visszaállíthatja.
+  // An approver can restore anyone's.
   assert.equal((await reviewer.post(`/api/posts/${id}/untrash`)).status, 200)
   const pending = await draft(author, 'submit')
   assert.equal((await author.delete(`/api/posts/${pending}`)).status, 403)
 })
 
-test('a lomtárban lévő hír nem nyilvános', async () => {
+test('a trashed post is not public', async () => {
   const id = await draft(author, 'submit')
   await reviewer.post(`/api/posts/${id}/decision`, { decision: 'approve', note: '' })
   const slug = (await server.sql<{ slug: string }>('SELECT slug FROM posts WHERE id = $1', [id]))[0].slug
@@ -92,7 +92,7 @@ test('a lomtárban lévő hír nem nyilvános', async () => {
   assert.equal((await server.client().get(`/api/public/posts/${slug}`)).status, 404)
 })
 
-test('napló: oldal létrehozása, módosítása, kukázása, visszaállítása, törlése', async () => {
+test('log: page creation, edit, trashing, restoring, deletion', async () => {
   const blocks = [{ component: 'PageTitle', values: { breadcrumb: [], title: 'X' } }]
   const created = await reviewer.post('/api/pages', { title: 'Naplózott oldal', slug: 'naplozott', blocks, status: 'draft' })
   const id = (created.body as { page: { id: string } }).page.id
@@ -107,7 +107,7 @@ test('napló: oldal létrehozása, módosítása, kukázása, visszaállítása,
   assert.equal(pageEntries[1].note, 'draft → publish')
 })
 
-test('napló: menü és Dokumentumtár módosítása és visszaállítása', async () => {
+test('log: menu and library edit and restore', async () => {
   await reviewer.put('/api/pages/menu', { menu: [{ label: 'Kezdőlap', href: '/' }] })
   await reviewer.delete('/api/pages/menu')
   await reviewer.put('/api/pages/library', { library: { categories: [{ slug: 'a', title: 'A', docs: [{ slug: 'd', title: 'D', file: '/uploads/d.pdf' }] }] } })
@@ -116,7 +116,7 @@ test('napló: menü és Dokumentumtár módosítása és visszaállítása', asy
   assert.deepEqual(actions, ['menu_updated', 'menu_reset', 'library_updated', 'library_reset'])
 })
 
-test('napló: fiók létrehozása, jogváltozás tételesen, törlése', async () => {
+test('log: account creation, rights change itemised, deletion', async () => {
   const res = await reviewer.post('/api/users', { username: 'naplo.fiok', displayName: 'Napló Fiók', password: 'hosszu-jelszo-2', permissions: ['pnw_submit_news'] })
   const id = (res.body as { user: { id: string } }).user.id
   await reviewer.put(`/api/users/${id}`, { username: 'naplo.fiok', displayName: 'Napló Fiók', permissions: ['pnw_review_news'] })
@@ -125,11 +125,11 @@ test('napló: fiók létrehozása, jogváltozás tételesen, törlése', async (
   assert.deepEqual(entries.map((e) => e.action), ['user_created', 'user_updated', 'user_deleted'])
   assert.equal(entries[1].note, '+ pnw_review_news\n- pnw_submit_news')
   assert.ok(entries.every((e) => e.subject === 'naplo.fiok'))
-  // A jelszó maga sosem kerül a naplóba.
+  // The password itself never goes into the log.
   assert.ok(!JSON.stringify(entries).includes('hosszu-jelszo'))
 })
 
-test('statisztika: a liveManaged (ugyanaz volt, mint a liveAll) megszűnt', async () => {
+test('statistics: liveManaged (it was the same as liveAll) is gone', async () => {
   const body = (await reviewer.get('/api/statistics')).body as Record<string, unknown>
   assert.ok('liveAll' in body)
   assert.ok(!('liveManaged' in body))

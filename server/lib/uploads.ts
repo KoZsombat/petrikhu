@@ -14,7 +14,7 @@ import { UPLOADS_URL_PREFIX } from '../config.ts'
 import { listImageMedia, putMedia } from '../data/media-repo.ts'
 import { mimeFor } from './media.ts'
 
-// A böngésző UTF-8-ban küldi a fájlnevet; a multer alapból latin1-nek veszi, ami az ékezetes nevet elrontaná.
+// Browsers send the file name as UTF-8; multer decodes it as latin1 by default, which would garble accented names.
 export const upload = multer({
   storage: multer.memoryStorage(),
   defParamCharset: 'utf8',
@@ -22,9 +22,9 @@ export const upload = multer({
 })
 
 /**
- * Egy multer-mező feltöltése, egységes hibakezeléssel: a méretkorlát túllépése 413 `file_too_large`, minden más
- * multer-hiba (pl. váratlan mezőnév) 400 `upload_failed`. Minden feltöltő végpont ezt használja, így a hiba
- * nem jut el a globális hibakezelőig (ami 500-at adna).
+ * Upload of one multer field, with uniform error handling: exceeding the size limit gives 413 `file_too_large`, every other
+ * multer error (e.g. an unexpected field name) gives 400 `upload_failed`. Every upload endpoint uses this, so the error
+ * never reaches the global error handler (which would return 500).
  */
 export function acceptUpload(instance: multer.Multer, field: string): RequestHandler {
   const handler = instance.single(field)
@@ -61,7 +61,7 @@ export async function storeImage(file: Express.Multer.File | undefined): Promise
   return `${UPLOADS_URL_PREFIX}/${filename}`
 }
 
-/** A fájl eleje (a "magic bytes") egyezik-e a kiterjesztés szerinti képtípussal - átnevezett, nem kép fájl ne kerüljön be. */
+/** Whether the file's start (its "magic bytes") matches the image type of its extension - a renamed non-image file must not get in. */
 function looksLikeImage(buffer: Buffer, extension: string): boolean {
   const head = buffer.subarray(0, 16)
   const ascii = (from: number, to: number) => head.subarray(from, to).toString('latin1')
@@ -103,7 +103,7 @@ export const uploadDocument = multer({
   limits: { fileSize: 9 * 1024 * 1024 },
 })
 
-/** What the Dokumentumtár accepts - the extension is also what /uploads serves the MIME by. */
+/** What the Dokumentumtár (document library) accepts - the extension is also what /uploads uses to pick the MIME type. */
 const DOCUMENT_EXTENSIONS = new Set([
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp', '.rtf', '.txt', '.csv', '.zip',
 ])

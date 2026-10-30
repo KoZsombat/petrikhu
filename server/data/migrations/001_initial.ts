@@ -1,6 +1,6 @@
 /**
- * A kiinduló séma: pontosan az, amit a migrációk előtti db.ts minden induláskor futtatott. Az
- * `IF NOT EXISTS` miatt egy már meglévő adatbázison semmit nem változtat, csak rögzítődik.
+ * The initial schema: exactly what the pre-migration db.ts ran on every startup. The
+ * `IF NOT EXISTS` means it changes nothing on an existing database, it only gets recorded.
  */
 import type pg from 'pg'
 

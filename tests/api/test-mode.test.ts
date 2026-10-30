@@ -1,5 +1,5 @@
-// PNW_TEST_MODE=true: a jóváhagyás nem publikál, a kint lévő hírek kezelése tiltott. Külön folyamat, mert a config
-// a modul betöltésekor olvassa a változót.
+// PNW_TEST_MODE=true: approval does not publish, handling of live posts is forbidden. Separate process, because config
+// reads the variable when the module loads.
 process.env.PNW_TEST_MODE = 'true'
 
 import { after, before, test } from 'node:test'
@@ -30,7 +30,7 @@ async function submitted(): Promise<Post> {
   return (res.body as { post: Post }).post
 }
 
-test('jóváhagyás: pnw_test_ok, nem nyilvános', async () => {
+test('approval: pnw_test_ok, not public', async () => {
   const post = await submitted()
   assert.equal((await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'approve', note: '' })).status, 200)
   const [row] = await server.sql<{ status: string }>('SELECT status FROM posts WHERE id = $1', [post.id])
@@ -38,7 +38,7 @@ test('jóváhagyás: pnw_test_ok, nem nyilvános', async () => {
   assert.equal((await server.client().get(`/api/public/posts/${post.slug}`)).status, 404)
 })
 
-test('időzítés helyett azonnali (teszt) jóváhagyás', async () => {
+test('immediate (test) approval instead of scheduling', async () => {
   const post = await submitted()
   const publishAt = new Date(Date.now() + 3600_000).toISOString()
   await reviewer.post(`/api/posts/${post.id}/decision`, { decision: 'approve', note: '', publishMode: 'schedule', publishAt })
@@ -46,7 +46,7 @@ test('időzítés helyett azonnali (teszt) jóváhagyás', async () => {
   assert.equal(row.status, 'pnw_test_ok')
 })
 
-test('kint lévő hír szerkesztése és archiválása tiltott, a lista jelzi a tesztüzemet', async () => {
+test('editing and archiving a live post is forbidden, the list shows test mode', async () => {
   assert.deepEqual((await reviewer.post('/api/posts/x/archive')).body, { error: 'production_only' })
   assert.equal((await reviewer.put('/api/posts/x/published', {})).status, 403)
   assert.equal(((await reviewer.get('/api/posts/published')).body as { testMode: boolean }).testMode, true)

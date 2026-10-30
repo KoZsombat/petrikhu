@@ -1,13 +1,13 @@
 /**
- * Éles üzemhez szükséges védelmek, külső csomag nélkül: biztonsági fejlécek, Origin-ellenőrzés a
- * módosító API-hívásokon, és egy egyszerű, memóriában tartott kérésszám-korlátozó.
+ * Production safeguards, without external packages: security headers, Origin checking on
+ * modifying API calls, and a simple in-memory request rate limiter.
  */
 import type { NextFunction, Request, Response } from 'express'
 import { ALLOWED_ORIGINS } from './config.ts'
 
 /**
- * A weboldal tartalma saját eredetű; a külső erőforrások: Google Fonts (betűtípus), YouTube (beágyazott videó),
- * és https-es képek (a hírekben külső kép is lehet). Szkript csak a saját csomagból futhat.
+ * The site's content is same-origin; external resources: Google Fonts (typefaces), YouTube (embedded video),
+ * and https images (news posts may contain external images). Scripts may only run from the app's own bundle.
  */
 const CSP = [
   "default-src 'self'",
@@ -35,7 +35,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   next()
 }
 
-/** Az API-válaszokat (munkamenet, fiókok, piszkozatok) sosem tárolja gyorsítótár. */
+/** API responses (sessions, accounts, drafts) are never cached. */
 export function apiNoStore(_req: Request, res: Response, next: NextFunction): void {
   res.setHeader('Cache-Control', 'no-store')
   next()
@@ -44,8 +44,8 @@ export function apiNoStore(_req: Request, res: Response, next: NextFunction): vo
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 /**
- * CSRF elleni védelem a SameSite=Lax süti mellé: módosító kérés csak a saját oldalról (vagy a
- * PNW_ALLOWED_ORIGINS-ben felsorolt eredetről) jöhet. Origin nélküli kérés (curl, szerver-szerver) átmegy: ahhoz nincs böngészős süti.
+ * CSRF protection alongside the SameSite=Lax cookie: modifying requests may only come from the site's own origin (or an
+ * origin listed in PNW_ALLOWED_ORIGINS). Requests without an Origin (curl, server-to-server) pass: they carry no browser cookie.
  */
 export function sameOriginOnly(req: Request, res: Response, next: NextFunction): void {
   const origin = req.get('origin')
@@ -68,11 +68,11 @@ export function sameOriginOnly(req: Request, res: Response, next: NextFunction):
 }
 
 /**
- * Kulcsonként (IP, felhasználónév) számolt, időablakos korlát; az ablak lejártával a számláló nullázódik.
+ * Fixed-window limit counted per key (IP, username); the counter resets when the window expires.
  *
- * FIGYELEM: az állapot a folyamat memóriájában van, tehát egyetlen példányt feltételez. Két replika mögött
- * minden korlát kétszer annyit engedne (a belépési próbák is), és újraindításkor nullázódik. Több példányhoz
- * közös tár (pl. Postgres-tábla vagy Redis) kellene - jelenleg szándékosan nincs.
+ * WARNING: the state lives in process memory, so a single instance is assumed. Behind two replicas
+ * every limit would allow twice as much (login attempts too), and it resets on restart. For several instances
+ * a shared store (e.g. a Postgres table or Redis) would be needed - currently deliberately absent.
  */
 export class RateLimiter {
   private hits = new Map<string, { count: number; resetAt: number }>()
@@ -85,7 +85,7 @@ export class RateLimiter {
     setInterval(() => this.sweep(), windowMs).unref()
   }
 
-  /** Beszámít egy kísérletet; false, ha a kulcs túllépte a korlátot. */
+  /** Counts one attempt; false if the key has exceeded the limit. */
   hit(key: string): boolean {
     const now = Date.now()
     const entry = this.hits.get(key)
@@ -112,10 +112,10 @@ export class RateLimiter {
   }
 }
 
-/** Módosító kérések (POST/PUT/DELETE) számának korlátja IP-nként (feltöltés-spam, túlterhelés ellen). */
+/** Per-IP limit on modifying requests (POST/PUT/DELETE), against upload spam and overload. */
 export function ipRateLimit(limiter: RateLimiter) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    // Az olvasás (GET) nincs korlátozva: egy iskolai hálózat egy IP mögött sok látogató.
+    // Reads (GET) are not limited: a school network puts many visitors behind one IP.
     if (req.method === 'GET' || req.method === 'HEAD') {
       next()
       return

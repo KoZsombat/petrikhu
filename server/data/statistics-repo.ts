@@ -1,16 +1,16 @@
 /**
- * A statisztika (routes/statistics.ts) összesítő lekérdezései: egyik sem tölti be a hírek vagy a napló
- * sorait, mindent az adatbázis számol.
+ * The statistics (routes/statistics.ts) aggregate queries: none of them loads the posts or the log
+ * rows, the database computes everything.
  */
 import { STATUS } from '../../shared/pnw/types.ts'
 import { row, rows } from './db.ts'
 
-/** A "kint lévő vagy kint volt" hírek: ezekből készülnek a toplisták. */
+/** The posts that are or were published ("kint"): the top lists are built from these. */
 const COUNTED = [STATUS.PUBLISH, STATUS.FUTURE, STATUS.ARCHIVED]
-/** A megjelent (és azóta archivált) hírek: ezekből a havi számok. */
+/** The published (and since archived) posts: the monthly figures come from these. */
 const APPEARED = [STATUS.PUBLISH, STATUS.ARCHIVED]
 
-/** Hónaponként (YYYY-MM, UTC) a megjelent hírek száma, a `fromMonth`-tól kezdve. */
+/** Per month (YYYY-MM, UTC) the number of published posts, starting from `fromMonth`. */
 export async function appearedPerMonth(fromMonth: string): Promise<Map<string, number>> {
   const found = await rows<{ month: string; n: number }>(
     `SELECT to_char(date AT TIME ZONE 'UTC', 'YYYY-MM') AS month, COUNT(*)::int AS n FROM posts
@@ -30,7 +30,7 @@ export async function topAuthors(limit: number): Promise<Ranked[]> {
   )
 }
 
-/** Egy hír minden kategóriájánál számít (a `category_ids` JSON-tömb). */
+/** Counts for each category of a post (the `category_ids` JSON array). */
 export async function topCategories(limit: number): Promise<Ranked[]> {
   return rows<Ranked>(
     `SELECT c.id AS key, COUNT(*)::int AS count
@@ -41,8 +41,8 @@ export async function topCategories(limit: number): Promise<Ranked[]> {
 }
 
 /**
- * Átlagos jóváhagyási idő másodpercben: hírenként az utolsó beküldéstől az utolsó döntésig (jóváhagyás vagy
- * időzítés); a döntés nélküli és a negatív (döntés a beküldés előtt) párok kimaradnak. 0, ha nincs adat.
+ * Average approval time in seconds: per post, from the last submission to the last decision (approval or
+ * scheduling); pairs without a decision and negative ones (decision before submission) are left out. 0 if there is no data.
  */
 export async function averageApprovalSeconds(): Promise<number> {
   const result = await row<{ avg: number | null }>(

@@ -14,8 +14,8 @@ export function canEditWorkflowPost(post: Post, user: SessionUser): boolean {
 }
 
 /**
- * Lomtárba teheti, onnan visszaállíthatja vagy véglegesen törölheti-e a hírt: a jóváhagyó bármelyiket, a szerző a
- * saját piszkozatát / visszaküldött hírét, és ami már a lomtárban van.
+ * Whether it may move the post to the trash, restore it from there or delete it permanently: the approver any of these, the author the
+ * own draft / returned post, and anything already in the trash.
  */
 export function canTrashWorkflowPost(post: Post, user: SessionUser): boolean {
   if (canReview(user)) return true

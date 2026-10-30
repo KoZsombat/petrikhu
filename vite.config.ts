@@ -3,7 +3,7 @@ import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
-// Docker dev (docker-compose.dev.yml): az API másik konténerben van, a VITE_PROXY_TARGET mutat rá.
+// Docker dev (docker-compose.dev.yml): the API runs in another container, and VITE_PROXY_TARGET points to it.
 const apiTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:4000'
 
 // https://vite.dev/config/
@@ -13,7 +13,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
-  // A szerver (server/) API-ja és a feltöltött média fejlesztés közben a 4000-es porton fut.
+  // During development the server's (server/) API and the uploaded media run on port 4000.
   server: {
     proxy: {
       '/api': apiTarget,

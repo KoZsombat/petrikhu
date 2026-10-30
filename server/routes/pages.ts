@@ -1,7 +1,7 @@
 /**
- * Az oldalszerkesztő (Creator) backendje - minden végpont a `pnw_manage_pages`
- * jog mögött. A nyilvános oldal ugyanezt az adatot a GET /api/public/site-on
- * keresztül olvassa (routes/public.ts): csak a kiadott oldalakat.
+ * The page editor's (Creator) backend - every endpoint sits behind the `pnw_manage_pages`
+ * permission. The public site reads this same data through GET /api/public/site
+ * (routes/public.ts): only the published pages.
  */
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
@@ -42,7 +42,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const MAX_DEPTH = 6
 
-/** Az érték másolata, amiben minden `html` kulcsú szöveg (bármilyen mélyen) át van szűrve; túl mély szerkezetnél kivételt dob. */
+/** A copy of the value in which every `html` text (at any depth) is filtered; throws on a structure that is too deep. */
 function sanitizeValues(value: unknown, depth = 0): unknown {
   if (depth > MAX_DEPTH) throw new Error('too_deep')
   if (Array.isArray(value)) return value.map((item) => sanitizeValues(item, depth + 1))
@@ -55,8 +55,8 @@ function sanitizeValues(value: unknown, depth = 0): unknown {
 }
 
 /**
- * Az oldal blokkjai: a séma (src/pages/creatorSchema.ts) a kliensen él, ezért itt
- * csak a formát ellenőrizzük - a PageRenderer az ismeretlen komponenst úgyis kihagyja.
+ * The page's blocks: the schema (src/pages/creatorSchema.ts) lives on the client, so here
+ * only the shape is checked - PageRenderer skips unknown components anyway.
  */
 function sanitizeBlocks(raw: unknown): PageBlock[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_BLOCKS) return null
@@ -78,7 +78,7 @@ function sanitizeBlocks(raw: unknown): PageBlock[] | null {
   return blocks
 }
 
-/* --- média ----------------------------------------------------------------- */
+/* --- media ----------------------------------------------------------------- */
 
 router.get('/media', async (_req, res) => {
   res.json({ items: await listImages() })
@@ -93,9 +93,9 @@ router.post('/media', acceptUpload(upload, 'file'), async (req, res) => {
   res.json({ url })
 })
 
-/* --- menü ------------------------------------------------------------------- */
+/* --- menu ------------------------------------------------------------------- */
 
-/** Belső útvonal (`/valami`) vagy http(s) cím; minden más (pl. `javascript:`) kiesik. */
+/** Internal path (`/something`) or http(s) address; everything else (e.g. `javascript:`) is dropped. */
 function safeHref(value: unknown): string | null {
   const href = text(value, 300)
   return /^(\/[^\s]*|https?:\/\/[^\s]+)$/.test(href) ? href : null
@@ -142,7 +142,7 @@ router.put('/menu', async (req, res) => {
   res.json({ menu })
 })
 
-/** "Visszaállítás az eredetire" - az oldal újra a beépített menüt használja. */
+/** "Visszaállítás az eredetire" (restore the original) - the page uses the built-in menu again. */
 router.delete('/menu', async (req, res) => {
   await clearMenu()
   await logEvent('menu', 'menu_reset', req.pnwUser!.id)
@@ -169,7 +169,7 @@ router.post('/', async (req, res) => {
     return
   }
 
-  // A slug a címből vagy a megadott kézi értékből lesz; foglalt (vagy már mentett) nem lehet.
+  // The slug comes from the title or the given manual value; a reserved (or already saved) one is not allowed.
   const slug = slugify(text(req.body?.slug, 80) || title)
   if (!slug || /^\d+$/.test(slug) || RESERVED_SLUGS.includes(slug)) {
     res.status(422).json({ error: 'invalid_slug' })
@@ -241,7 +241,7 @@ router.put('/:id', async (req, res) => {
   res.json({ page })
 })
 
-/** Az első DELETE a kukába teszi az oldalt (visszaállítható), a kukában lévőé végleg törli. */
+/** The first DELETE moves the page to the trash (restorable); a DELETE of a trashed page removes it permanently. */
 router.delete('/:id', async (req, res) => {
   const page = await getPage(req.params.id)
   if (!page) {
@@ -259,7 +259,7 @@ router.delete('/:id', async (req, res) => {
   res.json({ ok: true, permanent: false })
 })
 
-/** Ki a kukából - piszkozatként, hogy semmi ne kerüljön ki véletlenül. */
+/** Restore from the trash - as a draft, so nothing goes public by accident. */
 router.post('/:id/restore', async (req, res) => {
   const page = await getPage(req.params.id)
   if (!page) {

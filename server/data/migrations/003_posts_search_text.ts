@@ -1,6 +1,6 @@
 /**
- * `posts.search_text`: a keresés szövege (data/post-search.ts), hogy a megjelent / archivált hírek keresése
- * az adatbázisban fusson. A meglévő sorokat itt töltjük fel; a repó minden mentéskor újraszámolja.
+ * `posts.search_text`: the search text (data/post-search.ts), so that searching published / archived posts
+ * runs in the database. Existing rows are filled here; the repo recalculates it on every save.
  */
 import type pg from 'pg'
 import { searchTextOf } from '../post-search.ts'
@@ -13,11 +13,11 @@ export async function up(client: pg.PoolClient): Promise<void> {
     try {
       content = JSON.parse(row.content)
     } catch {
-      // hibás tartalom: csak a cím kereshető
+      // broken content: only the title is searchable
     }
     await client.query('UPDATE posts SET search_text = $2 WHERE id = $1', [row.id, searchTextOf(row.title, Array.isArray(content) ? content : [])])
   }
-  // A listák rendezése: státuszon belül dátum / módosítás szerint.
+  // List ordering: within a status, by date / modification.
   await client.query('CREATE INDEX IF NOT EXISTS posts_status_date_idx ON posts(status, date)')
   await client.query('CREATE INDEX IF NOT EXISTS posts_status_modified_idx ON posts(status, modified_at)')
   await client.query('CREATE INDEX IF NOT EXISTS audit_created_idx ON audit_log(created_at)')

@@ -1,6 +1,6 @@
 /**
- * A szerkesztett menü - egyetlen sor. A `null` azt jelenti, hogy senki sem
- * szerkesztette, és az oldal a beépített menüt (src/lib/constants.ts) használja.
+ * The edited menu - a single row. `null` means nobody has
+ * edited it, and the site uses the built-in menu (src/lib/constants.ts).
  */
 import type { MenuItem } from '../../shared/pnw/creator-types.ts'
 import { row, run } from './db.ts'

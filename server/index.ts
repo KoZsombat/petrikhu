@@ -23,9 +23,9 @@ import { seedInitialTerms } from './data/terms-repo.ts'
 import { importDirectory } from './lib/media.ts'
 import { createApp, sweepScheduledPosts } from './app.ts'
 
-// Élesben nem indulhat el a repóból ismert titokkal: a munkamenet-aláírás és a demó-fiókok jelszava nyilvános lenne.
+// In production it must not start with a secret known from the repo: the session signing key and the demo-account passwords would be public.
 if (IS_PRODUCTION && USING_DEFAULT_SECRET) {
-  console.error('[pnw] PNW_SESSION_SECRET nincs beállítva (lásd .env.example) - éles módban nem indulok el.')
+  console.error('[pnw] PNW_SESSION_SECRET is not set (see .env.example) - refusing to start in production mode.')
   process.exit(1)
 }
 
@@ -34,10 +34,10 @@ await initDb()
 if (IS_PRODUCTION) {
   const affected = await replaceDemoPasswords(SEED_PASSWORD)
   if (affected.length > 0 && !SEED_PASSWORD) {
-    console.error(`[pnw] Ezeknek a fiókoknak még a nyilvános demó-jelszó van beállítva: ${affected.join(', ')}. Állítsd be a PNW_SEED_PASSWORD-öt, és újraindításkor lecserélem - éles módban nem indulok el.`)
+    console.error(`[pnw] These accounts still have the public demo password: ${affected.join(', ')}. Set PNW_SEED_PASSWORD and I will replace them on startup - refusing to start in production mode.`)
     process.exit(1)
   }
-  if (affected.length > 0) console.log(`[pnw] A demó-jelszavak lecserélve a PNW_SEED_PASSWORD-re: ${affected.join(', ')}`)
+  if (affected.length > 0) console.log(`[pnw] Demo passwords replaced with PNW_SEED_PASSWORD: ${affected.join(', ')}`)
 }
 
 await seedInitialUsers()
@@ -51,9 +51,9 @@ for (const [dir, prefix] of [[UPLOADS_DIR, UPLOADS_URL_PREFIX], [MEDIA_SEED_DIR,
 
 const app = createApp()
 
-// FIGYELEM: egyetlen példányt feltételez. Két replikán mindkettő lefuttatná a söprést, és egy időzített hír
-// kétszer jelenne meg (kétszeres napló, kétszeres értesítés). Több példányhoz adatbázis-zár (pl.
-// pg_try_advisory_lock) vagy külön ütemező kellene - jelenleg szándékosan nincs.
+// WARNING: assumes a single instance. With two replicas both would run the sweep, and a scheduled post
+// would be published twice (duplicate log entries and notifications). For several instances a database lock (e.g.
+// pg_try_advisory_lock) or a separate scheduler would be needed - currently deliberately absent.
 setInterval(() => {
   sweepScheduledPosts().catch((error) => console.error('[pnw] scheduled-publish sweep failed', error))
 }, SCHEDULE_CHECK_INTERVAL_MS)
@@ -62,7 +62,7 @@ const server = app.listen(PORT, () => {
   console.log(`[pnw] Hírkezelő backend listening on http://localhost:${PORT}`)
 })
 
-// A Docker leállításkor (SIGTERM) a folyamatban lévő kérések befejeződnek, és az adatbázis rendben záródik.
+// On Docker shutdown (SIGTERM) in-flight requests finish and the database closes cleanly.
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     server.close(() => {

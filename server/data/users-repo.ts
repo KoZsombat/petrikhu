@@ -29,7 +29,7 @@ type Row = {
   permissions: unknown
 }
 
-/** A JSONB-oszlop már tömbként érkezik; az ismeretlen (pl. megszűnt) jogok kimaradnak. */
+/** The JSONB column already arrives as an array; unknown (e.g. retired) rights are dropped. */
 function parsePermissions(raw: unknown): Capability[] {
   return Array.isArray(raw) ? raw.filter(isCapability) : []
 }
@@ -148,7 +148,7 @@ export async function seedInitialUsers(): Promise<void> {
   }
 }
 
-/** A repóban nyilvános demó-jelszavak: élesben egyik fióknál sem maradhatnak érvényben. */
+/** Public demo passwords in the repo: in production none of the accounts may keep one. */
 const DEMO_PASSWORDS: Record<string, string> = {
   'mk.vezeto': 'PetrikMK2026!',
   helyettes: 'PetrikHelyettes2026!',
@@ -156,8 +156,8 @@ const DEMO_PASSWORDS: Record<string, string> = {
 }
 
 /**
- * Élesben a nyilvánosan ismert demó-jelszavú fiókok jelszavát lecseréli a `PNW_SEED_PASSWORD`-re. Visszaadja, mely
- * fiókok jelszava volt még a demó (az üres lista a jó eset); ha nincs mire cserélni, a hívó dönt (leállás).
+ * In production the passwords of accounts with a publicly known demo password are replaced with `PNW_SEED_PASSWORD`. Returns which
+ * accounts still had the demo password (an empty list is the good case); if there is nothing to replace it with, the caller decides (stop).
  */
 export async function replaceDemoPasswords(replacement: string | undefined): Promise<string[]> {
   const affected: string[] = []
