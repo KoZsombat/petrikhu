@@ -12,7 +12,7 @@ import { slugify } from '../../shared/pnw/slug.ts'
 import { requireCapability } from '../middleware/auth.ts'
 import { deletePage, existingPageSlugs, getPage, listSummaries, savePage } from '../data/pages-repo.ts'
 import { clearMenu, getMenu, putMenu } from '../data/menu-repo.ts'
-import { listImages, storeImage, upload } from '../lib/uploads.ts'
+import { acceptUpload, listImages, storeImage, upload } from '../lib/uploads.ts'
 import { sanitizeRichHtml } from '../lib/sanitize.ts'
 
 const router = Router()
@@ -81,7 +81,7 @@ router.get('/media', async (_req, res) => {
   res.json({ items: await listImages() })
 })
 
-router.post('/media', upload.single('file'), async (req, res) => {
+router.post('/media', acceptUpload(upload, 'file'), async (req, res) => {
   const url = await storeImage(req.file)
   if (!url) {
     res.status(422).json({ error: 'not_an_image' })

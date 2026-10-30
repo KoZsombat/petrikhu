@@ -13,7 +13,7 @@ import { notifyApproved, notifyRejected, notifyScheduled, notifySubmitted } from
 import { hasRealText, parseIdList, parseRichText, sanitizeTermIds } from '../lib/validation.ts'
 import { blockText } from '../../shared/pnw/richtext.ts'
 import { TEST_MODE } from '../config.ts'
-import { storeImage, upload } from '../lib/uploads.ts'
+import { acceptUpload, storeImage, upload } from '../lib/uploads.ts'
 
 const router = Router()
 
@@ -105,7 +105,7 @@ router.get('/:id', async (req, res) => {
 
 /** Mirrors PNW_Actions::save_news() for a brand-new draft. */
 /** Kép a hír szövegébe (egy kép vagy egy galéria elemei): mindenki tölthet fel, aki hírt írhat vagy kezelhet. */
-router.post('/media', upload.single('file'), async (req, res) => {
+router.post('/media', acceptUpload(upload, 'file'), async (req, res) => {
   const user = req.pnwUser
   const allowed = [CAPABILITY.SUBMIT_NEWS, CAPABILITY.REVIEW_NEWS, CAPABILITY.MANAGE_PUBLISHED].some((c) => user && hasCapability(user, c))
   if (!allowed) {
@@ -120,13 +120,13 @@ router.post('/media', upload.single('file'), async (req, res) => {
   res.json({ url })
 })
 
-router.post('/', requireCapability(CAPABILITY.SUBMIT_NEWS), upload.single('featuredImage'), async (req, res) => {
+router.post('/', requireCapability(CAPABILITY.SUBMIT_NEWS), acceptUpload(upload, 'featuredImage'), async (req, res) => {
   const result = await saveAuthoredPost(req, null)
   respondToSave(res, result)
 })
 
 /** Mirrors save_news() for an existing draft/revision. */
-router.put('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), upload.single('featuredImage'), async (req, res) => {
+router.put('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), acceptUpload(upload, 'featuredImage'), async (req, res) => {
   const existing = await findPost(String(req.params.id))
   if (!existing || !canEditWorkflowPost(existing, req.pnwUser!)) {
     res.status(403).json({ error: 'forbidden' })
@@ -280,7 +280,7 @@ router.delete('/:id', requireCapability(CAPABILITY.SUBMIT_NEWS), async (req, res
 router.put(
   '/:id/published',
   requireCapability(CAPABILITY.MANAGE_PUBLISHED),
-  upload.single('featuredImage'),
+  acceptUpload(upload, 'featuredImage'),
   async (req, res) => {
     if (TEST_MODE) {
       res.status(403).json({ error: 'production_only' })

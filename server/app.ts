@@ -111,12 +111,13 @@ export function createApp(): express.Express {
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'not_found' })
   })
-  app.use((error: Error & { status?: number; type?: string }, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  app.use((error: Error & { status?: number; type?: string; code?: string }, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (res.headersSent) {
       next(error)
       return
     }
-    if (error.type === 'entity.too.large') {
+    // A body-parser `type`-ot, a multer `code`-ot állít; a feltöltések elvileg acceptUpload-on mennek át, ez csak tartalék.
+    if (error.type === 'entity.too.large' || error.code === 'LIMIT_FILE_SIZE') {
       res.status(413).json({ error: 'payload_too_large' })
       return
     }

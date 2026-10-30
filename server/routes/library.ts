@@ -8,7 +8,7 @@ import { CAPABILITY } from '../../shared/pnw/types.ts'
 import { requireCapability } from '../middleware/auth.ts'
 import { clearLibrary, getLibrary, putLibrary } from '../data/library-repo.ts'
 import { sanitizeLibrary } from '../lib/validation.ts'
-import { storeDocument, uploadDocument } from '../lib/uploads.ts'
+import { acceptUpload, storeDocument, uploadDocument } from '../lib/uploads.ts'
 
 const router = Router()
 
@@ -37,15 +37,7 @@ router.delete('/', async (_req, res) => {
 
 router.post(
   '/file',
-  (req, res, next) => {
-    uploadDocument.single('file')(req, res, (error) => {
-      if (error) {
-        res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : 'upload_failed' })
-        return
-      }
-      next()
-    })
-  },
+  acceptUpload(uploadDocument, 'file'),
   async (req, res) => {
     const url = await storeDocument(req.file)
     if (!url) {

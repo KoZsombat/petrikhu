@@ -7,6 +7,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
+import type { RequestHandler } from 'express'
 import multer from 'multer'
 import { slugify } from '../../shared/pnw/slug.ts'
 import { UPLOADS_URL_PREFIX } from '../config.ts'
@@ -17,6 +18,26 @@ export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 },
 })
+
+/**
+ * Egy multer-mező feltöltése, egységes hibakezeléssel: a méretkorlát túllépése 413 `file_too_large`, minden más
+ * multer-hiba (pl. váratlan mezőnév) 400 `upload_failed`. Minden feltöltő végpont ezt használja, így a hiba
+ * nem jut el a globális hibakezelőig (ami 500-at adna).
+ */
+export function acceptUpload(instance: multer.Multer, field: string): RequestHandler {
+  const handler = instance.single(field)
+  return (req, res, next) => {
+    handler(req, res, (error: unknown) => {
+      if (!error) {
+        next()
+        return
+      }
+      const code = (error as { code?: unknown }).code
+      if (code === 'LIMIT_FILE_SIZE') res.status(413).json({ error: 'file_too_large' })
+      else res.status(400).json({ error: 'upload_failed' })
+    })
+  }
+}
 
 /** What an uploaded image may be called - the extension decides the MIME /uploads serves it with. */
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif'])
