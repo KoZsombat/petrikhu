@@ -93,7 +93,7 @@ test('a lomtárban lévő hír nem nyilvános', async () => {
 })
 
 test('napló: oldal létrehozása, módosítása, kukázása, visszaállítása, törlése', async () => {
-  const blocks = [{ component: 'PageTitle', values: { title: 'X' } }]
+  const blocks = [{ component: 'PageTitle', values: { breadcrumb: [], title: 'X' } }]
   const created = await reviewer.post('/api/pages', { title: 'Naplózott oldal', slug: 'naplozott', blocks, status: 'draft' })
   const id = (created.body as { page: { id: string } }).page.id
   await reviewer.put(`/api/pages/${id}`, { title: 'Naplózott oldal', blocks, status: 'publish' })

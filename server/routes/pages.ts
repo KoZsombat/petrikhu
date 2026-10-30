@@ -15,6 +15,8 @@ import { clearMenu, getMenu, putMenu } from '../data/menu-repo.ts'
 import { acceptUpload, listImages, storeImage, upload } from '../lib/uploads.ts'
 import { sanitizeRichHtml } from '../lib/sanitize.ts'
 import { logEvent } from '../lib/audit.ts'
+import { validateBlockFields } from '../lib/creator-validation.ts'
+import type { BlockIssue } from '../lib/creator-validation.ts'
 
 const router = Router()
 
@@ -160,6 +162,12 @@ router.post('/', async (req, res) => {
     res.status(422).json({ error: title ? 'invalid_blocks' : 'missing_title' })
     return
   }
+  // Field-level check against the shared Creator schema (server/lib/creator-validation.ts).
+  const issues = validateBlockFields(blocks)
+  if (issues.length > 0) {
+    res.status(422).json({ error: 'invalid_fields', issues: issues.slice(0, 20) satisfies BlockIssue[] })
+    return
+  }
 
   // A slug a címből vagy a megadott kézi értékből lesz; foglalt (vagy már mentett) nem lehet.
   const slug = slugify(text(req.body?.slug, 80) || title)
@@ -210,6 +218,12 @@ router.put('/:id', async (req, res) => {
   const blocks = sanitizeBlocks(req.body?.blocks)
   if (!title || !blocks) {
     res.status(422).json({ error: title ? 'invalid_blocks' : 'missing_title' })
+    return
+  }
+  // Field-level check against the shared Creator schema (server/lib/creator-validation.ts).
+  const issues = validateBlockFields(blocks)
+  if (issues.length > 0) {
+    res.status(422).json({ error: 'invalid_fields', issues: issues.slice(0, 20) satisfies BlockIssue[] })
     return
   }
 

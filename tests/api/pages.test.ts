@@ -15,7 +15,7 @@ before(async () => {
 })
 after(() => server.close())
 
-const okBlocks = () => [{ component: 'PageTitle', values: { title: 'Cím' } }]
+const okBlocks = () => [{ component: 'PageTitle', values: { breadcrumb: [], title: 'Cím' } }]
 type Page = { id: string; slug: string; status: string; blocks: { component: string; variant?: string; values: Record<string, unknown> }[] }
 let counter = 0
 const uniqueTitle = () => `Teszt oldal ${++counter} ${Math.random().toString(36).slice(2, 8)}`
@@ -116,9 +116,11 @@ describe('blokkok ellenőrzése', () => {
     await invalid([{ component: 5, values: {} }])
     await invalid([{ values: {} }])
   })
-  test('40 karakteres komponensnév még jó', async () => {
+  test('a formailag jó, de ismeretlen komponens → 422 invalid_fields', async () => {
     const res = await editor.post('/api/pages', { title: uniqueTitle(), blocks: [{ component: 'A'.repeat(40), values: {} }] })
-    assert.equal(res.status, 201)
+    assert.equal(res.status, 422)
+    assert.equal(errorOf(res), 'invalid_fields')
+    assert.match(JSON.stringify(res.body), /unknown component/)
   })
   test('values nem objektum', async () => {
     await invalid([{ component: 'PageTitle', values: 'x' }])
@@ -141,9 +143,9 @@ describe('blokkok ellenőrzése', () => {
   test('7 szintnél mélyebb beágyazás → 422', async () => {
     await invalid([{ component: 'PageTitle', values: nested(8) }])
   })
-  test('6 szint mély még elfogadott', async () => {
+  test('6 szint mély beágyazás formailag átmegy, de a sémában ismeretlen mező → invalid_fields', async () => {
     const res = await editor.post('/api/pages', { title: uniqueTitle(), blocks: [{ component: 'PageTitle', values: nested(6) }] })
-    assert.equal(res.status, 201, res.text)
+    assert.equal(errorOf(res), 'invalid_fields')
   })
 
   test('az html kulcs bármilyen mélyen át van szűrve', async () => {
@@ -166,24 +168,25 @@ describe('blokkok ellenőrzése', () => {
   test('a nem html kulcsú szöveg érintetlen marad', async () => {
     const res = await editor.post('/api/pages', {
       title: uniqueTitle(),
-      blocks: [{ component: 'PageTitle', values: { title: '<script>x</script>' } }],
+      blocks: [{ component: 'PageTitle', values: { breadcrumb: [], title: '<script>x</script>' } }],
     })
     assert.equal(pageOf(res).blocks[0].values.title, '<script>x</script>')
   })
 
-  test('a variant 40 karakterre csonkul, az üres/nem szöveg kiesik', async () => {
-    const res = await editor.post('/api/pages', {
-      title: uniqueTitle(),
-      blocks: [
-        { component: 'CardGrid', variant: 'v'.repeat(60), values: {} },
-        { component: 'CardGrid', variant: '', values: {} },
-        { component: 'CardGrid', variant: 7, values: {} },
-      ],
-    })
-    const blocks = pageOf(res).blocks
-    assert.equal(blocks[0].variant, 'v'.repeat(40))
-    assert.equal('variant' in blocks[1], false)
-    assert.equal('variant' in blocks[2], false)
+  test('ismeretlen vagy hiányzó változat → invalid_fields, ismert változat → 201', async () => {
+    for (const variant of ['v'.repeat(60), '', 7]) {
+      const res = await editor.post('/api/pages', { title: uniqueTitle(), blocks: [{ component: 'CardGrid', variant, values: { items: [{ title: 'A' }] } }] })
+      assert.equal(errorOf(res), 'invalid_fields', String(variant))
+    }
+    const res = await editor.post('/api/pages', { title: uniqueTitle(), blocks: [{ component: 'CardGrid', variant: 'text', values: { items: [{ title: 'A' }] } }] })
+    assert.equal(res.status, 201, res.text)
+    assert.equal(pageOf(res).blocks[0].variant, 'text')
+  })
+
+  test('mezőhibánál a válasz megmondja, melyik blokk és melyik mező', async () => {
+    const res = await editor.post('/api/pages', { title: uniqueTitle(), blocks: [...okBlocks(), { component: 'CardGrid', variant: 'text', values: { items: [{ title: 'A', href: 'javascript:x' }] } }] })
+    assert.equal(res.status, 422)
+    assert.deepEqual((res.body as { issues: unknown[] }).issues, [{ block: 1, path: 'items.0.href', message: 'unsafe link' }])
   })
 
   test('módosításnál (PUT) is érvényes a szűrés', async () => {
