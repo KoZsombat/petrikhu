@@ -1,0 +1,102 @@
+{
+ "adatkezelesi-tajekoztato": {
+  "hu": "Adatvédelmi irányelvek",
+  "en": "Privacy Policy"
+ },
+ "adatvedelem": {
+  "hu": "Adatvédelem",
+  "en": "Data Protection"
+ },
+ "allas": {
+  "hu": "Állásajánlatok",
+  "en": "Job Offers"
+ },
+ "bemutatkozas": {
+  "hu": "Bemutatkozás",
+  "en": "About us"
+ },
+ "ebed": {
+  "hu": "Ebéd",
+  "en": "Meals"
+ },
+ "egeszsegugy": {
+  "hu": "Iskola-Egészségügy",
+  "en": "School Health Service"
+ },
+ "elerhetoseg": {
+  "hu": "Elérhetőség",
+  "en": "Contact details"
+ },
+ "erettsegi-vizsga": {
+  "hu": "Érettségi vizsga",
+  "en": "School-leaving exam (matura)"
+ },
+ "hir-cikk": {
+  "hu": "[ A hír / cikk címe ]",
+  "en": "[ A hír / cikk címe ]"
+ },
+ "hirek": {
+  "hu": "Hírek",
+  "en": "News"
+ },
+ "in-memoriam": {
+  "hu": "In memoriam",
+  "en": "In memoriam"
+ },
+ "informatika-agazat": {
+  "hu": "Informatika és Távközlés ágazat",
+  "en": "IT and Telecommunications"
+ },
+ "kollegiumi-lehetosegek": {
+  "hu": "Kollégiumi lehetőségek",
+  "en": "Dormitory Options"
+ },
+ "kornyezetvedelem-agazat": {
+  "hu": "Környezetvédelem és Vízügy ágazat",
+  "en": "Environmental Protection and Water Management"
+ },
+ "kozoktatas": {
+  "hu": "Közoktatás",
+  "en": "General Education"
+ },
+ "kozossegi-szolgalat": {
+  "hu": "Közösségi szolgálat",
+  "en": "Community Service"
+ },
+ "languagecert-vizsgak": {
+  "hu": "LanguageCert vizsgák",
+  "en": "LanguageCert exam"
+ },
+ "nyari-gyakorlatok": {
+  "hu": "Nyári gyakorlatok",
+  "en": "Summer placements"
+ },
+ "nyolcadikos": {
+  "hu": "Nyolcadikosoknak",
+  "en": "For 8th graders"
+ },
+ "orokos-okoiskola": {
+  "hu": "Örökös Ökoiskola",
+  "en": "Perpetual Eco-School"
+ },
+ "projekt": {
+  "hu": "Projektek",
+  "en": "Projects"
+ },
+ "szakmai-vizsga": {
+  "hu": "Szakmai vizsga",
+  "en": "Vocational exam"
+ },
+ "tanari-kar": {
+  "hu": "Tanári kar",
+  "en": "Teaching staff"
+ },
+ "technikusi-kepzesek": {
+  "hu": "Technikusi képzések",
+  "en": "Vocational Training"
+ },
+ "vegyipar-agazat": {
+  "hu": "Vegyipar ágazat",
+  "en": "Chemical Industry"
+ }
+}

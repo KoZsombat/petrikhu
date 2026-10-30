@@ -1,0 +1,54 @@
+# Három szolgáltatás: postgres (csak a belső hálózaton), petrik (az egyetlen port: 4000) és
+# opcionálisan a cloudflared (`docker compose --profile tunnel up`), ami ezt az egy portot teszi ki az internetre.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: petrik
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?állíts be egy adatbázis-jelszót}
+      POSTGRES_DB: petrik
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petrik -d petrik"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Nincs publikált port: csak a petrik szolgáltatás éri el a compose hálózaton.
+
+  petrik:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Csak a hosti loopbackre kötve: ide mutat a cloudflared (http://localhost:4000), kívülről közvetlenül nem érhető el.
+    ports: ["127.0.0.1:${PNW_PORT:-4000}:${PNW_PORT:-4000}"]
+    environment:
+      DATABASE_URL: postgres://petrik:${POSTGRES_PASSWORD}@postgres:5432/petrik
+      PNW_PORT: ${PNW_PORT:-4000}
+      # Éles használathoz kötelező: PNW_SESSION_SECRET és PNW_SEED_PASSWORD (lásd .env.example, server/config.ts).
+      PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:?állíts be egy titkot}
+      PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?állíts be induló jelszót}
+      # Hány proxy áll a szerver előtt (a cloudflared egy).
+      PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-1}
+      # A nyilvános cím, pl. https://petrik.hu - ez az engedélyezett eredet a módosító API-hívásokhoz.
+      PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
+      PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on: [petrik]
+    # A Cloudflare Zero Trust felületén a tunnel Public Hostname-je: http://petrik:4000
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?állítsd be a Cloudflare tunnel tokent}
+
+volumes:
+  pgdata:

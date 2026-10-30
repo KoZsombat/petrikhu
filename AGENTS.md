@@ -1,0 +1,122 @@
+# AGENTS.md
+
+New website for Petrik Lajos Bilingual Technical School (petrik.hu) plus a **page editor (Creator)** that lets subpages be assembled from ready-made components without coding. Language: UI and content are Hungarian; code is a mix of English and Hungarian (comments are mostly Hungarian).
+
+## Working rules (read first)
+
+- **Update this file after every change.** If you add, remove, rename or change behaviour of a route, component, env variable, script, table, permission or deployment detail, edit the matching section here in the same piece of work. Keep it accurate rather than long; delete statements that stopped being true.
+- Keep [README.md](README.md) in sync when setup, scripts or deployment change (it is the short, human-facing version of this file).
+- Verify before finishing: `npm run build`, `npx tsc -p tsconfig.server.json`, and `npm run lint` (one old react-refresh warning in `SchemaForm.tsx` is known).
+
+## Stack
+
+React 19 + TypeScript + Vite 8, React Router 7 (`BrowserRouter`), Tailwind CSS 4 (`@theme` tokens in `src/index.css`), lucide-react / react-icons. React Compiler is on. Backend: Express 5 + PostgreSQL (`pg`) in `server/`. Built-in pages live in `pages.json`; pages saved in the editor live in the database.
+
+```
+docker compose -f docker-compose.dev.yml up   # whole dev stack: Postgres + API (node --watch) + Vite on http://localhost:5173
+npm run dev       # dev server (/api, /uploads, /media are proxied to the server on port 4000)
+npm run server    # the Express server (port 4000; needs DATABASE_URL, loads .env if present)
+npm run db:import # one-off: copy the legacy SQLite file (server/data/db/hirkezelo.db) into Postgres
+npm run build     # tsc -b && vite build
+npm run lint      # eslint
+npx tsc -p tsconfig.server.json   # type-check the server
+```
+
+## Core idea: a page is JSON
+
+A subpage is an array of blocks, exactly in this shape (the Creator outputs the same):
+
+```json
+[
+  { "component": "PageTitle", "values": { "breadcrumb": [...], "title": "...", "intro": "..." } },
+  { "component": "CardGrid", "variant": "person", "values": { "columns": 3, "items": [...] } }
+]
+```
+
+- `component` + optional `variant` + `values` (the component's props). `variant` is the component's `variant` prop.
+- `PageRenderer` ([src/components/creator/PageRenderer.tsx](src/components/creator/PageRenderer.tsx)) picks the component from the registry by name, drops empty strings, and generates the pagination `hrefFor` itself.
+- An unknown component shows a red error in dev and is silently skipped in production.
+
+## Important files
+
+| Location | What it is |
+|---|---|
+| `src/pages/samples/pages.json` | **All built-in subpages in one JSON**: `{ "<slug>": [blocks] }`, 26 pages. Routes are generated from it. |
+| `src/pages/samples/elerhetoseg.json` | The first sample page (also inside `pages.json`). |
+| `src/pages/creatorSchema.ts` | **The schema**: per component (and variant) field type, label, `required`. The form and validation are built on it. |
+| `src/components/creator/` | The presentational components + `PageRenderer`. Prop docs: [src/components/creator/README.md](src/components/creator/README.md). |
+| `src/components/PageTemplate.tsx` | Page frame (UpperHeader + Header + Footer). Every page is wrapped in it. |
+| `src/components/Landing/`, `src/pages/Landing.tsx` | The home page (Hero, News, Occupations, Reasons, Projects, Introduction, Partners). Hand-written, **not** built from JSON. |
+| `src/pages/Creator.tsx`, `SchemaForm.tsx` | The editor UI; `SchemaForm` renders a form from the schema. |
+| `src/pages/Dashboard.tsx` | Admin dashboard with tabs: Pages, Menu (`MenuEditor`), Media, Document library. |
+| `src/lib/constants.ts` | Default menu (`menu`), top links (`upperLinks`), `labelHref` (label → route, used by the footer). |
+| `src/App.tsx` | Routes. `/:slug` serves pages published from the editor (built-ins get their own routes; a published page with the same slug overrides them). |
+| `src/lib/api.ts`, `useSession.ts`, `SiteContentProvider.tsx` | Fetch wrapper (relative `/api` URLs only), logged-in user, public site content (`/api/public/site`). |
+| `server/`, `shared/pnw/` | Express backend and shared types (see "Server" below). |
+
+## Components (14)
+
+`PageTitle`, `CardGrid` (variants: `text`, `person`, `stat`, `news`, `highlight`), `RowList` (`fact`, `step`, `news`), `CheckList`, `RichText` (expects pre-sanitised HTML!), `CtaBand` (max. one per page, at the bottom), `LogoGrid`, `Feature`, `Accordion`, `VideoEmbed`, `Callout`, `LinkList`, `Gallery`, `DataTable` (new ones are described in the creator README).
+
+Every root element gets `data-component` / `data-variant`. Adding a component: component in `components/creator/` → export in `index.ts` → `registry` in `PageRenderer.tsx` → schema in `creatorSchema.ts` → docs in the README.
+
+## Routes
+
+- `/` home (Landing)
+- `/<slug>` automatically for every `pages.json` key (e.g. `/hirek`, `/vegyipar-agazat`, `/elerhetoseg`, `/about-us`)
+- `/creator` editor, `/preview` last Creator preview (`localStorage` key `page-creator:preview`), `/components-preview` component catalogue, `/dashboard` (admin, login required)
+- `/hirkezelo`, `/hirek/:slug`, `/kereses`, `/dokumentumtar`, `/bejelentkezes` (redirects to `/dashboard`)
+- `*` 404
+
+New page: add a key to `pages.json`; the route appears automatically. To show it in the menu, add it in `constants.ts` (`href` = slug) or via the dashboard Menu tab.
+
+## Conventions and pitfalls
+
+- **Styling:** only `@theme` tokens (`petrikaccent`, `petrikink`, `petrikbg`, `font-display|body|mono`, ...). Do not introduce new colours or fonts.
+- **The editor provides content, not looks.** Components are pure presenters.
+- **`pages.json` must always match the schema.** There is no automatic validation in the repo; check after editing (unknown field, missing `required`, invalid `select` value). The Creator cannot set `active` on `RowList` filters, so the JSON has none either.
+- **Variant names** in JSON are the schema's (`person`, `fact`, ...), not the Hungarian design names.
+- **Links:** those starting with `http` open in a new tab. Internal links are slug-based (`/nyolcadikos`). Header and Footer use plain `<a href>` (full page load), not `Link`.
+- **Active menu item:** `Header.tsx` computes it from the route; if several items point to the same page (`/hirek`), only the first is active.
+- `CtaBand` has no description field, only title, button, link.
+- The top bar links (Kréta, Órarend, Levelezés...) and social icons are still empty `href`s.
+- `dist/` is build output; do not edit.
+
+## Origin / related
+
+- The design is a Claude Design (artifact) canvas: 28 artboards (home, 26 subpages, "Blocks" catalogue). Subpage content was translated from it into `pages.json`.
+- Home page components come from the `client/` folder of https://github.com/KoZsombat/petrikhu.
+
+## Ideas / next steps
+
+- A validation script based on `creatorSchema.ts`, run in CI; the server currently checks only block shape (`server/routes/pages.ts`), not fields.
+- Missing from the old site: sidebar widgets, category/date/author archives, `/docs/<slug>` document pages, Divi modules (Gallery, HeroSlider, Pricing...).
+- `RichText` uses `dangerouslySetInnerHTML` (forbidden on the old site); Hírkezelő content is rendered structurally through `RichContent`.
+- Real-world deployment (Docker + Cloudflare Tunnel) has not been run in production yet.
+
+## Server
+
+**Data:** PostgreSQL (`DATABASE_URL`; in compose the `postgres` service with the `pgdata` volume and no published port). The schema is created on startup (`server/data/db.ts`, `CREATE TABLE IF NOT EXISTS`); JSON columns are stored as text, media as `BYTEA`. All repos in `server/data/*-repo.ts` are async (`row`, `rows`, `run`, `transaction` helpers from `db.ts`). Legacy data (585 news posts, 8 accounts, 37 categories/tags, 3,284 media files; ~1.2 GB) sits in the SQLite file `server/data/db/hirkezelo.db` (not in git): `npm run db:import` copies it once (`server/scripts/import-sqlite.ts`; idempotent; sessions are not copied; `better-sqlite3` is a dev dependency used only by this script). An empty database boots with 3 demo accounts (`igazgato`, `helyettes`, `mk.vezeto`; passwords in `server/data/users-repo.ts`, overridden by `PNW_SEED_PASSWORD`). **Imported accounts keep their old passwords**: change them on the Accounts screen before going live.
+
+Run: `npm run server` (port 4000; Vite's dev proxy points there), in production `docker compose up` (needs `POSTGRES_PASSWORD`, `PNW_SESSION_SECRET`, `PNW_SEED_PASSWORD`; see `.env.example`).
+
+- `/dashboard` – admin (login required): pages (saved Creator pages, trash), **menu** (main-menu editor, `MenuEditor` in `Dashboard.tsx`, API `/api/pages/menu`; after saving it takes up to a minute to show publicly because `/api/public` is cached for 60 s), media, document library.
+- `/creator` – page editor; `?id=` edits a saved page. Pages live in the `creator_pages` table (`blocks` = PageRenderer JSON); a published page is served at `/<slug>` and overrides a built-in page with the same slug.
+- `/hirkezelo` – news manager (edit, approve, schedule, archive, statistics, log, accounts), `src/components/news/`.
+- `/hirek/:slug`, `/hirek` (live news before the built-in ones, `?oldal=N`), `/kereses`, `/dokumentumtar`.
+- Media and uploads are in the database (`media_files`), served at `/uploads/*` and `/media/*`; files in `server/media-seed/` are imported on startup (idempotent).
+- Permissions: no roles, per-account switchable capabilities (`shared/pnw/permissions.ts`); the page editor needs `pnw_manage_pages`, the library `pnw_manage_library`.
+- The public site gets published pages, the menu and the library from `GET /api/public/site` (`src/lib/SiteContentProvider.tsx`); if the server is unreachable the built-in content shows.
+
+## Security and operations
+
+- **Production start** (`NODE_ENV=production`, the Docker image default): the server refuses to start without `PNW_SESSION_SECRET`, or if an account still has a publicly known demo password and `PNW_SEED_PASSWORD` is not set; when it is set, demo passwords are replaced at startup.
+- **Sessions:** stored in Postgres (`sessions` table, `server/lib/pg-session-store.ts`); HttpOnly + SameSite=Lax cookie, `Secure` behind HTTPS, 7 days (extended on use), new id on login. `PNW_TRUST_PROXY` (1 in production) says how many proxies are in front.
+- **Protections** (`server/security.ts`): CSP and related headers, HSTS on HTTPS, `/api` no-store, state-changing API calls only from the same origin (extend with `PNW_PUBLIC_URL` / `PNW_ALLOWED_ORIGINS`), login rate limit (8 per account, 30 per IP / 15 min), per-IP limit on modifying requests, JSON error handlers, `/healthz`.
+- **Content:** `html` fields of Creator pages go through a whitelist filter on save (`server/lib/sanitize.ts`, `sanitize-html`; iframes only YouTube). Hírkezelő posts are structured, no raw HTML. Uploaded images are checked by extension and magic bytes; SVG and office files are served with a sandbox CSP.
+- **Docker (dev):** `docker-compose.dev.yml` runs `postgres` (published on `127.0.0.1:5432`, `petrik`/`petrik`), a one-off `deps` service (`npm install --ignore-scripts` into the shared `node_modules` volume), `api` (`node --watch`, port 4000) and `web` (Vite on 5173, proxying to `api` via `VITE_PROXY_TARGET`, read in `vite.config.ts`). The repo is bind-mounted, so edits apply live. The dev database is the `pgdata-dev` volume; `npm run db:import` can fill it with `DATABASE_URL=postgres://petrik:petrik@localhost:5432/petrik`.
+- **Docker (production):** `Dockerfile` (one Node process serving API + built client), non-root user, `cap_drop: ALL`, healthcheck, `restart: unless-stopped`. `docker-compose.yml` services: `postgres`, `petrik`, and `cloudflared` (profile `tunnel`).
+- **Cloudflare Tunnel, one port:** a single Node process serves the API, media and the built client on `PNW_PORT` (default 4000; bound to `127.0.0.1` in compose). Point the tunnel's public hostname at `http://localhost:4000` (or `http://petrik:4000` inside compose); `docker compose --profile tunnel up` also starts `cloudflared` (`TUNNEL_TOKEN`). Set `PNW_PUBLIC_URL` (e.g. `https://petrik.hu`): it is the allowed origin for modifying calls if the tunnel rewrites the Host header. `PNW_TRUST_PROXY=1` makes the cookie `Secure` and the client IP real. The CSP is `script-src 'self'`, so disable Cloudflare's injected scripts (Web Analytics, Rocket Loader).
+- **EC2 deployment guide:** `deploy.md` (step by step: EC2 + Docker + Cloudflare Tunnel, data import, backups, troubleshooting). It is git-ignored on purpose (internal notes), so it exists only in local checkouts; keep it in sync when deployment changes.
+- **Environment variables:** `DATABASE_URL`, `POSTGRES_PASSWORD` (compose), `PNW_SESSION_SECRET`, `PNW_SEED_PASSWORD`, `PNW_PORT`, `PNW_PUBLIC_URL`, `PNW_ALLOWED_ORIGINS`, `PNW_TRUST_PROXY`, `PNW_UPLOADS_DIR`, `PNW_MEDIA_SEED_DIR`, `PNW_SHOW_DEMO_LOGINS`, `PNW_SQLITE_FILE` (import script), `TUNNEL_TOKEN` (compose). See `.env.example` and `server/config.ts`.
+- **Not present:** automatic database backups (run `pg_dump` periodically), two-factor login, automated tests.
