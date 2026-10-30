@@ -17,6 +17,17 @@ function initialLang(): Lang {
 }
 
 /** A weboldal nyelve (magyar / angol): a választást a böngésző megjegyzi, a <html lang> követi. */
+const reported = new Set<string>();
+
+/** An untranslated label stays Hungarian; in development it is also reported once, so gaps are visible. */
+function missing(hu: string): string {
+  if (import.meta.env.DEV && !reported.has(hu)) {
+    reported.add(hu);
+    console.warn(`[i18n] missing English translation: ${JSON.stringify(hu)} (src/i18n/en.ts)`);
+  }
+  return hu;
+}
+
 export default function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
 
@@ -36,7 +47,7 @@ export default function LanguageProvider({ children }: { children: ReactNode }) 
         }
       },
       /** Magyar felirat → az aktuális nyelven; ismeretlen szöveg magyarul marad. */
-      tr: (hu: string) => (lang === "en" ? (en[hu] ?? hu) : hu),
+      tr: (hu: string) => (lang === "en" ? (en[hu] ?? missing(hu)) : hu),
     }),
     [lang],
   );

@@ -11,5 +11,10 @@ export function pageBlocks(slug: string, lang: Lang): PageBlock[] | undefined {
   return (lang === "en" ? EN[slug] : undefined) ?? HU[slug];
 }
 
+/** Whether the built-in page has its own English version (otherwise English mode shows the Hungarian one). */
+export function hasTranslation(slug: string): boolean {
+  return slug in EN;
+}
+
 /** Az összes beépített oldal slugja. */
 export const pageSlugs = Object.keys(HU);

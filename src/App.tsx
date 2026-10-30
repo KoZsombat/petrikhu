@@ -5,7 +5,7 @@ import Landing from "./pages/Landing";
 import Preview from "./pages/Preview";
 import { PageRenderer, PageTemplate } from "./components";
 import type { PageBlock } from "./components";
-import { pageBlocks, pageSlugs } from "./i18n/pages";
+import { hasTranslation, pageBlocks, pageSlugs } from "./i18n/pages";
 import titles from "./pages/samples/pageTitles.json";
 import { useLang } from "./i18n/languageContext";
 import type { Lang } from "./i18n/languageContext";
@@ -35,6 +35,15 @@ function NotFound() {
   );
 }
 
+/** Shown in English mode above a built-in page that has no English version yet (it falls back to Hungarian). */
+function UntranslatedNotice() {
+  return (
+    <div role="note" className="mx-auto mt-6 max-w-4xl rounded-md border border-petrikline bg-petriktint px-4 py-3 text-sm text-petriksoft">
+      This page is not yet available in English; the Hungarian version is shown.
+    </div>
+  );
+}
+
 /** Az oldal címe: az első PageTitle blokk címe. */
 function titleOf(blocks: PageBlock[]): string | undefined {
   const title = blocks.find((b) => b.component === "PageTitle")?.values.title;
@@ -56,6 +65,7 @@ function BuiltInPage({ slug, forceLang }: { slug: string; forceLang?: Lang }) {
   useDocumentHead({ title: shown?.title ?? pageName ?? titleOf(content), description: shown?.description });
   return (
     <PageTemplate>
+      {lang === "en" && !hasTranslation(slug) && <UntranslatedNotice />}
       {slug === "hirek" && !shown ? (
         <NewsFeed content={content} />
       ) : (
