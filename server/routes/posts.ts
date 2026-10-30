@@ -4,14 +4,13 @@ import { CAPABILITY, STATUS } from '../../shared/pnw/types.ts'
 import type { Post, PostStatus } from '../../shared/pnw/types.ts'
 import { canEditWorkflowPost, canViewWorkflowPost } from '../../shared/pnw/access.ts'
 import { canReview, hasCapability } from '../../shared/pnw/permissions.ts'
-import { allPosts, existingSlugs, findPost, insertPost, removePost, updatePost } from '../data/posts-repo.ts'
+import { countByStatus, countPosts, existingSlugs, findPost, findPosts, insertPost, removePost, updatePost } from '../data/posts-repo.ts'
 import { termIdsOfKind } from '../data/terms-repo.ts'
 import { uniqueSlug } from '../../shared/pnw/slug.ts'
 import { requireCapability, requireLogin } from '../middleware/auth.ts'
 import { logAudit, recentAudit } from '../lib/audit.ts'
 import { notifyApproved, notifyRejected, notifyScheduled, notifySubmitted } from '../lib/notifications.ts'
 import { hasRealText, parseIdList, parseRichText, sanitizeTermIds } from '../lib/validation.ts'
-import { blockText } from '../../shared/pnw/richtext.ts'
 import { TEST_MODE } from '../config.ts'
 import { acceptUpload, storeImage, upload } from '../lib/uploads.ts'
 
@@ -32,66 +31,53 @@ router.use(requireLogin)
  */
 router.get('/dashboard', async (req, res) => {
   const user = req.pnwUser!
-  const all = await allPosts()
-  const mine = all.filter((post) => post.authorId === user.id)
 
   if (!canReview(user)) {
+    const counts = await countByStatus({ authorId: user.id })
     res.json({
       view: 'author',
       counts: {
-        [STATUS.DRAFT]: mine.filter((p) => p.status === STATUS.DRAFT).length,
-        [STATUS.PENDING]: mine.filter((p) => p.status === STATUS.PENDING).length,
-        [STATUS.REVISION]: mine.filter((p) => p.status === STATUS.REVISION).length,
-        [STATUS.FUTURE]: mine.filter((p) => p.status === STATUS.FUTURE).length,
-        [STATUS.PUBLISH]: mine.filter((p) => p.status === STATUS.PUBLISH).length,
+        [STATUS.DRAFT]: counts[STATUS.DRAFT] ?? 0,
+        [STATUS.PENDING]: counts[STATUS.PENDING] ?? 0,
+        [STATUS.REVISION]: counts[STATUS.REVISION] ?? 0,
+        [STATUS.FUTURE]: counts[STATUS.FUTURE] ?? 0,
+        [STATUS.PUBLISH]: counts[STATUS.PUBLISH] ?? 0,
       },
-      posts: sortByModified(mine),
+      posts: await findPosts({ authorId: user.id }, { order: 'modified_desc' }),
     })
     return
   }
 
-  const pending = all
-    .filter((p) => p.status === STATUS.PENDING)
-    .sort((a, b) => a.modifiedAt.localeCompare(b.modifiedAt))
-  const ownWorking = sortByModified(
-    mine.filter((p) => p.status === STATUS.DRAFT || p.status === STATUS.REVISION),
-  )
-  const scheduled = all
-    .filter((p) => p.status === STATUS.FUTURE)
-    .sort((a, b) => a.date.localeCompare(b.date))
-  const recent = sortByModified(
-    all.filter((p) =>
-      ([STATUS.PUBLISH, STATUS.FUTURE, STATUS.REVISION, STATUS.TEST_APPROVED] as PostStatus[]).includes(p.status),
-    ),
-  ).slice(0, 10)
-  const todayKey = new Date().toISOString().slice(0, 10)
-  const publishedToday = all.filter(
-    (p) => p.status === STATUS.PUBLISH && (p.date ?? '').startsWith(todayKey),
-  ).length
+  const [counts, pending, ownWorking, scheduled, recent, publishedToday] = await Promise.all([
+    countByStatus(),
+    findPosts({ status: STATUS.PENDING }, { order: 'modified_asc' }),
+    findPosts({ authorId: user.id, status: [STATUS.DRAFT, STATUS.REVISION] }, { order: 'modified_desc' }),
+    findPosts({ status: STATUS.FUTURE }, { order: 'date_asc', limit: 10 }),
+    findPosts({ status: [STATUS.PUBLISH, STATUS.FUTURE, STATUS.REVISION, STATUS.TEST_APPROVED] }, { order: 'modified_desc', limit: 10 }),
+    countPosts({ status: STATUS.PUBLISH, day: new Date().toISOString().slice(0, 10) }),
+  ])
 
   res.json({
     view: 'reviewer',
-    pendingCount: pending.length,
-    returnedCount: all.filter((p) => p.status === STATUS.REVISION).length,
-    scheduledCount: scheduled.length,
+    pendingCount: counts[STATUS.PENDING] ?? 0,
+    returnedCount: counts[STATUS.REVISION] ?? 0,
+    scheduledCount: counts[STATUS.FUTURE] ?? 0,
     publishedTodayCount: publishedToday,
     ownWorking,
     pending,
-    scheduled: scheduled.slice(0, 10),
+    scheduled,
     recent,
   })
 })
 
 /** Mirrors render_published_news(). */
 router.get('/published', requireCapability(CAPABILITY.MANAGE_PUBLISHED), async (req, res) => {
-  const { list, total, totalPages } = paginate((await allPosts()).filter((p) => p.status === STATUS.PUBLISH), req)
-  res.json({ posts: list, total, totalPages, testMode: TEST_MODE })
+  res.json({ ...(await paginate(STATUS.PUBLISH, req)), testMode: TEST_MODE })
 })
 
 /** Mirrors render_archived_news(). */
 router.get('/archived', requireCapability(CAPABILITY.MANAGE_PUBLISHED), async (req, res) => {
-  const { list, total, totalPages } = paginate((await allPosts()).filter((p) => p.status === STATUS.ARCHIVED), req)
-  res.json({ posts: list, total, totalPages })
+  res.json(await paginate(STATUS.ARCHIVED, req))
 })
 
 router.get('/:id', async (req, res) => {
@@ -345,7 +331,7 @@ router.get('/:id/audit', async (req, res) => {
     res.status(404).json({ error: 'not_found' })
     return
   }
-  res.json({ entries: await recentAudit(30, post.id) })
+  res.json({ entries: await recentAudit(30, { postId: post.id }) })
 })
 
 // --- helpers ---------------------------------------------------------------
@@ -355,27 +341,18 @@ function canViewPost(post: Post, user: import('../../shared/pnw/types.ts').Sessi
   return canViewWorkflowPost(post, user)
 }
 
-function sortByModified(list: Post[]): Post[] {
-  return [...list].sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
-}
+const PER_PAGE = 30
 
-function paginate(list: Post[], req: import('express').Request) {
-  const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : ''
-  const page = Math.max(1, Number(req.query.page) || 1)
-  const perPage = 30
-
-  const filtered = q
-    ? list.filter(
-        (post) =>
-          post.title.toLowerCase().includes(q) ||
-          post.content.some((block) => blockText(block).toLowerCase().includes(q)),
-      )
-    : list
-
-  const sorted = filtered.sort((a, b) => b.date.localeCompare(a.date))
-  const totalPages = Math.max(1, Math.ceil(sorted.length / perPage))
-  const list_ = sorted.slice((page - 1) * perPage, page * perPage)
-  return { list: list_, total: sorted.length, totalPages }
+/** Egy státusz hírei dátum szerint csökkenően, oldalanként, opcionális kereséssel (`?q=`, `?page=`) - mind SQL-ben. */
+async function paginate(status: PostStatus, req: import('express').Request) {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 200) : ''
+  const page = Math.max(1, Math.floor(Number(req.query.page)) || 1)
+  const filter = { status, search: q || undefined }
+  const [posts, total] = await Promise.all([
+    findPosts(filter, { order: 'date_desc', limit: PER_PAGE, offset: (page - 1) * PER_PAGE }),
+    countPosts(filter),
+  ])
+  return { posts, total, totalPages: Math.max(1, Math.ceil(total / PER_PAGE)) }
 }
 
 type SaveResult =

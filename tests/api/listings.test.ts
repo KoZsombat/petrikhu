@@ -153,7 +153,7 @@ test('szerzői vezérlőpult: csak a saját hírek', async () => {
 test('nyilvános lista: csak megjelent, legfrissebb elöl, tartalom nélkül, miniatűrrel', async () => {
   const body = (await server.client().get('/api/public/posts?limit=3')).body as { posts: (Post & { thumbnail?: string })[] }
   assert.deepEqual(body.posts.map((p) => p.title), ['Tavaszi koncert', 'Más téma', 'Képes hír'])
-  assert.ok(body.posts.every((p) => !('content' in p)))
+  assert.ok(!body.posts.some((p) => 'content' in p))
   assert.equal(body.posts[1].thumbnail, '/uploads/kiemelt.png')
   assert.equal(body.posts[2].thumbnail, '/uploads/elso.png')
   assert.equal(((await server.client().get('/api/public/posts')).body as { posts: Post[] }).posts.length, 20)
@@ -212,4 +212,11 @@ test('időzített söprés: csak a lejárt időzítésűek jelennek meg', async 
     { title: 'Időzített hamarabb', status: 'publish' },
     { title: 'Időzített később', status: 'future' },
   ])
+})
+
+test('a keresőszöveg mentéskor frissül', async () => {
+  const { updatePost } = await import('../../server/data/posts-repo.ts')
+  await updatePost('p005', (post) => ({ ...post, title: 'Átnevezett Évzáró' }))
+  const body = (await reviewer.get('/api/posts/published?q=%C3%89VZ%C3%81R%C3%93')).body as ListBody
+  assert.deepEqual(body.posts.map((p) => p.id), ['p005'])
 })

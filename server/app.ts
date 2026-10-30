@@ -13,7 +13,7 @@ import session from 'express-session'
 import { STATUS } from '../shared/pnw/types.ts'
 import { DIST_DIR, MEDIA_URL_PREFIX, SESSION_SECRET, TRUST_PROXY, UPLOADS_URL_PREFIX } from './config.ts'
 import { attachUser } from './middleware/auth.ts'
-import { allPosts, updatePost } from './data/posts-repo.ts'
+import { findPosts, updatePost } from './data/posts-repo.ts'
 import { PgSessionStore } from './lib/pg-session-store.ts'
 import { RateLimiter, apiNoStore, ipRateLimit, sameOriginOnly, securityHeaders } from './security.ts'
 import { mediaRouter } from './lib/media.ts'
@@ -134,9 +134,7 @@ export function createApp(): express.Express {
 
 /** Ported from PNW_Actions::track_scheduled_publication() - WP-Cron has no equivalent here. */
 export async function sweepScheduledPosts(): Promise<void> {
-  const due = (await allPosts()).filter(
-    (post) => post.status === STATUS.FUTURE && new Date(post.date).getTime() <= Date.now(),
-  )
+  const due = await findPosts({ status: STATUS.FUTURE, dateUntil: new Date().toISOString() }, { order: 'date_asc' })
 
   for (const post of due) {
     await updatePost(post.id, (p) => ({ ...p, status: STATUS.PUBLISH }))

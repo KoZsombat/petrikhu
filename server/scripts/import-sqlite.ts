@@ -13,6 +13,7 @@ import Database from 'better-sqlite3'
 import { CAPABILITY } from '../../shared/pnw/types.ts'
 import { LEGACY_SQLITE_FILE } from '../config.ts'
 import { closeDb, initDb, pool } from '../data/db.ts'
+import { fillMissingSearchText } from '../data/posts-repo.ts'
 
 const file = process.argv[2] ? resolve(process.argv[2]) : LEGACY_SQLITE_FILE
 if (!existsSync(file)) {
@@ -37,7 +38,7 @@ function hasTable(name: string): boolean {
 }
 
 async function pgColumns(table: string): Promise<string[]> {
-  const result = await pool.query('SELECT column_name FROM information_schema.columns WHERE table_name = $1', [table])
+  const result = await pool.query('SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1', [table])
   return result.rows.map((r) => r.column_name as string)
 }
 
@@ -65,5 +66,7 @@ for (const table of TABLES) {
 }
 
 sqlite.close()
+// A régi adatbázisban nincs keresőszöveg (003-as migráció): az importált hírekét itt számoljuk ki.
+console.log(`posts: ${await fillMissingSearchText()} keresőszöveg kitöltve`)
 await closeDb()
 console.log('Kész.')

@@ -8,7 +8,7 @@ import { Router } from 'express'
 import { STATUS } from '../../shared/pnw/types.ts'
 import type { Post } from '../../shared/pnw/types.ts'
 import type { PublicSite } from '../../shared/pnw/creator-types.ts'
-import { allPosts, findPostBySlug } from '../data/posts-repo.ts'
+import { findPostBySlug, findPosts, postSlugs } from '../data/posts-repo.ts'
 import { getPageBySlug, listPages } from '../data/pages-repo.ts'
 import { getMenu } from '../data/menu-repo.ts'
 import { getLibrary } from '../data/library-repo.ts'
@@ -37,11 +37,7 @@ function firstImage(content: Post['content']): string | undefined {
  */
 router.get('/posts', async (req, res) => {
   const limit = Math.min(1000, Number(req.query.limit) || 20)
-  const posts = (await allPosts())
-    .filter((post) => post.status === STATUS.PUBLISH)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, limit)
-    .map(({ content, ...summary }) => ({ ...summary, thumbnail: summary.featuredImage ?? firstImage(content) }))
+  const posts = (await findPosts({ status: STATUS.PUBLISH }, { order: 'date_desc', limit: Math.max(1, limit) })).map(({ content, ...summary }) => ({ ...summary, thumbnail: summary.featuredImage ?? firstImage(content) }))
   res.json({ posts })
 })
 
@@ -51,9 +47,7 @@ router.get('/posts', async (req, res) => {
  * which would otherwise keep showing a card for them.
  */
 router.get('/posts/hidden-mirror', async (_req, res) => {
-  const slugs = (await allPosts())
-    .filter((post) => post.origin === 'mirror' && post.status !== STATUS.PUBLISH)
-    .map((post) => post.slug)
+  const slugs = await postSlugs({ origin: 'mirror', statusNot: STATUS.PUBLISH })
   res.json({ slugs })
 })
 
