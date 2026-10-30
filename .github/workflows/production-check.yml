@@ -1,0 +1,23 @@
+# Checks that the production deployment (EC2, behind Cloudflare: https://petriknew.zsombor.dev) is up and
+# serving the app: /healthz answers, the public API answers, and the home page carries the Open Graph tags.
+# It only reads; deploying stays a manual step (see AGENTS.md "Security and operations").
+name: Production check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+env:
+  SITE_URL: https://petriknew.zsombor.dev
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health endpoint
+        run: curl --fail --silent --show-error --max-time 20 "$SITE_URL/healthz" | grep -q '"ok":true'
+      - name: Public API
+        run: curl --fail --silent --show-error --max-time 20 "$SITE_URL/api/public/posts?limit=1" | grep -q '"posts"'
+      - name: Home page with meta tags
+        run: curl --fail --silent --show-error --max-time 20 "$SITE_URL/" | grep -q 'property="og:title"'
