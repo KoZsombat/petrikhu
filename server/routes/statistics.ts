@@ -21,7 +21,6 @@ router.get('/', requireCapability(CAPABILITY.VIEW_AUDIT_LOG), async (_req, res) 
 
   res.json({
     liveAll: live,
-    liveManaged: live,
     scheduled: counts[STATUS.FUTURE] ?? 0,
     pending: counts[STATUS.PENDING] ?? 0,
     archived: counts[STATUS.ARCHIVED] ?? 0,

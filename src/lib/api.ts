@@ -215,7 +215,6 @@ export const fullAuditLog = (limit = 100, imported = false) =>
 
 export type Statistics = {
   liveAll: number;
-  liveManaged: number;
   scheduled: number;
   pending: number;
   archived: number;

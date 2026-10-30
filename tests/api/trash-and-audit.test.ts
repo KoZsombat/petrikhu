@@ -128,3 +128,9 @@ test('napló: fiók létrehozása, jogváltozás tételesen, törlése', async (
   // A jelszó maga sosem kerül a naplóba.
   assert.ok(!JSON.stringify(entries).includes('hosszu-jelszo'))
 })
+
+test('statisztika: a liveManaged (ugyanaz volt, mint a liveAll) megszűnt', async () => {
+  const body = (await reviewer.get('/api/statistics')).body as Record<string, unknown>
+  assert.ok('liveAll' in body)
+  assert.ok(!('liveManaged' in body))
+})
