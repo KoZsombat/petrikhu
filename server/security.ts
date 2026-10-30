@@ -67,7 +67,13 @@ export function sameOriginOnly(req: Request, res: Response, next: NextFunction):
   res.status(403).json({ error: 'bad_origin' })
 }
 
-/** Kulcsonként (IP, felhasználónév) számolt, időablakos korlát; az ablak lejártával a számláló nullázódik. */
+/**
+ * Kulcsonként (IP, felhasználónév) számolt, időablakos korlát; az ablak lejártával a számláló nullázódik.
+ *
+ * FIGYELEM: az állapot a folyamat memóriájában van, tehát egyetlen példányt feltételez. Két replika mögött
+ * minden korlát kétszer annyit engedne (a belépési próbák is), és újraindításkor nullázódik. Több példányhoz
+ * közös tár (pl. Postgres-tábla vagy Redis) kellene - jelenleg szándékosan nincs.
+ */
 export class RateLimiter {
   private hits = new Map<string, { count: number; resetAt: number }>()
   private max: number
