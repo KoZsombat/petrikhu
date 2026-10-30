@@ -6,7 +6,8 @@ import { ApiError, createPage, getPage, listPages, updatePage } from "../lib/api
 import builtInPages from "./samples/pages.json";
 import type { CreatorPageStatus } from "../../shared/pnw/creator-types";
 import { PREVIEW_KEY } from "./Preview";
-import SchemaForm, { btnCls, emptyValues, inputCls } from "./SchemaForm";
+import SchemaForm, { btnCls, inputCls } from "./SchemaForm";
+import { emptyValues } from "./creatorSchema";
 import AdminHeader from "../components/AdminHeader";
 
 type PageItem = {
