@@ -14,8 +14,10 @@ import { UPLOADS_URL_PREFIX } from '../config.ts'
 import { listImageMedia, putMedia } from '../data/media-repo.ts'
 import { mimeFor } from './media.ts'
 
+// A böngésző UTF-8-ban küldi a fájlnevet; a multer alapból latin1-nek veszi, ami az ékezetes nevet elrontaná.
 export const upload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: 8 * 1024 * 1024 },
 })
 
@@ -97,6 +99,7 @@ export async function listImages(): Promise<MediaItem[]> {
 /** nginx allows 10 MB per request (apps/client/nginx.conf), so a document stays just under that. */
 export const uploadDocument = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: 9 * 1024 * 1024 },
 })
 

@@ -123,7 +123,7 @@ describe('dokumentumok (/api/pages/library/file)', () => {
   })
 
   // multer/busboy alapból latin1-ként értelmezi a fájlnevet, így az UTF-8 ékezetes név ("í" → "Ã" + lágy kötőjel) eltorzul a slugban.
-  test('ékezetes eredeti fájlnév ékezetmentesítve kerül az url-be', { todo: 'multer latin1-ként dekódolja az UTF-8 fájlnevet: "Alapító" → "alapa-ta" (defParamCharset: "utf8" kellene)' }, async () => {
+  test('ékezetes eredeti fájlnév ékezetmentesítve kerül az url-be', async () => {
     const res = await upload('Alapító Okirat.pdf')
     assert.equal(res.status, 200)
     assert.match(urlOf(res), /^\/uploads\/alapito-okirat-[0-9a-f]{6}\.pdf$/)
