@@ -18,8 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Health endpoint
-        run: curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/healthz" | grep -q '"ok":true'
+        run: |
+          curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/healthz" | grep -q '"ok":true'
       - name: Public API
-        run: curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/api/public/posts?limit=1" | grep -q '"posts"'
+        run: |
+          curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/api/public/posts?limit=1" | grep -q '"posts"'
       - name: Home page with meta tags
-        run: curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/" | grep -q 'property="og:title"'
+        run: |
+          curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/" | grep -q 'property="og:title"'
