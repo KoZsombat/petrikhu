@@ -63,7 +63,7 @@ On start the server runs any newer migrations on top of the restored schema. Tes
 
 ## CI
 
-`.github/workflows/ci.yml` runs lint, the server type-check, the build and `npm test` (against a Postgres 17 service) on every push and pull request. `.github/workflows/production-check.yml` checks every 6 hours (or on demand) that https://petriknew.zsombor.dev answers `/healthz`, the public API and serves the Open Graph tags.
+`.github/workflows/ci.yml` runs lint, the server type-check, the build and `npm test` (against a Postgres 17 service) on every push and pull request. `.github/workflows/production-check.yml` checks every 6 hours (or on demand) that https://petriknew.zsombor.dev answers `/healthz`, the public API and serves the Open Graph tags (it needs the `HEALTH_TOKEN` repository secret, matched by a Cloudflare WAF skip rule on the `X-Health-Token` header).
 
 Deployment is manual: on the server, in `/petrik`, run `git pull` and `docker compose up -d --build`. Take a backup first (`docker compose run --rm backup once`), because new migrations run on start.
 
