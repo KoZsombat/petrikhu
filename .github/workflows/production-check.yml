@@ -17,6 +17,11 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug (temporary)
+        run: |
+          echo "token length: ${#HEALTH_TOKEN}"
+          curl -sS -o /dev/null -w "with header: %{http_code}\n" -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/healthz" || true
+          curl -sS -o /dev/null -w "without header: %{http_code}\n" "$SITE_URL/healthz" || true
       - name: Health endpoint
         run: |
           curl --fail --silent --show-error --max-time 20 -H "X-Health-Token: $HEALTH_TOKEN" "$SITE_URL/healthz" | grep -q '"ok":true'
