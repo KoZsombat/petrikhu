@@ -1,0 +1,800 @@
+{
+ "about-us": {
+  "translationOf": "bemutatkozas",
+  "blocks": [
+   {
+    "component": "PageTitle",
+    "values": {
+     "breadcrumb": [
+      {
+       "label": "Home",
+       "href": "/"
+      },
+      {
+       "label": "About us"
+      }
+     ],
+     "title": "For more than 140 years, value has been the measure.",
+     "intro": "The school opened on 7 December 1879 under the name State Industrial Secondary School – and since then it has been one of the oldest and most respected institutions of Hungarian vocational training."
+    }
+   },
+   {
+    "component": "Feature",
+    "values": {
+     "eyebrow": "The school's namesake",
+     "title": "Petrik Lajos",
+     "imageSide": "right",
+     "image": {
+      "src": "/media/wp-content/uploads/2020/08/petrik_lajos-az_iskola_nevadoja.jpg",
+      "alt": "Petrik Lajos"
+     },
+     "html": "<p>The school's namesake, Lajos Petrik, was a teacher at the institution from 1880 and its director from 1905 to 1914. His career was characterised by openness to the challenges of science, the fine arts and nature. He was at once a scientist, teacher, ceramist, art collector and nature lover.</p>"
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "stat",
+    "values": {
+     "columns": 4,
+     "items": [
+      {
+       "value": "1178",
+       "label": "Student"
+      },
+      {
+       "value": "120",
+       "label": "Teacher"
+      },
+      {
+       "value": "35",
+       "label": "Classroom"
+      },
+      {
+       "value": "23",
+       "label": "Laboratory"
+      }
+     ]
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "step",
+    "values": {
+     "heading": "History of the school",
+     "rows": [
+      {
+       "key": "1879",
+       "text": "On 7 December the State Industrial Secondary School opens its doors, with mechanical engineering, architecture and chemistry specialisations. Its first building stood at 4 Főherceg Sándor (today Gutenberg) Square."
+      },
+      {
+       "key": "1889",
+       "text": "The school moves into the new building complex designed by Alajos Hauszmann (at the corner of József körút and Népszínház utca). Its director is Károly Hegedűs, who led the institution for 35 years."
+      },
+      {
+       "key": "1898",
+       "text": "Its new name is Royal Hungarian State Higher Industrial School; four main specialisations: mechanical engineering, chemical industry, metal and iron industry, woodworking industry."
+      },
+      {
+       "key": "1940",
+       "text": "The chemical industry specialisation moves to the building at Thököly út 48, which is still the school's home today."
+      },
+      {
+       "key": "1990s",
+       "text": "Alongside the traditional chemical industry training, IT and environmental protection training grows up. In 2007/2008, merging with the Irinyi János Secondary School of Environmental Protection and Chemical Industry, Petrik becomes the largest environmental protection and chemical industry training institution in the country."
+      },
+      {
+       "key": "2015",
+       "text": "From 1 July the school's maintainer is the Budapest Technical Vocational Training Centre."
+      },
+      {
+       "key": "2019",
+       "text": "The 140th anniversary of the founding of the school. In the HVG “Secondary School 2019” publication, it ranks 10th nationwide among vocational secondary schools."
+      }
+     ]
+    }
+   },
+   {
+    "component": "Accordion",
+    "values": {
+     "heading": "About Our School",
+     "openFirst": true,
+     "items": [
+      {
+       "title": "Our creed and goals",
+       "html": "<p>The versatility represented by our namesake, <strong>Lajos Petrik</strong>, and the acceptance and passing on of values are the goals on which our school's past, present and future are built. Our aim is to run a <strong>student-centred</strong> and, through that, <strong>partner-oriented</strong> school. Our school is <strong>open</strong> to social expectations and <strong>changing labour market needs</strong>, strives to meet these tasks through continuous <strong>innovation and renewal</strong>, and cooperates mutually with its professional partners.</p><p>In our teaching and educational work, we take into account and build into our programme the needs of parents, students and employers. In the modern, well-equipped classrooms, laboratories, IT workshops and industrial modelling workshops located in the school's two buildings, students can acquire the theoretical and practical knowledge of their trades.</p>"
+      },
+      {
+       "title": "Our famous former students",
+       "html": "<p>Our school has always taken great care to develop its students' abilities as broadly as possible and, alongside its recognised high-standard vocational training, to provide a higher level of general education. Among our former students we are proud to count, among others, the world-famous writer <strong>Nádas Péter</strong>, the philosopher <strong>Vajda Mihály</strong>, one of the founders of the Budapest School, <strong>Kovács László</strong>, former foreign minister and European Union commissioner, as well as outstanding figures of Hungarian classical and popular music such as <strong>Oberfrank Géza</strong>, former conductor of the Opera House, <strong>Demjén Ferenc</strong>, <strong>Korda György</strong> and <strong>Földes László (Hobo)</strong>.</p>"
+      },
+      {
+       "title": "International relations",
+       "html": "<p>We pay special attention to nurturing international relations and take part continuously in the Erasmus+ programme. We currently have partner schools and partner institutions in Denmark, Portugal, Poland, Croatia, Spain, Greece, Lithuania, Italy and Cyprus.</p>"
+      },
+      {
+       "title": "Recognition and maintainer",
+       "html": "<p>In the HVG publication “Secondary School 2019”, our school achieved 10th place nationwide in the ranking of vocational secondary schools. According to the publication, “The vocational secondary schools at the top of the ranking belong to the elite of vocational training […]”.</p><p>Our school's maintainer since 1 July 2015 has been the Budapest Technical Vocational Training Centre.</p>"
+      }
+     ]
+    }
+   },
+   {
+    "component": "VideoEmbed",
+    "values": {
+     "heading": "School history",
+     "url": "https://www.youtube.com/watch?v=d3YG5QNkXA8",
+     "title": "School history"
+    }
+   },
+   {
+    "component": "VideoEmbed",
+    "values": {
+     "heading": "Petrik Lajos",
+     "url": "https://www.youtube.com/watch?v=GHqyCVSEb7M",
+     "title": "Petrik Lajos"
+    }
+   },
+   {
+    "component": "DataTable",
+    "values": {
+     "heading": "Awards and recognition",
+     "columns": [
+      "Date",
+      "Award"
+     ],
+     "rows": [
+      {
+       "cells": [
+        "May 2013",
+        "Quality Award for International Cooperation Culture – for the Leonardo project “Let's Play Chemistry!”"
+       ]
+      },
+      {
+       "cells": [
+        "18 May 2018",
+        "Digital Theme Week 2018 – Innovative Teacher Award to project leader Tóth Éva for the Be Digitally Aware project"
+       ]
+      },
+      {
+       "cells": [
+        "8 June 2019",
+        "Digital Theme Week 2019 – teacher competition, 2nd place to project leader Tóth Éva for the project WorkIT"
+       ]
+      },
+      {
+       "cells": [
+        "8 June 2019",
+        "Digital Theme Week 2019 – Oracle Academy Program “Code a STEM project!” special prize for the WorkIt project, in the vocational institution category"
+       ]
+      },
+      {
+       "cells": [
+        "12 March 2020",
+        "#petrikcodeweek institutional special prize in the Code Week competition (DPMK – 2019/10)\nVocational Training Award 2020 – Innovation category, for the project Digital Theme Week at Petrik: WorkIt"
+       ]
+      },
+      {
+       "cells": [
+        "1 July 2020",
+        "Digital Theme Week 2020 – “Quality Award Teacher” special prize to project leader Tóth Éva for the project Socially Re-designed"
+       ]
+      },
+      {
+       "cells": [
+        "2020–1999",
+        "Richter Gedeon Foundation – Award for Hungarian Chemistry Education\n2020 – Dr. Dóbéné Cserjés Edit · 2016 – Vámos István · 2015 – Dr. Stankovics Éva · 2013 – Baranyiné C. Veres Anna · 2005 – Fogarasi József · 2004 – Dr. Lovas Zoltánné · 2003 – Ütő Piroska · 2000 – Kisszékelyi Gyuláné · 1999 – Surányi Istvánné"
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "component": "LinkList",
+    "values": {
+     "heading": "Further reading",
+     "items": [
+      {
+       "title": "The history of the school's B building",
+       "href": "https://petrikbepulet.webnode.hu/",
+       "meta": "petrikbepulet.webnode.hu"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "admissions": {
+  "translationOf": "nyolcadikos",
+  "blocks": [
+   {
+    "component": "PageTitle",
+    "values": {
+     "breadcrumb": [
+      {
+       "label": "Home",
+       "href": "/"
+      },
+      {
+       "label": "Education"
+      },
+      {
+       "label": "For 8th graders"
+      }
+     ],
+     "title": "For 8th graders – at the gateway to further study",
+     "intro": "At the gateway to further study – marketable, 21st-century education at Petrik."
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "text",
+    "values": {
+     "columns": 3,
+     "items": [
+      {
+       "eyebrow": "01",
+       "title": "What is Petrik?",
+       "text": "One of Budapest's oldest secondary vocational institutions, it celebrated the 140th anniversary of its founding in 2019. Our namesake, Lajos Petrik, was a famous teacher and later principal of the school: his versatility and his value-centred, student-centred worldview still point the way today."
+      },
+      {
+       "eyebrow": "02",
+       "title": "What does Petrik offer?",
+       "text": "Alongside the traditional chemical industry programme, you can study in the environmental protection and water management and the IT and telecommunications sectors. At the end of the 5 years (6 in the bilingual classes), in addition to the school-leaving exam you also receive a technician diploma."
+      },
+      {
+       "eyebrow": "03",
+       "title": "What more does it offer?",
+       "text": "Modern laboratories, specialist classrooms, national and international competitions, Erasmus+ projects with 9 EU countries, eTwinning, Coding Week, Digital Theme Week, Pénz7 and Sustainability Theme Week."
+      }
+     ]
+    }
+   },
+   {
+    "component": "Callout",
+    "values": {
+     "title": "Applying for admission",
+     "tone": "info",
+     "html": "<p>The application forms must be filled in at the primary school, which sends them on to the secondary schools.</p><p>For the study areas with codes <strong>0091, 0092, 0093, 0094</strong>, admission is based on the academic points, and the combined points obtained in the central written exam and the local oral interview, under identical conditions.</p>"
+    }
+   },
+   {
+    "component": "DataTable",
+    "values": {
+     "heading": "Selectable study areas, sectors (5 starting classes per year)",
+     "columns": [
+      "Code",
+      "Sector",
+      "Programme",
+      "Places",
+      "Diploma / qualification",
+      "Features"
+     ],
+     "rows": [
+      {
+       "cells": [
+        "0091",
+        "Chemical industry sector",
+        "Bilingual chemical technician\n5+1-year bilingual chemistry programme",
+        "28 students",
+        "Certified technician (ELTE)\nchemical technician; specialisations: general laboratory technician, production process controller",
+        "Advanced-level English language teaching; mathematics, chemistry, vocational chemistry in English; natural science subjects; laboratory practicals; talent development"
+       ]
+      },
+      {
+       "cells": [
+        "0092",
+        "Chemical industry sector",
+        "Chemical technician\n5-year chemistry programme",
+        "32 students",
+        "chemical technician; specialisations: general laboratory technician, production process controller",
+        "High-level chemistry teaching; natural science subjects; laboratory practicals; English or German as a foreign language; talent development"
+       ]
+      },
+      {
+       "cells": [
+        "0093",
+        "Environmental protection and water management sector",
+        "Environmental protection technician\n5-year environmental protection programme",
+        "32 students",
+        "Certified technician (Óbuda University)\nenvironmental protection technician; specialisation: environmental protection",
+        "Advanced-level biology teaching; natural science subjects; environmental protection practicals; English or German as a foreign language; talent development"
+       ]
+      },
+      {
+       "cells": [
+        "0094",
+        "Bilingual IT",
+        "Software developer and tester; IT system and application operator technician\n5-year IT programme",
+        "32 students\n(16 students certified software developer)",
+        "Certified technician – Software developer and tester (Óbuda University)",
+        "Advanced-level English language teaching; mathematics, digital culture, civilisation in English; both professions selectable; web programming, software development, system administration and networking knowledge; talent development"
+       ]
+      },
+      {
+       "cells": [
+        "0095",
+        "IT and telecommunications sector",
+        "Software developer and tester; IT system and application operator technician\n5-year IT programme",
+        "32 students\n(16 + 16 students)",
+        "Certified technician – Software developer and tester (Óbuda University)\n\"Three-in-one\" BProf programme – IT system and application operator (BME)",
+        "Both professions selectable; advanced-level IT teaching; web programming, software development, system administration and networking knowledge; talent development"
+       ]
+      }
+     ],
+     "footnote": "Sector capacity: 0091 – 26 students, 0092 – 32 students, 0093 – 32 students, 0094 – 32 students, 0095 – 32 students."
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "fact",
+    "values": {
+     "heading": "Admission dates",
+     "rows": [
+      {
+       "label": "Submission of the application form",
+       "value": "by 1 December 2026 at the latest"
+      },
+      {
+       "label": "Central, standardised written exam",
+       "value": "23 January 2027, 10:00 (make-up day: 3 February 2027, 14:00)"
+      },
+      {
+       "label": "Oral exam",
+       "value": "16 March 2027 – according to the schedule published on the website"
+      }
+     ]
+    }
+   },
+   {
+    "component": "Callout",
+    "values": {
+     "tone": "info",
+     "html": "<p>For the standardised, central written exam, you must apply on a separate application form to the school where the applicant wishes to take the exam.</p>"
+    }
+   },
+   {
+    "component": "CtaBand",
+    "values": {
+     "title": "Admissions information",
+     "buttonLabel": "Admissions guide for 8th graders",
+     "href": "https://petrik.hu/wp-content/uploads/2026/10/Petrik_-felveteli-tajekoztato_2027_2028-1.pdf"
+    }
+   },
+   {
+    "component": "Accordion",
+    "values": {
+     "heading": "About the entrance exam",
+     "openFirst": true,
+     "items": [
+      {
+       "title": "Content of the entrance exam",
+       "html": "<p><strong>Central written exam for all programmes:</strong> mathematics and Hungarian language. For students with dysfunctional disorders, we provide extra time on a request supported by an expert opinion.</p><p><strong>Oral part:</strong> a short, informal general conversation, followed by subject-related questions. Bring your KRÉTA extract, a notebook from any subject and, if you have them, certificates proving your competition results.</p><p>We invite to the oral exam those IT applicants who have achieved at least 60 points from the brought and written points in the case of code 0094 (bilingual), and at least 80 points in the case of code 0095.</p>"
+      },
+      {
+       "title": "Assessment of the candidate's performance",
+       "html": "<p>It is based on the academic points brought from primary school and the results achieved in the entrance exam.</p><p>Brought results: the end-of-year grades of year 7 and the mid-year grades of year 8 in Hungarian language and literature, history, foreign language, mathematics, physics, chemistry, geography, biology and IT. A grade of excellent (5) is worth 2 points, good (4) 1 point; unsatisfactory, pass and satisfactory (1–3) are worth 0 points. If the grade is excellent in all 10 subjects in each of the two terms, a maximum of 40 points can be obtained in total.</p>"
+      }
+     ]
+    }
+   },
+   {
+    "component": "DataTable",
+    "values": {
+     "heading": "Basis of the admission decision",
+     "columns": [
+      "Source of points",
+      "Details",
+      "Points"
+     ],
+     "rows": [
+      {
+       "cells": [
+        "Carried-over points",
+        "Primary school academic results (academic points)",
+        "40"
+       ]
+      },
+      {
+       "cells": [
+        "Central written exam",
+        "Mathematics and native language, 50–50 points\n(for the bilingual IT programme: 50 + 50×2 points)",
+        "100\n(0094: 150)"
+       ]
+      },
+      {
+       "cells": [
+        "Oral interview",
+        "General conversation and subject-related questions",
+        "30"
+       ]
+      },
+      {
+       "cells": [
+        "Total",
+        "Sum of carried-over and earned points",
+        "170\n(0094: 220)"
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "news",
+    "values": {
+     "rows": [
+      {
+       "title": "Enrolment information for future 9th graders – 25–26 June 2026",
+       "excerpt": "Dear future 9th-grade students! On 17 June 2025, the e-Ügyintézés portal will open for parents to submit their children's details to schools via the \"Enrolment in a secondary school\" (BKI) process, until 26 June 2026. The BKI process...",
+       "date": "MÁJ. 12.",
+       "href": "/hirek/beiratkozasi-informaciok-leendo-kilencedikesek-szamara-2026-junius-25-26",
+       "category": "Featured homepage news",
+       "image": {
+        "src": "/uploads/mirror/2021/06/beiratkozas-1280x854.jpg",
+        "alt": "Enrolment information for future 9th graders – 25–26 June 2026"
+       }
+      },
+      {
+       "title": "Csibetábor (Chick Camp) 2026",
+       "excerpt": "Dear future Petrik students! The time of our first big meeting is coming soon: the Csibetábor (Chick Camp). Below we would like to share information about the camp with you here on the website as well; we also sent it by post to everyone concerned earlier: The Chick Camp...",
+       "date": "MÁJ. 8.",
+       "href": "/hirek/csibetabor-2026",
+       "category": "Featured homepage news",
+       "image": {
+        "src": "/uploads/mirror/2021/06/csibetabor-1280x854.jpg",
+        "alt": "Csibetábor (Chick Camp) 2026"
+       }
+      },
+      {
+       "title": "Final admission list for the 2026/2027 school year",
+       "excerpt": "Dear 8th-grade applicants! The reconciled admission list is now available, compiled by the Educational Authority based on students' applications and each school's rankings. Congratulations on your successful admission; we will see you soon at enrolment. The successful...",
+       "date": "ÁPR. 27.",
+       "href": "/hirek/vegleges-felveteli-jegyzek-a-2026-2027-tanevre",
+       "category": "Featured homepage news",
+       "image": {
+        "src": "/uploads/mirror/2021/03/ideiglenes_felveteli_rangsor-1280x854.jpg",
+        "alt": "Final admission list for the 2026/2027 school year"
+       }
+      },
+      {
+       "title": "SECONDARY SCHOOL ADMISSION: ranking changes open on 25 March 2026!",
+       "excerpt": "The last chance for fine-tuning has arrived. Between 25 and 27 March 2026 you can decide on the final order of your programme choices. What can be changed? On the amended student form: the originally specified order can also be changed on the original student form...",
+       "date": "MÁRC. 24.",
+       "href": "/hirek/kozepfoku-felveteli-2026-marcius-25-en-indul-a-sorrendmodositas",
+       "category": "Featured homepage news",
+       "image": {
+        "src": "/uploads/mirror/2026/03/Bmszc_sorrend_af05094071.png",
+        "alt": "SECONDARY SCHOOL ADMISSION: ranking changes open on 25 March 2026!"
+       }
+      },
+      {
+       "title": "Provisional admission ranking 2026",
+       "excerpt": "Dear applicants! After the oral admission interviews, we totalled the points and created the provisional admission list. The total score consists of carried-over points (40), written entrance exam points (100) and oral points (30), for a maximum of 170 points. The...",
+       "date": "MÁRC. 16.",
+       "href": "/hirek/ideiglenes-felveteli-lista-2026",
+       "category": "Featured homepage news",
+       "image": {
+        "src": "/uploads/mirror/2024/03/1-9f1777bb-d8b9-44ac-b889-b4aecf01576a-512x512.jpg",
+        "alt": "Provisional admission ranking 2026"
+       }
+      },
+      {
+       "title": "Oral admission schedule, March 2026",
+       "excerpt": "Dear applicants! Below you will find the oral admission schedule planned for 11 March 2026, in which you can search for your education ID using the Ctrl+F key combination. Those who applied for codes 0091, 0092 and 0093 will be called in automatically...",
+       "date": "MÁRC. 3.",
+       "href": "/hirek/szobeli-felveteli-beosztas-2026-marcius",
+       "category": "Featured homepage news"
+      }
+     ]
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "fact",
+    "values": {
+     "heading": "School details",
+     "rows": [
+      {
+       "label": "OM identifier",
+       "value": "203058"
+      },
+      {
+       "label": "School name",
+       "value": "Budapest Technical Vocational Training Centre (BMSZC) Petrik Lajos Bilingual Technical School"
+      },
+      {
+       "label": "School address",
+       "value": "1146 Budapest, Thököly út 48-54."
+      },
+      {
+       "label": "Code of the site of service provision",
+       "value": "009"
+      },
+      {
+       "label": "Technical code",
+       "value": "520 413"
+      }
+     ]
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "fact",
+    "values": {
+     "heading": "Details required for the application form",
+     "rows": [
+      {
+       "label": "Type of institution",
+       "value": "technical school (technikum)"
+      },
+      {
+       "label": "0091 chemical technician",
+       "value": "5+1-year bilingual chemistry programme"
+      },
+      {
+       "label": "0092 chemical technician",
+       "value": "5-year chemistry programme"
+      },
+      {
+       "label": "0093 environmental protection technician",
+       "value": "5-year environmental protection programme"
+      },
+      {
+       "label": "0094 information technology and telecommunications",
+       "value": "5-year IT programme (bilingual)"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "contact": {
+  "translationOf": "elerhetoseg",
+  "blocks": [
+   {
+    "component": "PageTitle",
+    "values": {
+     "breadcrumb": [
+      {
+       "label": "Home",
+       "href": "/"
+      },
+      {
+       "label": "Contact",
+       "href": "/kapcsolat"
+      },
+      {
+       "label": "Contact details"
+      }
+     ],
+     "title": "Contact details",
+     "intro": "Budapest Technical Vocational Training Centre – Petrik Lajos Bilingual Technical School"
+    }
+   },
+   {
+    "component": "RowList",
+    "variant": "fact",
+    "values": {
+     "heading": "General contact details",
+     "rows": [
+      {
+       "label": "Postal address",
+       "value": "1146 Budapest, Thököly út 48-54."
+      },
+      {
+       "label": "Phone",
+       "value": "+36 70 502 1724 (B reception) · +36 70 502 1723 (A reception)"
+      },
+      {
+       "label": "E-mail",
+       "value": "info@petrik.hu"
+      },
+      {
+       "label": "Web",
+       "value": "www.petrik.hu"
+      },
+      {
+       "label": "OM identifier",
+       "value": "203 058"
+      },
+      {
+       "label": "Technical code",
+       "value": "520413"
+      }
+     ]
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "text",
+    "values": {
+     "columns": 3,
+     "heading": "The institution and its maintainers",
+     "items": [
+      {
+       "eyebrow": "Maintainer",
+       "title": "Budapest Technical Vocational Training Centre",
+       "text": "Postal address: 1149 Budapest, Várna utca 23.\nWeb: www.bmszc.hu\nOM identifier: 203058\nTax number: 15831880-2-42\nDirector General: Csordás Katalin\nChancellor: Viszkok Mihály",
+       "href": "http://www.bmszc.hu",
+       "linkLabel": "www.bmszc.hu →"
+      },
+      {
+       "eyebrow": "School",
+       "title": "Petrik Lajos Bilingual Technical School",
+       "text": "Postal address: 1146 Budapest, Thököly út 48-54.\nE-mail: info@petrik.hu\nA reception: +36 70 502 1723\nB reception: +36 70 502 1724\nOM identifier: 203 058\nTechnical code: 520413"
+      },
+      {
+       "eyebrow": "Foundation",
+       "title": "Petrik Foundation",
+       "text": "Postal address: 1146 Budapest, Thököly út 48-54.\nTax number: 19674959-1-42\nBank account number: 11714006-20266635"
+      }
+     ]
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+     "columns": 3,
+     "heading": "School leadership",
+     "items": [
+      {
+       "name": "Gál-Berey Csilla",
+       "role": "Principal",
+       "photo": "/media/wp-content/uploads/2021/10/gal_berey_csilla_2021.jpg",
+       "phone": "+36 70 502 1719",
+       "email": "galberey@petrik.hu",
+       "room": "Consultation hours: by appointment, via titkarsag@petrik.hu."
+      },
+      {
+       "name": "Penksza Károlyné",
+       "role": "General Deputy Principal",
+       "photo": "/media/wp-content/uploads/2020/09/penksza_karolyne.jpg",
+       "phone": "+36 70 502 1792",
+       "email": "asztalos@petrik.hu"
+      },
+      {
+       "name": "Bátki Ottilia",
+       "role": "Deputy Principal for Vocational Training",
+       "photo": "/media/wp-content/uploads/2021/10/batki_ottilia_2021.jpg",
+       "phone": "+36 70 502 1791",
+       "email": "batki.ottilia@petrik.hu"
+      },
+      {
+       "name": "Sárközi-Paulik Brigitta",
+       "role": "Deputy Principal",
+       "photo": "/media/wp-content/uploads/2020/09/sarkozi_paulik_brigitta.jpg",
+       "phone": "+36 70 506 9336",
+       "email": "paulik@petrik.hu"
+      },
+      {
+       "name": "Szolnok Ádám",
+       "role": "Deputy Principal for Organisation and Communication",
+       "photo": "/media/wp-content/uploads/2020/09/szolnok_adam.jpg",
+       "phone": "+36 70 502 1765",
+       "email": "szolnok@petrik.hu"
+      }
+     ]
+    }
+   },
+   {
+    "component": "Callout",
+    "values": {
+     "title": "Academic administration officers",
+     "html": "<p>For student administration, the Student Centre is available on weekdays between 9:00 and 14:00.</p>"
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+     "columns": 4,
+     "items": [
+      {
+       "name": "Lévai Viktória",
+       "role": "Principal's secretariat",
+       "photo": "/media/wp-content/uploads/2021/03/levia_viktoria.png",
+       "phone": "+36 70 502 1708",
+       "email": "titkarsag@petrik.hu"
+      },
+      {
+       "name": "Jókuthy Claudia",
+       "role": "Finance administrator",
+       "phone": "+36 70 502 1717",
+       "email": "gazdasagi@petrik.hu"
+      },
+      {
+       "name": "Aranyos Emese",
+       "role": "Student Centre administrator",
+       "phone": "+36 70 502 1736",
+       "email": "aranyos.emese@petrik.hu"
+      },
+      {
+       "name": "Horváthné Szirai Szilvia",
+       "role": "Student Centre administrator",
+       "phone": "+36 70 502 1716",
+       "email": "horvathne.szirai.szilvia@petrik.hu"
+      }
+     ]
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+     "columns": 3,
+     "heading": "Health and support staff",
+     "items": [
+      {
+       "name": "Dr. Tóth-Vajna Zsombor",
+       "role": "School doctor",
+       "phone": "+36 70 502 1728",
+       "email": "orvosi@petrik.hu",
+       "room": "Consultation hours: Monday and Wednesday 9:30–14:00"
+      },
+      {
+       "name": "Pezenhoffer Tímea",
+       "role": "School nurse",
+       "phone": "+36 70 502 1728",
+       "email": "orvosi@petrik.hu",
+       "room": "Consultation hours: Monday to Thursday 9:30–14:00"
+      },
+      {
+       "name": "Petrács Zsuzsanna",
+       "role": "Special education teacher",
+       "phone": "+36 70 502 1724",
+       "email": "petracs.zsuzsanna@petrik.hu"
+      },
+      {
+       "name": "Pál Bottyán László",
+       "role": "School psychologist",
+       "photo": "/media/wp-content/uploads/2020/09/pal_bottyan_pszichologus.jpg",
+       "phone": "+36 70 502 1813",
+       "email": "lelkiero@yahoo.com",
+       "room": "Open day for students: during term time, by arrangement (B044).\nOpen day for parents: by prior arrangement by phone."
+      },
+      {
+       "name": "Ujházy Veronika",
+       "role": "Social support worker",
+       "photo": "/media/wp-content/uploads/2026/02/Veronika-uj-kep_-uj-nev.png",
+       "phone": "+36 70 502 2719",
+       "email": "borbely.veronika@petrik.hu",
+       "room": "Consultation hours: Monday 9:00–12:00\nBy phone on working days 10:00–18:00"
+      }
+     ]
+    }
+   },
+   {
+    "component": "CardGrid",
+    "variant": "person",
+    "values": {
+     "columns": 3,
+     "heading": "Teacher and student support staff",
+     "items": [
+      {
+       "name": "Kulcsár Anikó",
+       "role": "Leisure activities organiser",
+       "photo": "/media/wp-content/uploads/2020/11/kulcsar_aniko.jpg",
+       "phone": "+36 70 502 1739",
+       "email": "kulcsara@petrik.hu"
+      },
+      {
+       "name": "Sütő Éva",
+       "role": "Librarian",
+       "photo": "/media/wp-content/uploads/2020/09/suto_eva.jpg",
+       "phone": "+36 70 502 1726",
+       "email": "esuto@petrik.hu",
+       "room": "Library opening hours:\nMonday 9:00–16:00 · Tuesday 9:00–14:00\nWednesday 8:30–14:30 · Thursday 9:00–14:00\nFriday 9:00–12:00"
+      },
+      {
+       "name": "Komlós Zoltán",
+       "role": "Caretaker",
+       "phone": "+36 70 502 1808",
+       "email": "gondnok@petrik.hu"
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

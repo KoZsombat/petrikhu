@@ -1,0 +1,118 @@
+[
+ {
+  "label": "Home",
+  "href": "/en"
+ },
+ {
+  "label": "News",
+  "href": "/hirek"
+ },
+ {
+  "label": "About us",
+  "href": "/en/about-us"
+ },
+ {
+  "label": "Education",
+  "children": [
+   {
+    "label": "For 8th graders",
+    "href": "/en/admissions"
+   },
+   {
+    "label": "General education",
+    "href": "/kozoktatas"
+   },
+   {
+    "label": "Vocational training",
+    "href": "/technikusi-kepzesek"
+   },
+   {
+    "label": "Evening classes",
+    "href": "/hirek?kategoria=Esti munkarend"
+   },
+   {
+    "label": "Community service",
+    "href": "/kozossegi-szolgalat"
+   },
+   {
+    "label": "Summer internships",
+    "href": "/nyari-gyakorlatok"
+   }
+  ]
+ },
+ {
+  "label": "Exams",
+  "children": [
+   {
+    "label": "School-leaving exam",
+    "href": "/erettsegi-vizsga"
+   },
+   {
+    "label": "Sectoral basic exam",
+    "href": "/hirek?kategoria=Ágazati alapvizsga"
+   },
+   {
+    "label": "Additional qualification",
+    "href": "/hirek?kategoria=Mellék-szakképesítés"
+   },
+   {
+    "label": "Vocational exam",
+    "href": "/szakmai-vizsga"
+   },
+   {
+    "label": "LanguageCert exam",
+    "href": "/languagecert-vizsgak"
+   }
+  ]
+ },
+ {
+  "label": "Other",
+  "children": [
+   {
+    "label": "Job offers",
+    "href": "/allas"
+   },
+   {
+    "label": "Meals",
+    "href": "/ebed"
+   },
+   {
+    "label": "School health service",
+    "href": "/egeszsegugy"
+   },
+   {
+    "label": "In memoriam",
+    "href": "/in-memoriam"
+   },
+   {
+    "label": "Dormitory",
+    "href": "/kollegiumi-lehetosegek"
+   },
+   {
+    "label": "Eco-school",
+    "href": "/orokos-okoiskola"
+   },
+   {
+    "label": "Projects",
+    "href": "/projekt"
+   },
+   {
+    "label": "Competition results",
+    "href": "/hirek?kategoria=Versenyeredmény"
+   }
+  ]
+ },
+ {
+  "label": "Contact",
+  "children": [
+   {
+    "label": "Contact details",
+    "href": "/en/contact"
+   },
+   {
+    "label": "Teaching staff",
+    "href": "/tanari-kar"
+   }
+  ]
+ }
+]

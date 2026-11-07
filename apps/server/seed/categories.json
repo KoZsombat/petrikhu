@@ -1,0 +1,132 @@
+[
+ {
+  "id": "egyeb",
+  "name": "Egyéb kategória",
+  "parentId": null
+ },
+ {
+  "id": "allasajanlatok",
+  "name": "Állásajánlatok",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "dijak-es-elismeresek",
+  "name": "Díjak és elismerések",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "in-memoriam",
+  "name": "In Memoriam",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "iskolai-egeszsegugy",
+  "name": "Iskolai-egészségügy",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "orokos-okoiskola",
+  "name": "Örökös ökoiskola",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "projekt",
+  "name": "Projekt",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "erasmus",
+  "name": "Erasmus+",
+  "parentId": "projekt"
+ },
+ {
+  "id": "etwinning",
+  "name": "eTwinning",
+  "parentId": "projekt"
+ },
+ {
+  "id": "versenyeredmeny",
+  "name": "Versenyeredmény",
+  "parentId": "egyeb"
+ },
+ {
+  "id": "english",
+  "name": "English",
+  "parentId": null
+ },
+ {
+  "id": "etkezesek",
+  "name": "Étkezések",
+  "parentId": null
+ },
+ {
+  "id": "hirek",
+  "name": "Hírek",
+  "parentId": null
+ },
+ {
+  "id": "kiemelt-hirek",
+  "name": "Kiemelt hírek",
+  "parentId": "hirek"
+ },
+ {
+  "id": "oktatas",
+  "name": "Oktatás",
+  "parentId": null
+ },
+ {
+  "id": "esti-munkarend",
+  "name": "Esti munkarend",
+  "parentId": "oktatas"
+ },
+ {
+  "id": "nappali-kepzes",
+  "name": "Nappali képzés",
+  "parentId": "oktatas"
+ },
+ {
+  "id": "kozoktatas",
+  "name": "Közoktatás",
+  "parentId": "nappali-kepzes"
+ },
+ {
+  "id": "szakkepzes",
+  "name": "Szakképzés",
+  "parentId": "nappali-kepzes"
+ },
+ {
+  "id": "nyari-gyakorlat",
+  "name": "Nyári gyakorlat",
+  "parentId": "oktatas"
+ },
+ {
+  "id": "nyolcadikosoknak",
+  "name": "Nyolcadikosoknak",
+  "parentId": "oktatas"
+ },
+ {
+  "id": "vizsga",
+  "name": "Vizsga",
+  "parentId": null
+ },
+ {
+  "id": "agazati-alapvizsga",
+  "name": "Ágazati alapvizsga",
+  "parentId": "vizsga"
+ },
+ {
+  "id": "erettsegi",
+  "name": "Érettségi",
+  "parentId": "vizsga"
+ },
+ {
+  "id": "mellek-szakkepesites",
+  "name": "Mellék-szakképesítés",
+  "parentId": "vizsga"
+ },
+ {
+  "id": "szakmai-vizsga",
+  "name": "Szakmai vizsga",
+  "parentId": "vizsga"
+ }
+]
