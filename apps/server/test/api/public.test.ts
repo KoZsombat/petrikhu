@@ -60,6 +60,7 @@ test('pages: published only, with the other language as alternate; the site has 
   expect(hu.body.menu[0]).toEqual({ label: 'Kezdőlap', href: '/' })
   expect((await s.client().get('/api/public/site/en')).body.menu[0]).toEqual({ label: 'Home', href: '/en' })
   expect(hu.body.library.categories.length).toBeGreaterThan(3)
+  expect(hu.body.translations).toContainEqual({ hu: 'bemutatkozas', en: 'about-us' })
 })
 
 test('resolve: old /<slug> news URLs point to /hirek/<slug>; pages win', async () => {

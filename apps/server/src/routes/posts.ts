@@ -4,7 +4,7 @@
  * draft with `reviewNote`, which disappears when it is resubmitted.
  */
 import { Hono } from 'hono'
-import { and, asc, desc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { can } from '@petrik/shared/roles'
 import { postSaveBody, reviewDecisionBody } from '@petrik/shared/schemas'
@@ -75,7 +75,7 @@ posts.get('/dashboard', async (c) => {
     select(db, inArray(documents.status, ['published', 'scheduled']), [desc(documents.updatedAt)], 10),
     select(db, eq(documents.status, 'trash'), [desc(documents.updatedAt)], 30),
     db.select({ rejected: countSql }).from(documents).where(and(isPost, eq(documents.status, 'draft'), isNotNull(documents.reviewNote))),
-    db.select({ today: countSql }).from(documents).where(and(isPost, eq(documents.status, 'published'), sql`${documents.publishedAt} >= ${startOfDay}`)),
+    db.select({ today: countSql }).from(documents).where(and(isPost, eq(documents.status, 'published'), gte(documents.publishedAt, startOfDay))),
   ])
   return c.json({
     view: 'reviewer',

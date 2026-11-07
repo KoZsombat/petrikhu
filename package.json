@@ -9,13 +9,13 @@
     "build": "turbo run build",
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
-    "test": "bun --cwd apps/server test",
+    "test": "bun run --cwd apps/server test",
     "e2e": "playwright test",
-    "db:migrate": "bun --cwd apps/server run db:migrate",
-    "db:generate": "bun --cwd apps/server run db:generate",
-    "db:seed": "bun --cwd apps/server run db:seed",
-    "migrate:legacy": "bun --cwd apps/server run migrate:legacy",
-    "media:import": "bun --cwd apps/server run media:import"
+    "db:migrate": "bun run --cwd apps/server db:migrate",
+    "db:generate": "bun run --cwd apps/server db:generate",
+    "db:seed": "bun run --cwd apps/server db:seed",
+    "migrate:legacy": "bun run --cwd apps/server migrate:legacy",
+    "media:import": "bun run --cwd apps/server media:import"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

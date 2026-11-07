@@ -187,3 +187,17 @@ test('lists: published posts newest first, 30 per page, searchable case- and acc
   const byText = await admin.get(`/api/posts?status=published&q=${encodeURIComponent('szövege')}`)
   expect(byText.body.total).toBeGreaterThan(30)
 })
+
+test('dashboards: the reviewer sees the queue, counts and today\'s publications; the author only their own posts', async () => {
+  const id = await submitted('Dashboard hír')
+  const reviewerView = await reviewer.get('/api/posts/dashboard')
+  expect(reviewerView.status).toBe(200)
+  expect(reviewerView.body.view).toBe('reviewer')
+  expect(reviewerView.body.queue.map((p: { id: string }) => p.id)).toContain(id)
+  await reviewer.post(`/api/posts/${id}/decision`, { decision: 'approve' })
+  const after = await reviewer.get('/api/posts/dashboard')
+  expect(after.body.publishedToday).toBeGreaterThan(0)
+  const authorView = await author.get('/api/posts/dashboard')
+  expect(authorView.body.view).toBe('author')
+  expect(authorView.body.posts.every((p: { authorId: string }) => p.authorId === authorView.body.posts[0].authorId)).toBe(true)
+})

@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "@petrik/shared/theme.css";
+@source "../../../packages/shared/src";
+
+body { background: var(--color-petrikbg); color: var(--color-petrikink); }
+
+/* The TipTap editing area: the same reading typography as the public site, roughly. */
+.tiptap { min-height: 18rem; outline: none; font-size: 16px; line-height: 1.7; }
+.tiptap > * + * { margin-top: 0.75em; }
+.tiptap h1, .tiptap h2, .tiptap h3, .tiptap h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.25; }
+.tiptap h2 { font-size: 1.6rem; } .tiptap h3 { font-size: 1.3rem; } .tiptap h4 { font-size: 1.1rem; }
+.tiptap ul { list-style: disc; padding-left: 1.5em; } .tiptap ol { list-style: decimal; padding-left: 1.5em; }
+.tiptap li > p { margin: 0; }
+.tiptap a { color: var(--color-petrikaccentdark); text-decoration: underline; }
+.tiptap blockquote { border-left: 4px solid var(--color-petrikaccent); padding-left: 1em; font-style: italic; }
+.tiptap img { max-width: 100%; height: auto; border-radius: 0.375rem; }
+.tiptap img.ProseMirror-selectednode { outline: 3px solid var(--color-petrikaccent); }
+.tiptap table { width: 100%; border-collapse: collapse; }
+.tiptap td, .tiptap th { border: 1px solid var(--color-petrikline); padding: 0.3em 0.6em; vertical-align: top; }
+.tiptap th { background: var(--color-petriktint); }
+.tiptap .selectedCell { background: rgba(133, 193, 182, 0.25); }
+.tiptap hr { border-color: var(--color-petrikline); }
+.tiptap-gallery { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.5rem; background: var(--color-petriktint); border-radius: 0.5rem; }
+.tiptap-gallery img { height: 5rem; width: auto; }
+.tiptap-embed { padding: 0.75rem; background: var(--color-petriktint); border-radius: 0.5rem; font-family: var(--font-mono); font-size: 13px; }
+.tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--color-petrikfaint); float: left; height: 0; pointer-events: none; }

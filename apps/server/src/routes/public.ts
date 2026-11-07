@@ -4,6 +4,8 @@
  */
 import { Hono } from 'hono'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
+import type { Db } from '../db/client.ts'
 import { localeSchema } from '@petrik/shared/schemas'
 import type { Library, Menu, PublicSite } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
@@ -20,12 +22,22 @@ routes.use(async (c, next) => {
 
 const published = and(eq(documents.status, 'published'))
 
+async function translationPairs(db: Db): Promise<{ hu: string; en: string }[]> {
+  const hu = alias(documents, 'hu')
+  return db
+    .select({ hu: hu.slug, en: documents.slug })
+    .from(documents)
+    .innerJoin(hu, eq(hu.id, documents.translationOf))
+    .where(and(eq(documents.type, 'page'), eq(documents.locale, 'en'), eq(documents.status, 'published'), eq(hu.status, 'published')))
+}
+
 routes.get('/site/:locale', async (c) => {
   const locale = localeSchema.safeParse(c.req.param('locale'))
   if (!locale.success) return c.json({ error: 'not_found' }, 404)
   const body: PublicSite = {
     menu: (await getSetting<Menu>(c.var.db, `menu.${locale.data}`)) ?? (await defaultMenu(locale.data)),
     library: (await getSetting<Library>(c.var.db, 'library')) ?? (await defaultLibrary()),
+    translations: await translationPairs(c.var.db),
   }
   return c.json(body)
 })
