@@ -1,0 +1,70 @@
+{
+  "site": {
+    "name": "Petrik Lajos Két Tanítási Nyelvű Technikum",
+    "description": "Vegyipari Környezetvédelmi és Informatikai Technikum a város szívében.",
+    "logoAlt": "Petrik Logo"
+  },
+  "nav": {
+    "home": "Kezdőlap", "news": "Hírek", "about": "Bemutatkozás", "education": "Oktatás", "eighthGraders": "Nyolcadikosoknak",
+    "publicEducation": "Közoktatás", "vocational": "Szakképzés", "evening": "Esti munkarend", "communityService": "Közösségi szolgálat",
+    "summerInternships": "Nyári gyakorlatok", "exams": "Vizsga", "maturaExam": "Érettségi", "sectoralExam": "Ágazati alapvizsga",
+    "additionalQualification": "Mellék-szakképesítés", "vocationalExam": "Szakmai vizsga", "languageCert": "LanguageCert vizsga",
+    "other": "Egyéb", "jobs": "Állásajánlatok", "meals": "Étkezés", "health": "Iskola-egészségügy", "inMemoriam": "In memoriam",
+    "dormitory": "Kollégiumi lehetőségek", "ecoSchool": "Örökös Ökoiskola", "projects": "Projektek", "competitions": "Versenyeredmény",
+    "contact": "Kapcsolat", "contactDetails": "Elérhetőség", "staff": "Tanári kar",
+    "substitutions": "Helyettesítés", "calendar": "Eseménynaptár", "timetable": "Órarend", "documents": "Dokumentumtár",
+    "privacy": "Adatvédelem", "kreta": "Kréta", "mail": "Levelezés", "privacyNotice": "Adatkezelési tájékoztató",
+    "openMenu": "Menü megnyitása", "closeMenu": "Menü bezárása", "languageHu": "Magyar", "languageEn": "English"
+  },
+  "footer": {
+    "schoolLine1": "Budapesti Műszaki SZC Petrik Lajos",
+    "schoolLine2": "Két Tanítási Nyelvű Technikum",
+    "omId": "OM azonosító: 203 058",
+    "techCode": "Technikai kód: 520413",
+    "address": "1146 Budapest, Thököly út 48–54.",
+    "email": "info@petrik.hu",
+    "copyright": "© 2026 Budapesti Műszaki SZC Petrik Lajos Két Tanítási Nyelvű Technikum · Minden jog fenntartva."
+  },
+  "home": {
+    "eyebrow": "Budapesti Műszaki SZC · OM 203 058 · Budapest, VI. kerület",
+    "headline": "Több mint 140 éve az érték a mérték.",
+    "lead": "Vegyipari, környezetvédelmi és informatikai képzés a főváros szívében – két tanítási nyelven, ipari partnerekkel és gyakorlatközeli projektekkel, nyolcadikosoktól a felnőttoktatásig.",
+    "explore": "Képzéseink megismerése",
+    "statYears": "Év szakmai hagyomány", "statStudents": "Diák a Petriken", "statBilingual": "Kéttannyelvű képzésben",
+    "latestNews": "Aktuális hírek", "details": "Részletek →", "allNews": "Összes hír megtekintése →",
+    "programmes": "Képzési kínálatunk",
+    "programmesLead": "Vegyipar – a jövő a te kezedben. Környezetvédelem és vízügy – a jövőről te gondoskodsz. Informatika és távközlés – a jövő egy kattintásra tőled.",
+    "chemistry": "Vegyipar",
+    "chemistryText": "A jövő gyógyszeripari vagy vegyipari szakembereként szeretnél hozzájárulni ahhoz, hogy az emberiség leküzdhesse az őt sújtó betegségeket, járványokat vagy egyre környezetbarátabb technológiákkal tegye kényelmesebbé a mindennapi életet? Több mint 140 éves hagyományokra visszatekintő vegyészeti képzésünk, amelynek része a két tanítási nyelvű képzés is, csak rád vár!",
+    "environment": "Környezetvédelem és vízügy",
+    "environmentText": "Ha törődsz a környezeteddel, de szeretnél többet tenni a megóvásáért, akkor a környezetvédelmi szakirány az, ami neked való. A környezetvédelem hivatás és tudomány is egyben. Gyakorlati tudásalapú képzésünk garancia arra, hogy a jövő környezetvédelmi szakemberévé válhass.",
+    "it": "Informatika és távközlés",
+    "itText": "Informatikai szakirányunk képzései a jövő munkaerő-piacára készítik fel a tanulóinkat: gyakorlatorientált környezetben az elméleti, gyakorlati tantárgyakat az idegen nyelv tanulásával ötvözve olyan projektalapú oktatásban részesülhetsz, mely hidat képez a munka világa és az iskola között.",
+    "learnMore": "Tudj meg róla többet →",
+    "whyUs": "Miért jelentkezz hozzánk?",
+    "reason1Title": "Több mint 140 éves iskola", "reason1Text": "Hagyományaink nagy múltra tekintenek vissza.",
+    "reason2Title": "Izgalmas projektek és programok a 21. századi készségek fejlesztéséért", "reason2Text": "Híd az iskola és a munka világa között.",
+    "reason3Title": "A szakképzést nemzetközi szintre emeljük", "reason3Text": "Erasmus és eTwinning projektek részese lehetsz.",
+    "reason4Title": "Dinamikus együttműködés a pedagógusok és a tanulók között", "reason4Text": "Itt számít, mit gondolsz!",
+    "reason5Title": "Pezsdítő sportélet", "reason5Text": "Sokféle sportprogramon vagy szakkörön kamatoztathatod az eddig elsajátított tudásod, vagy léphetsz a következő szintre.",
+    "reason6Title": "Hogy egy igazi közösség tagjává válhass", "reason6Text": "Programok és hagyományok, amelyek közösséggé kovácsolják az iskolát.",
+    "projectsTitle": "Partnerek, Projektek, Szakmai programok",
+    "projectsLead": "Diákjaink nemzetközi cserekapcsolatokban, digitális projektekben és versenyeken vesznek részt – az iskola Örökös Ökoiskola címet visel.",
+    "logoMupa": "MÜPA Partneriskola", "logoLanguageCert": "LanguageCert Partnerintézmény", "logoTempus": "Tempus Közalapítvány",
+    "logoErasmus": "Erasmus+", "logoPenz7": "Pénz7 Iskola", "logoEtwinning": "eTwinning School", "logoDigitalis": "Digitális Témahét 2023",
+    "logoCodeweek": "CodeWeek", "logoOtpFay": "OTP Fáy Alapítvány Partneriskola", "logoProsuli": "ProSuli",
+    "partnersTitle": "Szakmai partnerek",
+    "aboutTitle": "Rólunk – Aki Petrikes lesz…",
+    "videoTitle": "Válaszd a Petriket!",
+    "aboutText": "… részévé válik egy több mint 140 éve létező hagyománynak, amit a Petrik neve fémjelez. Aki Petrikes lesz, egy elfogadó, egymást támogató iskolai közösség tagja lesz. Aki Petrikes lesz, olyan szaktudást kap, amellyel könnyedén elhelyezkedhet a munka világában, hiszen a Petrik neve garancia a kiemelkedő szaktudásra. Ha Petrikes leszel, olyan életre szóló élményekkel fogsz gazdagodni, amelyekre mindig vidáman és szeretettel gondolsz majd vissza. Mire vársz még?",
+    "counterStudents": "Diák", "counterTeachers": "Oktató", "counterClassrooms": "Tanterem", "counterLabs": "Labor", "counterGoal": "Cél"
+  },
+  "common": {
+    "notFound": "Az oldal nem található", "backHome": "Vissza a kezdőlapra", "search": "Keresés", "searchNews": "Keresés a hírek között…",
+    "results": "találat", "noResults": "Nincs találat.", "searchDocuments": "Keresés a dokumentumok között…",
+    "previous": "Előző", "next": "Következő", "page": "{n}. oldal", "noContent": "Még nincs tartalom.", "details": "RÉSZLETEK →",
+    "photoOf": "{name} fényképe", "video": "Videó", "breadcrumb": "Morzsamenü", "filters": "Szűrők", "pagination": "Lapozó",
+    "categories": "Kategóriák", "download": "Letöltés", "protected": "Védett", "documents": "dokumentum", "embedded": "Beágyazott tartalom",
+    "news": "Hírek", "documentLibrary": "Dokumentumtár", "preview": "Előnézet – ez az oldal nem publikus."
+  }
+}
