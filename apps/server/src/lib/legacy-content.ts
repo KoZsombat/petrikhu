@@ -210,7 +210,7 @@ export type ConvertIssue = { index: number; component: string; message: string }
  * Converts and validates an old page. Blocks that cannot be converted are reported (and left out) rather than
  * failing the whole page.
  */
-export function convertPageBlocks(old: unknown): { blocks: Block[]; issues: ConvertIssue[] } {
+export function convertPageBlocks(old: unknown, makeId: (index: number) => string = () => blockId()): { blocks: Block[]; issues: ConvertIssue[] } {
   const blocks: Block[] = []
   const issues: ConvertIssue[] = []
   ;(Array.isArray(old) ? (old as OldBlock[]) : []).forEach((item, index) => {
@@ -225,7 +225,7 @@ export function convertPageBlocks(old: unknown): { blocks: Block[]; issues: Conv
       issues.push({ index, component: String(item.component), message: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') })
       return
     }
-    blocks.push({ id: blockId(), type: converted.type, props: parsed.data } as Block)
+    blocks.push({ id: makeId(index), type: converted.type, props: parsed.data } as Block)
   })
   return { blocks, issues }
 }
