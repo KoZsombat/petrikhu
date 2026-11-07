@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { PageRenderer } from '@/components/blocks/PageRenderer'
-import { getPage } from '@/lib/api'
+import { getPage, resolveRedirect } from '@/lib/api'
 import { pageHref, t } from '@/lib/i18n'
 import type { Locale } from '@/lib/i18n'
 import { pageMetadata } from '@/lib/meta'
@@ -13,10 +13,17 @@ export type PageProps = { params: Promise<{ slug: string }>; searchParams: Promi
 const flat = (params: Record<string, string | string[] | undefined>) =>
   Object.fromEntries(Object.entries(params).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]))
 
+/** No such page or post: a permanent redirect if the address moved (renamed, or an old news URL), else 404. */
+export async function notFoundOrRedirect(path: string): Promise<never> {
+  const to = await resolveRedirect(path)
+  if (to && to !== path) permanentRedirect(to)
+  notFound()
+}
+
 /** A page document of the given locale, rendered on the server. */
 export async function renderPage(locale: Locale, slug: string, searchParams: Record<string, string | string[] | undefined>) {
   const page = await getPage(locale, slug)
-  if (!page) notFound()
+  if (!page) return notFoundOrRedirect(pageHref(locale, slug))
   const breadcrumb = breadcrumbData(page.blocks, pageHref(locale, slug))
   return (
     <>

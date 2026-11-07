@@ -64,9 +64,10 @@ test('pages: published only, with the other language as alternate; the site has 
 })
 
 test('resolve: old /<slug> news URLs point to /hirek/<slug>; pages win', async () => {
-  expect((await s.client().get('/api/public/resolve/esti-hir')).body).toEqual({ kind: 'post', redirect: '/hirek/esti-hir' })
-  expect((await s.client().get('/api/public/resolve/elerhetoseg')).body).toEqual({ kind: 'page' })
-  expect((await s.client().get('/api/public/resolve/titkos-piszkozat')).status).toBe(404)
+  expect((await s.client().get('/api/public/resolve?path=/esti-hir')).body).toEqual({ redirect: '/hirek/esti-hir' })
+  expect((await s.client().get('/api/public/resolve?path=/elerhetoseg')).body).toEqual({ redirect: null, live: true })
+  expect((await s.client().get('/api/public/resolve?path=/titkos-piszkozat')).status).toBe(404)
+  expect((await s.client().get('/api/public/resolve?path=nincs-perjel')).status).toBe(400)
 })
 
 test('preview: only the user who made it can open it', async () => {

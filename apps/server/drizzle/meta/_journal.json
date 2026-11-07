@@ -43,6 +43,13 @@
       "when": 1794064843282,
       "tag": "0005_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794065207825,
+      "tag": "0006_redirects",
+      "breakpoints": true
     }
   ]
 }

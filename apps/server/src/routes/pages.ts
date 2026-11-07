@@ -10,6 +10,7 @@ import { requireCap, userOf } from '../context.ts'
 import type { Db } from '../db/client.ts'
 import { documents } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
+import { addRedirect, dropRedirectFrom, pagePath } from '../lib/redirects.ts'
 import { findDocument, searchTextOf, toPage, toPageSummary } from '../lib/documents.ts'
 import { defaultMenu, getVersionedSetting, putSetting, putSettingIfVersion } from '../lib/seed.ts'
 import { conflictBody } from '../lib/conflict.ts'
@@ -68,6 +69,17 @@ pages.get('/:id', async (c) => {
   return row ? c.json({ page: toPage(row) }) : c.json({ error: 'not_found' }, 404)
 })
 
+/**
+ * translationOf must name an existing page in the other locale (not this page, not a post): otherwise 422
+ * invalid_translation instead of a foreign-key error.
+ */
+async function checkTranslation(db: Db, translationOf: string | null | undefined, locale: Locale, selfId?: string) {
+  if (!translationOf) return true
+  if (translationOf === selfId) return false
+  const target = await findDocument(db, translationOf)
+  return !!target && target.type === 'page' && target.locale !== locale && target.status !== 'trash'
+}
+
 /** A slug from the given value or the title; reserved, digits-only or taken ones are refused. */
 async function checkSlug(db: Db, raw: string | undefined, title: string, locale: Locale, exceptId?: string) {
   const slug = slugify(raw || title, '')
@@ -82,6 +94,7 @@ pages.post('/', validate('json', pageSaveBody), async (c) => {
   const body = c.req.valid('json')
   const checked = await checkSlug(c.var.db, body.slug || undefined, body.title, body.locale)
   if ('error' in checked) return c.json({ error: checked.error }, checked.status)
+  if (!(await checkTranslation(c.var.db, body.translationOf, body.locale))) return c.json({ error: 'invalid_translation' }, 422)
   const now = new Date()
   const [row] = await c.var.db
     .insert(documents)
@@ -100,6 +113,7 @@ pages.post('/', validate('json', pageSaveBody), async (c) => {
       searchText: searchTextOf(body.title, body.blocks),
     })
     .returning()
+  if (row.status === 'published') await dropRedirectFrom(c.var.db, pagePath(row.locale, row.slug))
   await logAudit(c.var.db, { entityType: 'page', entityId: row.id, subject: row.title, action: 'page_created', toStatus: row.status, note: `/${row.locale === 'en' ? 'en/' : ''}${row.slug}`, userId: user.id })
   return c.json({ page: toPage(row) }, 201)
 })
@@ -114,6 +128,7 @@ pages.put('/:id', validate('json', pageSaveBody), async (c) => {
   if (body.version !== existing.version) return c.json(await conflictBody(c.var.db, existing), 409)
   const checked = await checkSlug(c.var.db, body.slug || existing.slug, body.title, existing.locale as Locale, existing.id)
   if ('error' in checked) return c.json({ error: checked.error }, checked.status)
+  if (!(await checkTranslation(c.var.db, body.translationOf, existing.locale as Locale, existing.id))) return c.json({ error: 'invalid_translation' }, 422)
   const [row] = await c.var.db
     .update(documents)
     .set({
@@ -134,6 +149,9 @@ pages.put('/:id', validate('json', pageSaveBody), async (c) => {
     const now = await loadPage(c.var.db, existing.id)
     return now ? c.json(await conflictBody(c.var.db, now), 409) : c.json({ error: 'not_found' }, 404)
   }
+  // A published page that moves keeps its old address working (301); the new address is a real page now.
+  if (existing.slug !== row.slug && existing.status === 'published') await addRedirect(c.var.db, pagePath(existing.locale, existing.slug), pagePath(row.locale, row.slug), user.id)
+  if (row.status === 'published') await dropRedirectFrom(c.var.db, pagePath(row.locale, row.slug))
   const note = [existing.status !== row.status ? `${existing.status} → ${row.status}` : '', existing.slug !== row.slug ? `/${existing.slug} → /${row.slug}` : ''].filter(Boolean).join('\n')
   await logAudit(c.var.db, { entityType: 'page', entityId: row.id, subject: row.title, action: 'page_updated', fromStatus: existing.status, toStatus: row.status, note: note || null, userId: user.id })
   return c.json({ page: toPage(row) })

@@ -169,6 +169,21 @@ export const settings = pgTable('settings', {
   updatedById: userRef('updated_by_id'),
 })
 
+/**
+ * Old public paths of pages and posts whose slug changed after they were published (`/old`, `/en/old`,
+ * `/hirek/old`) → the current path. Chains are collapsed, so every row points at a live path (lib/redirects.ts).
+ */
+export const redirects = pgTable(
+  'redirects',
+  {
+    fromPath: text('from_path').primaryKey(),
+    toPath: text('to_path').notNull(),
+    createdAt: created(),
+    createdById: userRef('created_by_id'),
+  },
+  (t) => [index('redirects_to_idx').on(t.toPath)],
+)
+
 /* --- media --------------------------------------------------------------------------- */
 
 /**

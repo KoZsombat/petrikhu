@@ -155,7 +155,7 @@ test('the new app works on the migrated data: old passwords log in, public pages
     expect((await client.get('/api/pages?locale=hu')).status).toBe(200)
     expect((await client.get('/api/public/posts/publikalt-hir')).status).toBe(200)
     expect((await client.get('/api/public/posts/regi-hir')).body.post.legacy).toBeUndefined()
-    expect((await client.get('/api/public/resolve/regi-hir')).body).toEqual({ kind: 'post', redirect: '/hirek/regi-hir' })
+    expect((await client.get('/api/public/resolve?path=/regi-hir')).body).toEqual({ redirect: '/hirek/regi-hir' })
     expect((await client.get('/api/public/pages/hu/teszt-oldal')).status).toBe(200)
     expect((await client.get('/media/wp-content/uploads/2019/05/kep.jpg')).status).toBe(200)
   } finally {

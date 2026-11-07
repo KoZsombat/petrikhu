@@ -64,6 +64,8 @@ export function PostEditor() {
   const [publishAt, setPublishAt] = useState('')
   // A scheduled post's time, editable by a reviewer (follows the loaded post).
   const [scheduleAt, setScheduleAt] = useState('')
+  // The address (reviewers may change it; a published post's old address keeps working).
+  const [slug, setSlug] = useState('')
   const [newTerm, setNewTerm] = useState('')
   const action = useAction()
   const dialog = useDialog()
@@ -78,6 +80,7 @@ export function PostEditor() {
     setFormFor(key)
     setForm(current ? fromPost(current) : blank())
     setScheduleAt(toLocalInput(current?.scheduledFor ?? null))
+    setSlug(current?.slug ?? '')
   }
 
   if (!isNew && !current) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
@@ -89,7 +92,7 @@ export function PostEditor() {
   /** Saves the form (PUT with the loaded version); a conflict asks whether to reload or overwrite. */
   async function saveExisting(command: 'draft' | 'submit') {
     const moved = current?.status === 'scheduled' && scheduleAt && scheduleAt !== toLocalInput(current.scheduledFor)
-    const body = { ...form, command, ...(moved ? { publishAt: new Date(scheduleAt).toISOString() } : {}) }
+    const body = { ...form, command, ...(moved ? { publishAt: new Date(scheduleAt).toISOString() } : {}), ...(slug && slug !== current?.slug ? { slug } : {}) }
     return saveVersioned(dialog, current!.version, (version) => put<{ post: Post; notice: string }>(`/posts/${id}`, { ...body, version }), () => {
       setFormFor(null)
       loaded.reload()
@@ -178,6 +181,11 @@ export function PostEditor() {
           <Label label="Cím">
             <Input value={form.title} onChange={(e) => set('title', e.target.value)} disabled={!editable} maxLength={300} />
           </Label>
+          {current && reviewer && editable && (
+            <Label label="Webcím" hint={`A hír címe: /hirek/${slug || current.slug}${current.status === 'published' ? ' – a régi cím átirányít az újra.' : ''}`}>
+              <Input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} maxLength={120} />
+            </Label>
+          )}
           <Label label="Kivonat" hint="Rövid összefoglaló a listákhoz. Üresen hagyva a szöveg eleje jelenik meg.">
             <Textarea value={form.excerpt} onChange={(e) => set('excerpt', e.target.value)} disabled={!editable} maxLength={1000} />
           </Label>

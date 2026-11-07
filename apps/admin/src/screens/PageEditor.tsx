@@ -114,7 +114,7 @@ export function PageEditor() {
           <Label label="Cím (böngészőfül, keresők)">
             <Input value={draft.title} onChange={(e) => set({ title: e.target.value, ...(!slugTouched && isNew ? { slug: '' } : {}) })} />
           </Label>
-          <Label label="Webcím" hint={`A lap címe: ${url}`}>
+          <Label label="Webcím" hint={`A lap címe: ${url}${!isNew && loaded.data?.status === 'published' && loaded.data.slug !== draft.slug && draft.slug ? ` – a régi cím (/${loaded.data.locale === 'en' ? 'en/' : ''}${loaded.data.slug}) átirányít ide.` : ''}`}>
             <Input
               value={draft.slug}
               placeholder={slugify(draft.title, '')}

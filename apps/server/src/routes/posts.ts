@@ -18,6 +18,7 @@ import type { Db } from '../db/client.ts'
 import { documents } from '../db/schema.ts'
 import { listAudit, logAudit } from '../lib/audit.ts'
 import { conflictBody } from '../lib/conflict.ts'
+import { addRedirect, postPath } from '../lib/redirects.ts'
 import type { DocumentRow } from '../lib/documents.ts'
 import { countSql, existingTermIds, findDocument, likePattern, postBlocks, searchTextOf, setTerms, slugsOf, termIdsOf, toPost, toPostSummary } from '../lib/documents.ts'
 import { validate } from '../lib/validate.ts'
@@ -198,6 +199,12 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
 
   const submit = existing.status === 'draft' && body.command === 'submit'
   const status = submit ? 'in_review' : existing.status
+  // A new address: reviewers only, unique among posts.
+  let slug = existing.slug
+  if (body.slug && body.slug !== existing.slug && can(user, 'news.review')) {
+    if ((await slugsOf(c.var.db, 'post', 'hu')).has(body.slug)) return c.json({ error: 'slug_taken' }, 409)
+    slug = body.slug
+  }
   // A scheduled post keeps its schedule; a reviewer may move it (at least a minute ahead).
   let schedule: { scheduledFor: Date; publishedAt: Date; scheduledById: string } | undefined
   if (existing.status === 'scheduled' && body.publishAt) {
@@ -207,7 +214,7 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
   }
   const [row] = await c.var.db
     .update(documents)
-    .set({ ...contentColumns(body), status, updatedById: user.id, ...(submit ? { submittedAt: new Date(), reviewNote: null } : {}), ...schedule })
+    .set({ ...contentColumns(body), slug, status, updatedById: user.id, ...(submit ? { submittedAt: new Date(), reviewNote: null } : {}), ...schedule })
     .where(and(eq(documents.id, existing.id), eq(documents.status, existing.status), eq(documents.version, body.version)))
     .returning()
   if (!row) {
@@ -216,6 +223,10 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
     return now && now.status === existing.status ? c.json(await conflictBody(c.var.db, now), 409) : c.json({ error: 'status_changed' }, 409)
   }
   await setTerms(c.var.db, row.id, [...checked.categoryIds, ...checked.tagIds])
+  if (slug !== existing.slug) {
+    if (existing.status === 'published') await addRedirect(c.var.db, postPath(existing.slug), postPath(slug), user.id)
+    await logAudit(c.var.db, { entityType: 'post', entityId: row.id, subject: row.title, action: 'slug_changed', note: `${postPath(existing.slug)} → ${postPath(slug)}`, userId: user.id })
+  }
 
   const action = submit
     ? 'submitted'

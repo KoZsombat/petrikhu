@@ -1,10 +1,10 @@
-import { notFound } from 'next/navigation'
 import { PostArticle } from '@/components/PostArticle'
 import { getPost } from '@/lib/api'
 import { t } from '@/lib/i18n'
 import { postMetadata } from '@/lib/meta'
 import { JsonLd } from '@/components/JsonLd'
 import { articleData } from '@/lib/structured'
+import { notFoundOrRedirect } from '@/lib/page'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -15,8 +15,9 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function Page({ params }: Props) {
-  const post = await getPost(decodeURIComponent((await params).slug))
-  if (!post) notFound()
+  const slug = decodeURIComponent((await params).slug)
+  const post = await getPost(slug)
+  if (!post) return notFoundOrRedirect(`/hirek/${slug}`)
   return (
     <>
       <JsonLd data={articleData(post, `/hirek/${post.slug}`)} />

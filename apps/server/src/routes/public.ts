@@ -6,12 +6,13 @@ import { Hono } from 'hono'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client.ts'
-import { localeSchema, publicPostsQuery } from '@petrik/shared/schemas'
+import { localeSchema, publicPostsQuery, resolveQuery } from '@petrik/shared/schemas'
 import type { Library, Menu, PublicSitemap, PublicSite } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
 import { documents, documentTerms } from '../db/schema.ts'
 import { categoryNamesOf, categoryWithChildren, countSql, findBySlug, likePattern, publicListColumns, toPublicPage, toPublicPost, toPublicPostSummary } from '../lib/documents.ts'
 import { validate } from '../lib/validate.ts'
+import { postPath, redirectFor } from '../lib/redirects.ts'
 import { defaultLibrary, defaultMenu, getSetting } from '../lib/seed.ts'
 
 const routes = new Hono<AppEnv>()
@@ -109,16 +110,26 @@ routes.get('/sitemap', async (c) => {
 })
 
 /**
- * Old news URLs lived at `/<slug>`. When no published page has that slug but a published post does, the site
- * redirects (301) to `/hirek/<slug>`.
+ * Where an address that has no page or post now lives, for the site's not-found branch (it answers with a
+ * permanent redirect): a renamed page or post (the redirects table), or an old news URL at `/<slug>` whose
+ * published post is at `/hirek/<slug>`. Live content always wins over a stored redirect.
  */
-routes.get('/resolve/:slug', async (c) => {
-  const slug = c.req.param('slug')
-  const page = await findBySlug(c.var.db, 'page', 'hu', slug)
-  if (page?.status === 'published') return c.json({ kind: 'page' })
-  const post = await findBySlug(c.var.db, 'post', 'hu', slug)
-  if (post?.status === 'published') return c.json({ kind: 'post', redirect: `/hirek/${post.slug}` })
-  return c.json({ kind: 'none' }, 404)
+routes.get('/resolve', validate('query', resolveQuery), async (c) => {
+  const { path } = c.req.valid('query')
+  const db = c.var.db
+  const segments = path.split('/').filter(Boolean)
+  const live =
+    (segments.length === 1 && (await findBySlug(db, 'page', 'hu', segments[0]))?.status === 'published') ||
+    (segments.length === 2 && segments[0] === 'en' && (await findBySlug(db, 'page', 'en', segments[1]))?.status === 'published') ||
+    (segments.length === 2 && segments[0] === 'hirek' && (await findBySlug(db, 'post', 'hu', segments[1]))?.status === 'published')
+  if (live) return c.json({ redirect: null, live: true })
+  const stored = await redirectFor(db, path)
+  if (stored) return c.json({ redirect: stored })
+  if (segments.length === 1) {
+    const post = await findBySlug(db, 'post', 'hu', segments[0])
+    if (post?.status === 'published') return c.json({ redirect: postPath(post.slug) })
+  }
+  return c.json({ redirect: null }, 404)
 })
 
 export default routes

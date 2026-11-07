@@ -1,16 +1,11 @@
 /**
- * Runs before every page request:
- * - a fresh nonce and the Content-Security-Policy (Next.js puts the nonce on its own scripts);
- * - old news URLs at /<slug> get a 301 to /hirek/<slug> when no page has that slug (asks the API).
+ * Runs before every page request: a fresh nonce and the Content-Security-Policy (Next.js puts the nonce on its
+ * own scripts). No API call here: old and renamed addresses are resolved only when a page is not found
+ * (lib/page.tsx, app/(hu)/hirek/[slug]).
  * API, media, admin and static files are not matched: the API sets their headers itself.
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-const API = process.env.PNW_API_URL ?? 'http://localhost:4001'
-
-/** Single-segment paths the app itself serves. */
-const OWN = new Set(['', 'hirek', 'kereses', 'en', 'about-us', 'robots.txt', 'favicon.ico', 'favicon-32.png', 'icon-192.png', 'apple-touch-icon.png'])
 
 function csp(nonce: string): string {
   const dev = process.env.NODE_ENV === 'development'
@@ -31,24 +26,7 @@ function csp(nonce: string): string {
   ].join('; ')
 }
 
-async function legacyRedirect(request: NextRequest): Promise<NextResponse | null> {
-  const match = /^\/([^/]+)\/?$/.exec(request.nextUrl.pathname)
-  if (!match || OWN.has(match[1]) || match[1].includes('.')) return null
-  try {
-    const res = await fetch(`${API}/api/public/resolve/${encodeURIComponent(decodeURIComponent(match[1]))}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const body = (await res.json()) as { kind: string; redirect?: string }
-    if (body.kind === 'post' && body.redirect) return NextResponse.redirect(new URL(body.redirect, request.url), 301)
-  } catch {
-    // API unreachable: the page itself shows its error
-  }
-  return null
-}
-
-export async function proxy(request: NextRequest) {
-  const redirect = await legacyRedirect(request)
-  if (redirect) return redirect
-
+export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const policy = csp(nonce)
   const headers = new Headers(request.headers)

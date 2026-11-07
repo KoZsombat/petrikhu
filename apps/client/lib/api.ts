@@ -69,3 +69,12 @@ export async function getPreview(id: string): Promise<{ kind: 'page'; page: Publ
 export async function getSitemap(): Promise<PublicSitemap> {
   return (await get<PublicSitemap>('/api/public/sitemap')) ?? { pages: [], posts: [], translations: [] }
 }
+
+/**
+ * Where a path that has no page or post now lives (a renamed page or post, or an old /<slug> news URL), or null.
+ * Only called when a page is not found.
+ */
+export async function resolveRedirect(path: string): Promise<string | null> {
+  const body = await get<{ redirect: string | null }>(`/api/public/resolve?path=${encodeURIComponent(path)}`)
+  return body?.redirect ?? null
+}

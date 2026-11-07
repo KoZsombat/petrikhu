@@ -221,7 +221,10 @@ at once one gets 409 `status_changed` and only one audit entry is written.
 
 Pages are rendered on the server with their title, description, canonical URL, Open Graph / Twitter data and, for
 translated pages, hreflang links. `/sitemap.xml` and `/robots.txt` are generated per request (`apps/client/app`);
-every published page and post is in the sitemap automatically. Structured data (schema.org): the school on the
+every published page and post is in the sitemap automatically. When the slug of a published page or post changes,
+its old address (`/<old>`, `/en/<old>`, `/hirek/<old>`) is stored in `redirects` and answers with a permanent
+redirect (308, Next.js's `permanentRedirect`) to the new one; chains are collapsed and loops never stored. Old news
+URLs at `/<slug>` redirect to `/hirek/<slug>`. Both are looked up only when no page exists at the address. Structured data (schema.org): the school on the
 home pages, `NewsArticle` on news posts, `BreadcrumbList` on pages. Absolute URLs use `PNW_PUBLIC_URL`.
 
 ## Roles

@@ -93,6 +93,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   scheduled_published: 'Időzített hír automatikusan megjelent',
   scheduled_edited: 'Időzített hír módosítva',
   rescheduled: 'Időzítés módosítva',
+  slug_changed: 'Webcím módosítva',
   unscheduled: 'Időzítés visszavonva (újra jóváhagyásra vár)',
   trashed: 'Lomtárba helyezve',
   published_updated: 'Publikált hír módosítva',

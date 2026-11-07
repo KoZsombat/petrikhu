@@ -77,6 +77,8 @@ export const postSaveBody = z.object({
   imagePosition: z.enum(['top', 'bottom']).default('top'),
   /** `submit`: save and send for review (authors), otherwise save only. */
   command: z.enum(['draft', 'submit']).default('draft'),
+  /** A new address (news.review only); a published post's old one keeps working (301). Empty: unchanged. */
+  slug: z.string().trim().max(120).regex(SLUG_PATTERN, 'invalid_slug').optional().or(z.literal('')),
   /** Only for a scheduled post (news.review): its new publication time. */
   publishAt: z.iso.datetime({ offset: true }).optional(),
   /** Saving an existing post: the version it was loaded at (optimistic concurrency). Required by PUT. */
@@ -312,3 +314,6 @@ export const auditQuery = z.object({
   to: queryDate,
   imported: z.enum(['1', '']).optional(),
 })
+
+/** GET /api/public/resolve: a site path (decoded), e.g. `/regi-oldal`, `/en/old`, `/hirek/regi-hir`. */
+export const resolveQuery = z.object({ path: z.string().max(400).regex(/^\/[^\s?#]*$/, 'invalid_path') })
