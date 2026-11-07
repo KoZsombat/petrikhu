@@ -8,6 +8,7 @@ import { invalidateUsers } from '../data.ts'
 import { useSession } from '../session.tsx'
 import { Button, Card, Input, Label, PageHeader, Select, Table, useAction, useLoad } from '../ui.tsx'
 import { useDialog } from '../dialog.tsx'
+import { useUnsavedGuard } from '../unsaved.tsx'
 
 type Form = { id?: string; username: string; displayName: string; role: Role; password: string }
 const blank: Form = { username: '', displayName: '', role: 'author', password: '' }
@@ -17,6 +18,13 @@ export function UsersScreen() {
   const { user } = useSession()
   const { data, reload } = useLoad(() => get<{ users: Account[] }>('/users'), [])
   const [form, setForm] = useState<Form | null>(null)
+  // The form as opened: what "unsaved changes" compares with.
+  const [formBase, setFormBase] = useState<Form | null>(null)
+  const open = (value: Form | null) => {
+    setForm(value)
+    setFormBase(value)
+  }
+  useUnsavedGuard(!!form && JSON.stringify(form) !== JSON.stringify(formBase))
   const action = useAction()
   const dialog = useDialog()
 
@@ -27,14 +35,14 @@ export function UsersScreen() {
       if (form.id) await put(`/users/${form.id}`, body)
       else await post('/users', body)
       invalidateUsers()
-      setForm(null)
+      open(null)
       reload()
     }, 'Fiók elmentve.')
 
   return (
     <div className="max-w-5xl">
       <PageHeader title="Fiókok">
-        <Button tone="primary" onClick={() => setForm({ ...blank })}>
+        <Button tone="primary" onClick={() => open({ ...blank })}>
           + Új fiók
         </Button>
       </PageHeader>
@@ -65,7 +73,7 @@ export function UsersScreen() {
             <Button tone="primary" disabled={action.busy} onClick={save}>
               Mentés
             </Button>
-            <Button onClick={() => setForm(null)}>Mégse</Button>
+            <Button onClick={() => open(null)}>Mégse</Button>
           </div>
         </Card>
       )}
@@ -81,7 +89,7 @@ export function UsersScreen() {
               </td>
               <td className="px-2 py-2 text-xs text-petrikfaint">{dateTime(account.createdAt)}</td>
               <td className="px-2 py-2 text-right">
-                <Button tone="ghost" onClick={() => setForm({ id: account.id, username: account.username, displayName: account.displayName, role: account.role, password: '' })}>
+                <Button tone="ghost" onClick={() => open({ id: account.id, username: account.username, displayName: account.displayName, role: account.role, password: '' })}>
                   Szerkesztés
                 </Button>
                 {account.id !== user?.id && (

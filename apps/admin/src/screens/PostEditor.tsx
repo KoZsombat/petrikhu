@@ -16,6 +16,7 @@ import { MediaPicker } from '../editor/MediaPicker.tsx'
 import { RichEditor } from '../editor/RichEditor.tsx'
 import { useSession } from '../session.tsx'
 import { saveVersioned, useDialog } from '../dialog.tsx'
+import { useUnsavedGuard } from '../unsaved.tsx'
 import { Button, Card, Input, Label, Notice, PageHeader, StatusBadge, Textarea, useAction, useLoad } from '../ui.tsx'
 
 type Form = Required<Pick<PostSaveBody, 'title' | 'excerpt' | 'categoryIds' | 'tagIds' | 'imagePosition'>> & { content: RichDoc; featuredImage: string | null }
@@ -83,6 +84,14 @@ export function PostEditor() {
     setSlug(current?.slug ?? '')
   }
 
+  // Unsaved: the form (or the address, or the schedule) differs from what was loaded.
+  const dirty =
+    formFor === key &&
+    (JSON.stringify(form) !== JSON.stringify(current ? fromPost(current) : blank()) ||
+      (!!current && !!slug && slug !== current.slug) ||
+      (current?.status === 'scheduled' && scheduleAt !== toLocalInput(current.scheduledFor)))
+  const guard = useUnsavedGuard(dirty)
+
   if (!isNew && !current) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
   const status = current?.status ?? 'draft'
   const editable = isNew || (!!user && !!current && canEditPost(current, user))
@@ -103,6 +112,7 @@ export function PostEditor() {
     await action.run(async () => {
       if (isNew) {
         const res = await post<{ post: Post; notice: string }>('/posts', { ...form, command })
+        guard.allowNext()
         navigate(`/hirek/${res.post.id}`, { replace: true, state: { notice: NOTICES[res.notice] } })
       } else {
         const res = await saveExisting(command)
@@ -285,7 +295,7 @@ export function PostEditor() {
         {current && status === 'trash' && user && canTrashPost(current, user) && (
           <>
             <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/untrash`)}>Visszaállítás piszkozatként</Button>
-            <Button tone="danger" disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Végleges törlés', message: 'A hír véglegesen törlődik (a naplóban a címe megmarad). Ez nem vonható vissza.', confirmLabel: 'Végleges törlés', destructive: true })) && simple(`/posts/${id}`, 'del', () => navigate('/hirek/lomtar'))}>
+            <Button tone="danger" disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Végleges törlés', message: 'A hír véglegesen törlődik (a naplóban a címe megmarad). Ez nem vonható vissza.', confirmLabel: 'Végleges törlés', destructive: true })) && simple(`/posts/${id}`, 'del', () => (guard.allowNext(), navigate('/hirek/lomtar')))}>
               Végleges törlés
             </Button>
           </>

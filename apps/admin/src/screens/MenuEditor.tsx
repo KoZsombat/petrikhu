@@ -5,6 +5,7 @@ import { menuSchema } from '@petrik/shared/schemas'
 import { del, get, put } from '../api.ts'
 import { Button, Card, Input, Notice, PageHeader, Select, useAction, useLoad } from '../ui.tsx'
 import { saveVersioned, useDialog } from '../dialog.tsx'
+import { useUnsavedGuard } from '../unsaved.tsx'
 
 type Editable = { label: string; href?: string; children?: { label: string; href: string }[] }
 
@@ -27,6 +28,8 @@ export function MenuEditor() {
     setMenuFor(loaded.data)
     setMenu(loaded.data.menu.map((item) => ({ ...item })))
   }
+  const dirty = !!menu && !!loaded.data && menuFor === loaded.data && JSON.stringify(menu) !== JSON.stringify(loaded.data.menu)
+  useUnsavedGuard(dirty)
   if (!menu) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
 
   const update = (i: number, patch: Partial<Editable>) => setMenu(menu.map((item, j) => (j === i ? { ...item, ...patch } : item)))
@@ -50,7 +53,13 @@ export function MenuEditor() {
   return (
     <div className="max-w-4xl">
       <PageHeader title="Menü">
-        <Select value={locale} onChange={(e) => setLocale(e.target.value as 'hu' | 'en')} className="w-auto" aria-label="Nyelv">
+        <Select
+          value={locale}
+          onChange={async (e) => {
+            const next = e.target.value as 'hu' | 'en'
+            if (dirty && !(await dialog.confirm({ title: 'Nem mentett módosítások', message: 'A másik nyelv menüjére váltva a mentetlen módosításaid elvesznek.', confirmLabel: 'Elvetés és váltás', cancelLabel: 'Maradok', destructive: true }))) return
+            setLocale(next)
+          }} className="w-auto" aria-label="Nyelv">
           <option value="hu">Magyar menü</option>
           <option value="en">Angol menü</option>
         </Select>

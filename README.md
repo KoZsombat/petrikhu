@@ -209,6 +209,13 @@ Steps (all on the server, in the repository folder):
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
 migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
 
+## Admin editors
+
+Every editor (post, page, menu, document library, account form) guards unsaved changes: closing or reloading the
+tab asks the browser's question, and leaving inside the admin asks in the admin's own dialog. The admin uses a
+data router (`createBrowserRouter`) for that. Confirmations (trash, permanent delete, resets, file deletes,
+conflicts) use one keyboard-accessible Hungarian dialog (`apps/admin/src/dialog.tsx`).
+
 ## Embedded videos
 
 YouTube videos (the home page video, the Videó block, YouTube embeds in rich text) load nothing from YouTube until

@@ -8,6 +8,7 @@ import { UsageList, usagesOf } from './MediaLibrary.tsx'
 import type { MediaUsage } from './MediaLibrary.tsx'
 import { Button, Card, Input, Notice, PageHeader, useAction, useLoad } from '../ui.tsx'
 import { saveVersioned, useDialog } from '../dialog.tsx'
+import { useUnsavedGuard } from '../unsaved.tsx'
 
 function moved<T>(list: T[], from: number, to: number): T[] {
   const next = [...list]
@@ -39,6 +40,7 @@ export function LibraryEditor() {
     setLibraryFor(loaded.data)
     setLibrary(structuredClone(loaded.data.library))
   }
+  useUnsavedGuard(!!library && !!loaded.data && libraryFor === loaded.data && (JSON.stringify(library) !== JSON.stringify(loaded.data.library) || toDelete.length > 0))
   if (!library) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
 
   const used = () => new Set(library.categories.flatMap((c) => [c.slug, ...c.docs.map((d) => d.slug)]))

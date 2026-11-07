@@ -14,6 +14,7 @@ import { clean, defaultFor } from '../editor/schemaForm.tsx'
 import { Field } from '../editor/schemaForm.tsx'
 import { Button, Card, Input, Label, Notice, PageHeader, Select, Textarea, useAction, useLoad } from '../ui.tsx'
 import { saveVersioned, useDialog } from '../dialog.tsx'
+import { useUnsavedGuard } from '../unsaved.tsx'
 
 type Draft = { slug: string; title: string; description: string; status: 'draft' | 'published'; locale: 'hu' | 'en'; translationOf: string | null; blocks: Block[] }
 
@@ -35,6 +36,8 @@ export function PageEditor() {
   const hungarian = useLoad(() => get<{ pages: PageSummary[] }>('/pages?locale=hu').then((r) => r.pages), [])
   const [draft, setDraft] = useState<Draft | null>(null)
   const [draftFor, setDraftFor] = useState<string | null>(null)
+  // The draft as loaded (or as a new page starts): what "unsaved changes" compares with.
+  const [baseline, setBaseline] = useState<Draft | null>(null)
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [adding, setAdding] = useState<BlockType>('richText')
   const [slugTouched, setSlugTouched] = useState(false)
@@ -43,13 +46,14 @@ export function PageEditor() {
   if (key && draftFor !== key) {
     setDraftFor(key)
     const page = loaded.data
-    setDraft(
-      page
-        ? { slug: page.slug, title: page.title, description: page.description, status: page.status === 'published' ? 'published' : 'draft', locale: page.locale, translationOf: page.translationOf, blocks: page.blocks }
-        : { slug: '', title: '', description: '', status: 'draft', locale: params.get('locale') === 'en' ? 'en' : 'hu', translationOf: null, blocks: [newBlock('pageTitle')] },
-    )
+    const initial: Draft = page
+      ? { slug: page.slug, title: page.title, description: page.description, status: page.status === 'published' ? 'published' : 'draft', locale: page.locale, translationOf: page.translationOf, blocks: page.blocks }
+      : { slug: '', title: '', description: '', status: 'draft', locale: params.get('locale') === 'en' ? 'en' : 'hu', translationOf: null, blocks: [newBlock('pageTitle')] }
+    setDraft(initial)
+    setBaseline(initial)
     if (!page) setOpen(new Set())
   }
+  const guard = useUnsavedGuard(!!draft && !!baseline && JSON.stringify(draft) !== JSON.stringify(baseline))
   if (!draft) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
 
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch })
@@ -76,6 +80,7 @@ export function PageEditor() {
     await action.run(async () => {
       if (isNew) {
         const { page } = await post<{ page: Page }>('/pages', payload)
+        guard.allowNext()
         navigate(`/oldalak/${page.id}`, { replace: true, state: { notice: success } })
         return
       }
