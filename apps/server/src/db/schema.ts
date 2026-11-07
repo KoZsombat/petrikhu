@@ -127,6 +127,8 @@ export const documents = pgTable(
     index('documents_type_status_updated_idx').on(t.type, t.status, t.updatedAt),
     index('documents_author_idx').on(t.authorId),
     index('documents_translation_idx').on(t.translationOf),
+    // `search_text LIKE '%…%'` (public and admin search); the migration creates the pg_trgm extension first.
+    index('documents_search_trgm_idx').using('gin', sql`${t.searchText} gin_trgm_ops`),
   ],
 )
 

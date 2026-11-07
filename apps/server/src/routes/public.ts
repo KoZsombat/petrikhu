@@ -6,11 +6,12 @@ import { Hono } from 'hono'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client.ts'
-import { localeSchema } from '@petrik/shared/schemas'
+import { localeSchema, publicPostsQuery } from '@petrik/shared/schemas'
 import type { Library, Menu, PublicSitemap, PublicSite } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
 import { documents, documentTerms } from '../db/schema.ts'
-import { categoryNamesOf, categoryWithChildren, countSql, findBySlug, likePattern, toPublicPage, toPublicPost, toPublicPostSummary } from '../lib/documents.ts'
+import { categoryNamesOf, categoryWithChildren, countSql, findBySlug, likePattern, publicListColumns, toPublicPage, toPublicPost, toPublicPostSummary } from '../lib/documents.ts'
+import { validate } from '../lib/validate.ts'
 import { defaultLibrary, defaultMenu, getSetting } from '../lib/seed.ts'
 
 const routes = new Hono<AppEnv>()
@@ -55,12 +56,20 @@ routes.get('/pages/:locale/:slug', async (c) => {
   return c.json({ page: toPublicPage(row, alternate) })
 })
 
-/** `?limit=&offset=&category=<name>&q=` - published posts, newest first, without their content. */
-routes.get('/posts', async (c) => {
-  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit')) || 10))
-  const offset = Math.max(0, Number(c.req.query('offset')) || 0)
-  const category = (c.req.query('category') ?? '').trim()
-  const q = (c.req.query('q') ?? '').trim().slice(0, 200)
+/**
+ * `?limit=&offset=&category=<name>&q=` - published posts, newest first, without their content. limit ≤ 100,
+ * offset ≤ 1000. A search (`q`) is rate-limited per IP (generously: a school network shares one) and uses the
+ * trigram index on search_text.
+ */
+routes.get('/posts', validate('query', publicPostsQuery), async (c) => {
+  const { limit, offset, category = '', q = '' } = c.req.valid('query')
+  if (q) {
+    const limiter = c.var.limits.searchByIp
+    if (!limiter.hit(c.var.ip)) {
+      c.header('Retry-After', String(limiter.retryAfterSeconds(c.var.ip)))
+      return c.json({ error: 'too_many_requests' }, 429)
+    }
+  }
   let inCategory = undefined
   if (category) {
     const ids = await categoryWithChildren(c.var.db, category)
@@ -69,7 +78,7 @@ routes.get('/posts', async (c) => {
   }
   const where = and(eq(documents.type, 'post'), published, inCategory, q ? sql`${documents.searchText} LIKE ${likePattern(q)} ESCAPE '\\'` : undefined)
   const [rows, [{ total }]] = await Promise.all([
-    c.var.db.select().from(documents).where(where).orderBy(desc(documents.publishedAt), desc(documents.id)).limit(limit).offset(offset),
+    c.var.db.select(publicListColumns).from(documents).where(where).orderBy(desc(documents.publishedAt), desc(documents.id)).limit(limit).offset(offset),
     c.var.db.select({ total: countSql }).from(documents).where(where),
   ])
   const names = await categoryNamesOf(c.var.db, rows.map((r) => r.id))

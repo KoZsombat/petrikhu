@@ -97,6 +97,11 @@ from the socket peer. `X-Forwarded-For` is only used with an explicit `PNW_TRUST
 must append to it), and its left-most, visitor-supplied entry is never used on its own. If the site is not behind
 Cloudflare, set `PNW_CLIENT_IP_HEADER=` (empty) or name the header your own edge proxy overwrites.
 
+Searches (`/api/public/posts?q=`): 60 per IP per minute; the site passes the visitor's IP header on with each
+search. Lists without `q` are not limited. Query strings are validated (`limit` ≤ 100, `offset` ≤ 1000, page
+numbers, dates): anything else is a 400 `invalid_query`. The search column has a `pg_trgm` GIN index (the migration
+creates the extension).
+
 Logins: 8 failures per account and IP and 30 per IP per 15 minutes; on top of that, an account (existing or not)
 with 10 failures from any IPs backs off exponentially (2 s, 4 s, … at most 15 minutes between attempts, forgotten
 after an hour of quiet or at a successful login). Nothing is ever locked permanently.

@@ -47,6 +47,8 @@ services:
     environment:
       PNW_API_URL: http://api:4001
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
+      # Passed on to the API with searches, so the per-IP search limit counts visitors, not this server.
+      PNW_CLIENT_IP_HEADER: ${PNW_CLIENT_IP_HEADER-cf-connecting-ip}
     # Bound to the host loopback only: cloudflared points here (http://localhost:4000).
     ports: ["127.0.0.1:${PNW_PORT:-4000}:4000"]
     security_opt: [no-new-privileges:true]

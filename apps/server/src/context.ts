@@ -11,7 +11,7 @@ export type Deps = {
   db: Db
   auth: Auth
   config: Config
-  limits: { loginByIp: RateLimiter; loginByAccount: RateLimiter; accountBackoff: AccountBackoff; writesByIp: RateLimiter }
+  limits: { loginByIp: RateLimiter; loginByAccount: RateLimiter; accountBackoff: AccountBackoff; writesByIp: RateLimiter; searchByIp: RateLimiter }
 }
 
 export type AppEnv = {

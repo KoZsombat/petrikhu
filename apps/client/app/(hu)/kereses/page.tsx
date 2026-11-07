@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Container } from '@/components/blocks/shared'
 import { NewsRows, toRow } from '@/components/blocks/NewsList'
-import { getPosts } from '@/lib/api'
+import { ApiStatusError, getPosts } from '@/lib/api'
 import { t as translatorFor } from '@/lib/i18n'
 
 export const metadata: Metadata = { title: 'Keresés', robots: { index: false } }
@@ -11,7 +11,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   const t = translatorFor('hu')
   const raw = (await searchParams).q
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim().slice(0, 200) ?? ''
-  const { posts, total } = q ? await getPosts({ q, limit: 50 }) : { posts: [], total: 0 }
+  let result = { posts: [] as Awaited<ReturnType<typeof getPosts>>['posts'], total: 0 }
+  let tooMany = false
+  if (q) {
+    try {
+      result = await getPosts({ q, limit: 50 })
+    } catch (error) {
+      if (!(error instanceof ApiStatusError && error.status === 429)) throw error
+      tooMany = true
+    }
+  }
+  const { posts, total } = result
   return (
     <>
       <div className="mx-auto max-w-3xl px-4 pt-12">
@@ -27,9 +37,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
             className="mt-4 block w-full rounded-md border border-petrikline bg-petrikcard px-3 py-2 text-sm focus:border-petrikaccent focus:outline-none focus:ring-2 focus:ring-petrikaccent/25"
           />
         </form>
-        {q && (
+        {q && !tooMany && (
           <p className="mt-3 text-sm text-petriksoft">
             {total} {t('common.results')}
+          </p>
+        )}
+        {tooMany && (
+          <p role="status" className="mt-3 text-sm text-petriksoft">
+            {t('common.searchTooMany')}
           </p>
         )}
       </div>

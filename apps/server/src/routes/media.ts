@@ -7,6 +7,8 @@ import { requireCap, userOf } from '../context.ts'
 import { media } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
 import { listImages, storeImage } from '../lib/media.ts'
+import { validate } from '../lib/validate.ts'
+import { mediaQuery } from '@petrik/shared/schemas'
 
 /** The single `file` field of a multipart upload; null for anything else (wrong field, not multipart). */
 export async function readUpload(c: Context): Promise<File | null> {
@@ -22,8 +24,8 @@ export async function readUpload(c: Context): Promise<File | null> {
 const routes = new Hono<AppEnv>()
 routes.use(requireCap('media.upload', 'pages.manage', 'library.manage'))
 
-routes.get('/', async (c) => {
-  const page = Math.max(1, Number(c.req.query('page')) || 1)
+routes.get('/', validate('query', mediaQuery), async (c) => {
+  const { page } = c.req.valid('query')
   return c.json({ items: await listImages(c.var.db, 100, (page - 1) * 100) })
 })
 

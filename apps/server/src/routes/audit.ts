@@ -5,20 +5,18 @@ import type { AppEnv } from '../context.ts'
 import { requireCap } from '../context.ts'
 import { auditLog, documents, documentTerms, terms, users } from '../db/schema.ts'
 import { listAudit } from '../lib/audit.ts'
+import { validate } from '../lib/validate.ts'
+import { auditQuery } from '@petrik/shared/schemas'
 import { countSql } from '../lib/documents.ts'
 
 export const audit = new Hono<AppEnv>()
 audit.use(requireCap('audit.view'))
 
-const date = (value: string | undefined) => {
-  const parsed = value ? new Date(value) : undefined
-  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : undefined
-}
+const date = (value: string | undefined) => (value ? new Date(value) : undefined)
 
-audit.get('/', async (c) => {
-  const q = c.req.query()
-  const limit = Math.min(200, Math.max(1, Number(q.limit) || 50))
-  const page = Math.max(1, Number(q.page) || 1)
+audit.get('/', validate('query', auditQuery), async (c) => {
+  const q = c.req.valid('query')
+  const { limit, page } = q
   const result = await listAudit(
     c.var.db,
     {

@@ -2,7 +2,7 @@
 import { Hono } from 'hono'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { localeSchema, menuSchema, pageSaveBody } from '@petrik/shared/schemas'
+import { localeSchema, menuSchema, pageSaveBody, pagesQuery } from '@petrik/shared/schemas'
 import type { Locale } from '@petrik/shared/schemas'
 import { isReservedSlug, slugify } from '@petrik/shared/slug'
 import type { AppEnv } from '../context.ts'
@@ -55,9 +55,9 @@ async function loadPage(db: Db, id: string) {
   return row?.type === 'page' ? row : undefined
 }
 
-pages.get('/', async (c) => {
-  const locale = localeSchema.safeParse(c.req.query('locale'))
-  const rows = await c.var.db.select().from(documents).where(and(isPage, locale.success ? eq(documents.locale, locale.data) : undefined)).orderBy(asc(documents.locale), asc(documents.title))
+pages.get('/', validate('query', pagesQuery), async (c) => {
+  const { locale } = c.req.valid('query')
+  const rows = await c.var.db.select().from(documents).where(and(isPage, locale ? eq(documents.locale, locale) : undefined)).orderBy(asc(documents.locale), asc(documents.title))
   return c.json({ pages: rows.map(toPageSummary) })
 })
 

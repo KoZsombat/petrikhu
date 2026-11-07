@@ -160,14 +160,32 @@ export function toPage(row: DocumentRow): Page {
   return { ...toPageSummary(row), blocks: row.blocks }
 }
 
-export function toPublicPostSummary(row: DocumentRow, categories: string[]): PublicPostSummary {
+/**
+ * The columns a public list needs. `blocks` is read only for rows whose excerpt or image has to come from the
+ * text (no excerpt, or no featured image); for the others PostgreSQL does not even load it.
+ */
+export const publicListColumns = {
+  id: documents.id,
+  slug: documents.slug,
+  title: documents.title,
+  description: documents.description,
+  publishedAt: documents.publishedAt,
+  createdAt: documents.createdAt,
+  featuredImage: documents.featuredImage,
+  blocks: sql<Block[] | null>`CASE WHEN ${documents.description} = '' OR ${documents.featuredImage} IS NULL THEN ${documents.blocks} END`,
+}
+
+type PublicListRow = Pick<DocumentRow, 'slug' | 'title' | 'description' | 'publishedAt' | 'createdAt' | 'featuredImage'> & { blocks: Block[] | null }
+
+export function toPublicPostSummary(row: PublicListRow, categories: string[]): PublicPostSummary {
+  const content = () => postContent(row.blocks ?? [])
   return {
     slug: row.slug,
     title: row.title,
-    excerpt: row.description || excerptOf(postContent(row.blocks)),
+    excerpt: row.description || excerptOf(content()),
     publishedAt: (row.publishedAt ?? row.createdAt).toISOString(),
     categories,
-    image: row.featuredImage ?? firstImage(postContent(row.blocks)) ?? null,
+    image: row.featuredImage ?? firstImage(content()) ?? null,
   }
 }
 

@@ -29,6 +29,13 @@
       "when": 1794064127363,
       "tag": "0003_must_change_password",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794064460588,
+      "tag": "0004_search_trgm_index",
+      "breakpoints": true
     }
   ]
 }

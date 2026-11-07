@@ -45,6 +45,7 @@ const MESSAGES: Record<string, string> = {
   payload_too_large: 'A tartalom túl nagy.',
   upload_failed: 'A feltöltés nem sikerült.',
   invalid_body: 'Hibás vagy hiányzó mezők.',
+  invalid_query: 'Hibás keresési vagy lapozási paraméter.',
   invalid_email: 'Érvénytelen e-mail-cím.',
   unsafe_link: 'A link / -rel (ezen a webhelyen), https://-sel, mailto:-val vagy tel:-lel kezdődjön.',
   invalid_href: 'A link / -rel vagy https://-sel kezdődjön, szóköz nélkül.',

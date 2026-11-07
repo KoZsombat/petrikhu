@@ -12,6 +12,7 @@ import type { Role } from './roles.ts'
 import { SLUG_PATTERN } from './slug.ts'
 import { richDocSchema } from './tiptap.ts'
 import type { RichDoc } from './tiptap.ts'
+import { AUDIT_ENTITY_TYPES, POST_STATUSES } from './workflow.ts'
 import type { PageStatus, PostStatus } from './workflow.ts'
 
 export const LOCALES = ['hu', 'en'] as const
@@ -228,3 +229,62 @@ export type PublicSitemap = {
 }
 
 export const linkSchema = z.string().refine(isSafeHref)
+
+/* --- query strings --------------------------------------------------------------- */
+
+/**
+ * A non-negative integer query parameter: digits only (so `Infinity`, `1e9`, `-1`, `1.5` are refused, never
+ * reaching SQL), between `min` and `max`; missing or empty → `fallback`.
+ */
+export const queryInt = (min: number, max: number, fallback: number) =>
+  z
+    .string()
+    .regex(/^\d{0,9}$/, 'invalid_integer')
+    .optional()
+    .transform((value) => (value === undefined || value === '' ? fallback : Number(value)))
+    .pipe(z.number().int().min(min).max(max))
+
+const queryText = (max: number) => z.string().trim().max(max).optional()
+
+export const PUBLIC_POSTS_MAX_LIMIT = 100
+export const PUBLIC_POSTS_MAX_OFFSET = 1000
+
+/** GET /api/public/posts */
+export const publicPostsQuery = z.object({
+  limit: queryInt(1, PUBLIC_POSTS_MAX_LIMIT, 10),
+  offset: queryInt(0, PUBLIC_POSTS_MAX_OFFSET, 0),
+  category: queryText(120),
+  q: queryText(200),
+})
+
+/** GET /api/posts (admin) */
+export const adminPostsQuery = z.object({
+  status: z.enum(POST_STATUSES),
+  q: queryText(200),
+  page: queryInt(1, 10_000, 1),
+})
+
+/** GET /api/pages (admin) */
+export const pagesQuery = z.object({ locale: localeSchema.optional().or(z.literal('')) })
+
+/** GET /api/media (admin): images or documents. */
+export const mediaQuery = z.object({ page: queryInt(1, 10_000, 1), kind: z.enum(['images', 'documents']).default('images') })
+
+const queryDate = z
+  .string()
+  .regex(/^(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?)?$/, 'invalid_date')
+  .refine((value) => value === '' || !Number.isNaN(new Date(value).getTime()), 'invalid_date')
+  .optional()
+
+/** GET /api/audit */
+export const auditQuery = z.object({
+  limit: queryInt(1, 200, 50),
+  page: queryInt(1, 10_000, 1),
+  entityType: z.enum(AUDIT_ENTITY_TYPES).optional().or(z.literal('')),
+  entityId: queryText(200),
+  userId: queryText(200),
+  action: queryText(60),
+  from: queryDate,
+  to: queryDate,
+  imported: z.enum(['1', '']).optional(),
+})

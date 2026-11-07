@@ -40,6 +40,8 @@ export function createDeps(db: Db, config: Config): Deps {
       loginByAccount: new RateLimiter(8, 15 * 60 * 1000),
       accountBackoff: new AccountBackoff(),
       writesByIp: new RateLimiter(600, 5 * 60 * 1000),
+      // Public searches (/api/public/posts?q=): 60 per IP per minute.
+      searchByIp: new RateLimiter(60, 60 * 1000),
     },
   }
 }

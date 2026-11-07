@@ -7,10 +7,10 @@ import { Hono } from 'hono'
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { can } from '@petrik/shared/roles'
-import { postSaveBody, reviewDecisionBody } from '@petrik/shared/schemas'
+import { adminPostsQuery, postSaveBody, reviewDecisionBody } from '@petrik/shared/schemas'
 import { uniqueSlug } from '@petrik/shared/slug'
 import { isEmptyDoc } from '@petrik/shared/tiptap'
-import { POST_STATUSES, canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
+import { canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
 import type { PostStatus } from '@petrik/shared/workflow'
 import type { AppEnv } from '../context.ts'
 import { requireUser, userOf } from '../context.ts'
@@ -93,10 +93,9 @@ posts.get('/dashboard', async (c) => {
 const PER_PAGE = 30
 
 /** `?status=published|archived|in_review|trash|draft|scheduled&q=&page=` - newest first, searched in SQL. */
-posts.get('/', async (c) => {
+posts.get('/', validate('query', adminPostsQuery), async (c) => {
   const user = userOf(c)
-  const status = c.req.query('status') as PostStatus
-  if (!(POST_STATUSES as readonly string[]).includes(status)) return c.json({ error: 'invalid_status' }, 422)
+  const { status, q = '', page } = c.req.valid('query')
   const reviewer = can(user, 'news.review')
   const manager = can(user, 'news.manage')
   let scope: SQL | undefined
@@ -104,8 +103,6 @@ posts.get('/', async (c) => {
   else if ((status === 'in_review' || status === 'draft' || status === 'scheduled' || status === 'trash') && !reviewer) scope = eq(documents.authorId, user.id)
   if (!can(user, 'news.write') && !reviewer && !manager) return c.json({ error: 'forbidden' }, 403)
 
-  const q = (c.req.query('q') ?? '').trim().slice(0, 200)
-  const page = Math.max(1, Math.floor(Number(c.req.query('page'))) || 1)
   const where = and(isPost, eq(documents.status, status), scope, q ? sql`${documents.searchText} LIKE ${likePattern(q)} ESCAPE '\\'` : undefined)
   const order = status === 'published' || status === 'archived' || status === 'scheduled' ? desc(documents.publishedAt) : desc(documents.updatedAt)
   const [rows, [{ total }]] = await Promise.all([
