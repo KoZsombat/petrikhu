@@ -1,78 +1,134 @@
-# Petrik site
+# petrik.hu
 
-New website for Petrik Lajos Bilingual Technical School (petrik.hu) with a built-in **page editor (Creator)**: subpages are JSON arrays of ready-made components, so content can be edited without coding. The UI and content are Hungarian.
+The website of the Petrik Lajos Két Tanítási Nyelvű Technikum: the public site, the page editor (Creator) and
+the news manager, as one monorepo.
 
-**Stack:** React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4 · Express 5 + PostgreSQL.
+```
+apps/
+  client/   Next.js (App Router): the public site, rendered on the server. The only exposed port.
+  admin/    React + Vite: news, review, Creator (pages, menu), media, document library, accounts, log, statistics.
+  server/   Hono on Bun: the API, the media store, the admin's static files. PostgreSQL through Drizzle.
+packages/
+  shared/   zod schemas (every request body, block and document), roles and capabilities, workflow,
+            TipTap schema and editor config, slug and link rules, UI strings (hu.json / en.json), theme tokens.
+e2e/        Playwright smoke tests.
+```
+
+One port: Next.js serves the site and proxies `/api`, `/uploads`, `/media` and `/admin` to the API.
 
 ## Quick start
 
-**With Docker (recommended):** starts PostgreSQL, the API (`node --watch`) and Vite with hot reload, nothing else to install.
+With Docker, one command (Postgres, API, Next.js dev server, admin dev server):
 
-```
+```bash
 docker compose -f docker-compose.dev.yml up
 ```
 
-Site: http://localhost:5173 (proxies `/api`, `/uploads`, `/media` to the API) · API: http://localhost:4000 · Postgres: `localhost:5432` (`petrik`/`petrik`). An empty database gets 3 demo accounts (`igazgato`, `helyettes`, `mk.vezeto`). Stop with `docker compose -f docker-compose.dev.yml down` (add `-v` to wipe the dev database).
+Site: http://localhost:4000 · Admin: http://localhost:5173/admin/ (or http://localhost:4000/admin after `bun run build`) ·
+API: http://localhost:4001. An empty database gets the built-in pages and three demo accounts:
+`igazgato` / `PetrikIgazgato2026!` (admin), `helyettes` / `PetrikHelyettes2026!` (reviewer),
+`mk.vezeto` / `PetrikMK2026!` (author).
 
-**Without Docker:**
+Without Docker you need Bun 1.4, Node 24 and PostgreSQL 17 (`postgres://petrik:petrik@localhost:5432/petrik`, or set `DATABASE_URL`):
 
-```
-npm install
-cp .env.example .env     # fill in the values, DATABASE_URL must point to a reachable PostgreSQL
-npm run dev              # frontend (Vite); /api, /uploads, /media proxy to port 4000
-npm run server           # backend on port 4000
-```
-
-Other scripts: `npm run build`, `npm run lint`, `npx tsc -p tsconfig.server.json` (type-check the server), `npm test` (test suite; needs a Postgres database, default `postgres://petrik:petrik@localhost:5432/petrik_test`, override with `TEST_DATABASE_URL`), `npm run db:import` (one-off copy of the legacy SQLite data into Postgres).
-
-## Production (Docker + Cloudflare Tunnel)
-
-One Node process serves the API, media and the built frontend on a single port (4000), so only that port needs to be exposed.
-
-```
-cp .env.example .env     # set POSTGRES_PASSWORD, PNW_SESSION_SECRET, PNW_SEED_PASSWORD, PNW_PUBLIC_URL
-docker compose up -d                       # postgres + app (127.0.0.1:4000)
-docker compose --profile tunnel up -d      # ...plus cloudflared (set TUNNEL_TOKEN)
+```bash
+bun install
+bun run dev
 ```
 
-In Cloudflare, point the tunnel's public hostname at `http://petrik:4000` (or `http://localhost:4000` if `cloudflared` runs on the host). Back up Postgres with `pg_dump`.
+The old site's files (`/media/...`) are not in the repository. Load a folder of them once:
 
-## Backups
+```bash
+bun run media:import /path/to/media-seed
+```
 
-The whole site lives in Postgres, media files included (`media_files`), so one dump is a full backup. The `backup` service in `docker-compose.yml` runs `scripts/backup.sh`: a `pg_dump --format=custom` every day at `PNW_BACKUP_AT` (default `03:30` UTC) into `PNW_BACKUP_DIR` (default `./backups` next to the compose file), keeping `PNW_BACKUP_KEEP_DAYS` days (default 14). Copy that folder off the server too (e.g. to S3), since a backup on the same EC2 disk does not survive losing the instance.
+(The former `server/media-seed` folder is in the git history: `git archive 79abeb9 server/media-seed | tar -x -C /tmp`.)
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `bun run dev` | All apps in watch mode (Turborepo) |
+| `bun run build` | Builds the admin (Vite) and the site (Next.js) |
+| `bun run lint` / `bun run typecheck` | ESLint / TypeScript, every package |
+| `bun run test` | API tests (`bun test`, needs Postgres: `TEST_DATABASE_URL`, default `postgres://petrik:petrik@localhost:5432/petrik_test`) |
+| `bun run e2e` | Playwright smoke tests against the built apps (`bun run build` first; uses `E2E_DATABASE_URL`, recreated each run) |
+| `bun run db:generate` | A new SQL migration from `apps/server/src/db/schema.ts` (drizzle-kit) |
+| `bun run db:migrate` | Applies migrations and seeds an empty database (the API does this on start too) |
+| `bun run media:import <dir>` | Loads a folder of files into the media table |
+| `bun run migrate:legacy` | Copies the previous app's database into the new schema (see below) |
+
+## Production
+
+Runs with `docker compose` on one host, behind a Cloudflare Tunnel. Services: `postgres`, `api` (Bun), `web`
+(Next.js on Node, `127.0.0.1:4000`), `backup`, and `cloudflared` (`--profile tunnel`; its Public Hostname is
+`http://web:4000`, or `http://localhost:4000` for a tunnel on the host). Copy `.env.example` to `.env` and set at
+least `POSTGRES_PASSWORD`, `PNW_SESSION_SECRET` (32+ characters), `PNW_SEED_PASSWORD` and `PNW_PUBLIC_URL`.
+
+Deploying is manual:
+
+```bash
+git pull
+```
 
 ```bash
 docker compose run --rm backup once
 ```
 
-**Restore** (replaces the current data):
+```bash
+docker compose up -d --build
+```
+
+The API refuses to start in production without a real session secret, or while an account still has a public demo
+password and `PNW_SEED_PASSWORD` is not set (with it, demo passwords are replaced on start).
+
+## Backups
+
+`backup` writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`) and keeps `PNW_BACKUP_KEEP_DAYS`
+(14) days. Media is in the database, so one dump is the whole site. Copy the dumps off the host. Restore into an
+empty database:
 
 ```bash
-docker compose stop petrik
+docker compose stop api web
 ```
 
 ```bash
-docker compose exec -T postgres pg_restore --clean --if-exists --no-owner -U petrik -d petrik < backups/petrik-YYYYMMDD-HHMMSS.dump
+docker compose exec -T postgres sh -c 'dropdb -U petrik petrik && createdb -U petrik petrik'
 ```
 
 ```bash
-docker compose start petrik
+docker compose exec -T postgres pg_restore -U petrik -d petrik --no-owner < backups/petrik-YYYYMMDD-HHMMSS.dump
 ```
 
-On start the server runs any newer migrations on top of the restored schema. Test a restore now and then into a scratch database (`createdb -U petrik scratch`, then `pg_restore -d scratch ...`); `tests/backup.test.ts` does exactly that in CI.
+```bash
+docker compose up -d
+```
 
-## CI
+## Migrating from the old app
 
-`.github/workflows/ci.yml` runs lint, the server type-check, the build and `npm test` (against a Postgres 17 service) on every push and pull request.
+The previous app (Express + Vite, tables `creator_pages`, `posts`, `users`, …) is moved over by
+`bun run migrate:legacy`, which reads `LEGACY_DATABASE_URL` and writes `DATABASE_URL` (a different, new database).
+It is idempotent and prints a report. The full production procedure (backup, scratch run, checks, switch-over,
+rollback) is in `PR_DESCRIPTION.md`; the mappings:
 
-Deployment is manual: on the server, in `/petrik`, run `git pull` and `docker compose up -d --build`. Take a backup first (`docker compose run --rm backup once`), because new migrations run on start.
+| Old post status | New |
+|---|---|
+| `draft` | `draft` |
+| `pending` | `in_review` |
+| `pnw_revision` (sent back) | `draft`, with the review message kept |
+| `pnw_test_ok` (test-mode approval) | `in_review` (test mode is gone; a reviewer decides again) |
+| `publish` / `future` / `pnw_archived` / `trash` | `published` / `scheduled` / `archived` / `trash` |
 
-## Where things are
+Old per-account permissions become the smallest role that holds all of them (`smallestRoleCovering` in
+`packages/shared/src/roles.ts`); no permission → `inactive`. Imported passwords (bcrypt) keep working and are
+re-hashed with argon2id at the next login. Sessions are not copied: everyone logs in again.
 
-- `docker-compose.yml` (production) and `docker-compose.dev.yml` (development)
-- `src/pages/samples/pages.json` – built-in subpages; `src/pages/creatorSchema.ts` – the editor schema
-- `src/components/creator/` – page components + `PageRenderer`
-- `src/pages/Dashboard.tsx` – admin (pages, menu, media, document library)
-- `server/` – Express API, Postgres repos, sessions, security; `shared/pnw/` – shared types
+## Roles
 
-Details, conventions and pitfalls are in [AGENTS.md](AGENTS.md), which must be updated with every change.
+| Role | Capabilities |
+|---|---|
+| Szerző (`author`) | write own news, upload images |
+| Jóváhagyó (`reviewer`) | + review, approve / schedule / reject, manage published news, create categories, log and statistics |
+| Oldalszerkesztő (`editor`) | pages, menus, document library, media |
+| Adminisztrátor (`admin`) | everything, including accounts |
+| `inactive` | can log in, nothing else |
