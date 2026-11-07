@@ -7,7 +7,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client.ts'
 import { localeSchema } from '@petrik/shared/schemas'
-import type { Library, Menu, PublicSite } from '@petrik/shared/schemas'
+import type { Library, Menu, PublicSitemap, PublicSite } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
 import { documents, documentTerms } from '../db/schema.ts'
 import { categoryNamesOf, categoryWithChildren, countSql, findBySlug, likePattern, toPublicPage, toPublicPost, toPublicPostSummary } from '../lib/documents.ts'
@@ -81,6 +81,22 @@ routes.get('/posts/:slug', async (c) => {
   if (!row || row.status !== 'published') return c.json({ error: 'not_found' }, 404)
   const names = await categoryNamesOf(c.var.db, [row.id])
   return c.json({ post: toPublicPost(row, names.get(row.id) ?? []) })
+})
+
+/** Everything the sitemap lists: published pages (with their translation) and published posts, slugs and dates only. */
+routes.get('/sitemap', async (c) => {
+  const db = c.var.db
+  const [pageRows, postRows, pairs] = await Promise.all([
+    db.select({ locale: documents.locale, slug: documents.slug, updatedAt: documents.updatedAt }).from(documents).where(and(eq(documents.type, 'page'), published)),
+    db.select({ slug: documents.slug, updatedAt: documents.updatedAt }).from(documents).where(and(eq(documents.type, 'post'), published)).orderBy(desc(documents.publishedAt)),
+    translationPairs(db),
+  ])
+  const body: PublicSitemap = {
+    pages: pageRows.map((p) => ({ locale: p.locale, slug: p.slug, updatedAt: p.updatedAt.toISOString() })),
+    posts: postRows.map((p) => ({ slug: p.slug, updatedAt: p.updatedAt.toISOString() })),
+    translations: pairs,
+  }
+  return c.json(body)
 })
 
 /**

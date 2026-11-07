@@ -142,3 +142,35 @@ test('preview: unsaved post content opens on the site through the API, only for 
   const anonymous = await popup.request.get(url)
   expect(anonymous.status()).toBe(404)
 })
+
+test('seo: robots.txt, sitemap.xml, structured data, hreflang and canonical links', async ({ page, request }) => {
+  const robots = await (await request.get('/robots.txt')).text()
+  for (const line of ['Disallow: /admin', 'Disallow: /api/', 'Disallow: /elonezet/', 'Sitemap: http://localhost:4000/sitemap.xml']) expect(robots).toContain(line)
+
+  const sitemap = await request.get('/sitemap.xml')
+  expect(sitemap.headers()['content-type']).toContain('xml')
+  const xml = await sitemap.text()
+  for (const url of ['/elerhetoseg</loc>', '/en/about-us</loc>', '/hirek/tavaszi-projektnap-', '/dokumentumtar</loc>']) expect(xml).toContain(url)
+  expect(xml).toContain('hreflang="en"')
+
+  await page.goto('/')
+  const school = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent())!)
+  expect(school['@type']).toBe('HighSchool')
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', /\/en$/)
+
+  await page.goto('/elerhetoseg')
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'http://localhost:4000/elerhetoseg')
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', /\/en\/contact$/)
+  await expect(page.locator('meta[property="og:image"]')).toHaveCount(1)
+  const crumbs = await page.locator('script[type="application/ld+json"]').allTextContents()
+  expect(crumbs.some((text) => JSON.parse(text)['@type'] === 'BreadcrumbList')).toBe(true)
+
+  await page.goto('/hirek?oldal=2')
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'http://localhost:4000/hirek?oldal=2')
+
+  await page.goto('/hirek')
+  await page.locator('[data-component="newsList"] article a').first().click()
+  await page.waitForURL(/\/hirek\/.+/)
+  const article = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((text) => JSON.parse(text))
+  expect(article.find((data) => data['@type'] === 'NewsArticle')?.headline).toBeTruthy()
+})

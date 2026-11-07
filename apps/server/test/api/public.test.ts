@@ -79,3 +79,15 @@ test('preview: only the user who made it can open it', async () => {
   expect((await (await s.login(DEMO.reviewer)).get(`/api/preview/${made.body.id}`)).status).toBe(404)
   expect((await author.post('/api/preview', { kind: 'page', page: { title: 'x', blocks: [{ id: 'a', type: 'richText', props: { content: doc('x') } }] } })).status).toBe(403)
 })
+
+test('sitemap data: only published pages and posts, only slugs and dates', async () => {
+  const res = await s.client().get('/api/public/sitemap')
+  expect(res.status).toBe(200)
+  expect(Object.keys(res.body).sort()).toEqual(['pages', 'posts', 'translations'])
+  expect(res.body.pages).toContainEqual(expect.objectContaining({ locale: 'hu', slug: 'elerhetoseg' }))
+  expect(res.body.pages).toContainEqual(expect.objectContaining({ locale: 'en', slug: 'about-us' }))
+  expect(res.body.posts.map((p: { slug: string }) => p.slug).sort()).toEqual(['esti-hir', 'oktatasi-hir', 'sima-hir'])
+  for (const entry of [...res.body.pages, ...res.body.posts]) expect(Object.keys(entry).every((k) => ['locale', 'slug', 'updatedAt'].includes(k))).toBe(true)
+  expect(res.text).not.toContain('titkos-piszkozat')
+  expect(res.body.translations).toContainEqual({ hu: 'elerhetoseg', en: 'contact' })
+})

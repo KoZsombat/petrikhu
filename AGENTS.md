@@ -24,6 +24,9 @@ Conventions for working on this repository. Setup, scripts and deployment are in
   site must keep its look; check pages against a screenshot when touching markup.
 - **Client JS:** public pages are server components; add `'use client'` only for real interaction.
 - **Routes:** a new fixed top-level route on the site must be added to `RESERVED_SLUGS` (a test checks it).
+- **SEO:** page metadata comes from `apps/client/lib/meta.ts` (a page's `openGraph` replaces the layout's, so keep
+  the shared fields there); the sitemap lists published documents by itself; a new public route that is not a
+  document must be added to `app/sitemap.ts`, and a private one to `app/robots.ts`.
 - **UI strings** of the public site are keys in `packages/shared/src/i18n/{hu,en}.json` (both files, same keys).
 - **Single instance:** the scheduled-post sweep and the rate limiters live in the API process; do not run two.
 - **Done means:** `bun run lint`, `bun run typecheck`, `bun run build`, `bun run test` and `bun run e2e` pass; every

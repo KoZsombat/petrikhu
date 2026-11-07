@@ -5,7 +5,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { headers } from 'next/headers'
-import type { Locale, PublicPage, PublicPost, PublicPostSummary, PublicSite } from '@petrik/shared/schemas'
+import type { Locale, PublicPage, PublicPost, PublicPostSummary, PublicSite, PublicSitemap } from '@petrik/shared/schemas'
 
 const API = process.env.PNW_API_URL ?? 'http://localhost:4001'
 
@@ -39,4 +39,8 @@ export async function getPosts(query: { limit?: number; offset?: number; categor
 export async function getPreview(id: string): Promise<{ kind: 'page'; page: PublicPage } | { kind: 'post'; post: PublicPost } | null> {
   const cookie = (await headers()).get('cookie') ?? ''
   return get(`/api/preview/${encodeURIComponent(id)}`, { headers: { cookie } })
+}
+
+export async function getSitemap(): Promise<PublicSitemap> {
+  return (await get<PublicSitemap>('/api/public/sitemap')) ?? { pages: [], posts: [], translations: [] }
 }

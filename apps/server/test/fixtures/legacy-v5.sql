@@ -1,7 +1,7 @@
 -- A database created by the previous app (schema version 5) with test content: posts in every status
 -- (including a test-mode approval and an imported post with image/gallery/embed blocks), Creator pages
 -- (one overriding a built-in page, one in the trash), an edited menu and library, accounts with various
--- permission sets, terms, audit entries, sessions and media. Built with the old code (see PR_DESCRIPTION.md).
+-- permission sets, terms, audit entries, sessions and media. Built with the old code and its API.
 --
 -- PostgreSQL database dump
 --

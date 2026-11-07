@@ -206,4 +206,11 @@ export type PublicSite = {
   translations: { hu: string; en: string }[]
 }
 
+/** What the sitemap needs: public addresses and modification dates, nothing else. */
+export type PublicSitemap = {
+  pages: { locale: Locale; slug: string; updatedAt: string }[]
+  posts: { slug: string; updatedAt: string }[]
+  translations: { hu: string; en: string }[]
+}
+
 export const linkSchema = z.string().refine(isSafeHref)

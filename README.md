@@ -108,8 +108,8 @@ docker compose up -d
 
 The previous app (Express + Vite, tables `creator_pages`, `posts`, `users`, …) is moved over by
 `bun run migrate:legacy`, which reads `LEGACY_DATABASE_URL` and writes `DATABASE_URL` (a different, new database).
-It is idempotent and prints a report. The full production procedure (backup, scratch run, checks, switch-over,
-rollback) is in `PR_DESCRIPTION.md`; the mappings:
+It is idempotent and prints a report (each account's old permissions and new role, renamed pages, issues). The
+mappings:
 
 | Old post status | New |
 |---|---|
@@ -121,7 +121,65 @@ rollback) is in `PR_DESCRIPTION.md`; the mappings:
 
 Old per-account permissions become the smallest role that holds all of them (`smallestRoleCovering` in
 `packages/shared/src/roles.ts`); no permission → `inactive`. Imported passwords (bcrypt) keep working and are
-re-hashed with argon2id at the next login. Sessions are not copied: everyone logs in again.
+re-hashed with argon2id at the next login. Sessions are not copied: everyone logs in again. A draft or trashed
+old page that has a built-in page's slug (or a now-reserved slug) is renamed to `<slug>-regi`.
+
+Steps (all on the server, in the repository folder):
+
+1. **Back up the old database** (the old app is still running) and copy the dump off the host:
+   ```bash
+   docker compose run --rm backup once
+   ```
+2. **Pull and build** the new version without starting it:
+   ```bash
+   git pull && docker compose build
+   ```
+   Then check `.env`: `PNW_SESSION_SECRET` must now be at least 32 characters. If the tunnel's Public Hostname
+   was `http://petrik:4000`, change it to `http://web:4000` (`http://localhost:4000` stays valid).
+3. **Rehearse on a scratch copy.** Restore the dump into a scratch database and migrate it into another one:
+   ```bash
+   set -a; . ./.env; set +a
+   docker compose up -d postgres
+   docker compose exec -T postgres createdb -U petrik petrik_scratch_old
+   docker compose exec -T postgres pg_restore -U petrik -d petrik_scratch_old --no-owner < backups/<the dump>
+   docker compose exec -T postgres createdb -U petrik petrik_scratch_new
+   docker compose run --rm -e LEGACY_DATABASE_URL=postgres://petrik:$POSTGRES_PASSWORD@postgres:5432/petrik_scratch_old -e DATABASE_URL=postgres://petrik:$POSTGRES_PASSWORD@postgres:5432/petrik_scratch_new api bun run --cwd apps/server migrate:legacy
+   ```
+   (The first line loads `$POSTGRES_PASSWORD` from `.env` into the shell.)
+4. **Verify the scratch result.** Read the report (roles, renamed pages, issues). Compare counts:
+   ```bash
+   docker compose exec -T postgres psql -U petrik -d petrik_scratch_old -c "select status, count(*) from posts group by 1"
+   docker compose exec -T postgres psql -U petrik -d petrik_scratch_new -c "select status, count(*) from documents where type='post' group by 1"
+   ```
+   Then run the new stack on it and click through (news list, a few old posts, pages, the library, the admin with
+   an old account, which needs the old password):
+   ```bash
+   PNW_DB_NAME=petrik_scratch_new docker compose up -d api web
+   ```
+   Stop it afterwards: `docker compose stop api web`.
+5. **Switch production.** Stop the old app and the backup service so nothing writes, take a final backup, migrate
+   into a new database and swap the names:
+   ```bash
+   docker stop $(docker ps -q --filter name=petrik-1) ; docker compose stop backup
+   docker compose run --rm backup once
+   docker compose exec -T postgres createdb -U petrik petrik_new
+   docker compose run --rm -e LEGACY_DATABASE_URL=postgres://petrik:$POSTGRES_PASSWORD@postgres:5432/petrik -e DATABASE_URL=postgres://petrik:$POSTGRES_PASSWORD@postgres:5432/petrik_new api bun run --cwd apps/server migrate:legacy
+   docker compose exec -T postgres psql -U petrik -d postgres -c "ALTER DATABASE petrik RENAME TO petrik_old" -c "ALTER DATABASE petrik_new RENAME TO petrik"
+   docker compose up -d --remove-orphans
+   ```
+   (The first command stops the old `petrik` container, which the new compose file no longer defines.)
+6. **Check the live site**, log in, and fix roles on the Fiókok screen if the report showed any surprises.
+
+**Rollback:** `docker compose down`, rename the databases back (`petrik` → `petrik_new`, `petrik_old` → `petrik`),
+`git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
+migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
+
+## SEO
+
+Pages are rendered on the server with their title, description, canonical URL, Open Graph / Twitter data and, for
+translated pages, hreflang links. `/sitemap.xml` and `/robots.txt` are generated per request (`apps/client/app`);
+every published page and post is in the sitemap automatically. Structured data (schema.org): the school on the
+home pages, `NewsArticle` on news posts, `BreadcrumbList` on pages. Absolute URLs use `PNW_PUBLIC_URL`.
 
 ## Roles
 

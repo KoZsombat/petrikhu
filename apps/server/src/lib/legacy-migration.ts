@@ -1,7 +1,7 @@
 /**
  * Moves the previous app's database (tables creator_pages, posts, audit_log, users, terms, site_menu,
  * site_library, media_files, sessions; schema version 5) into the new schema. Run it with
- * `bun run migrate:legacy` (src/scripts/migrate-legacy.ts); the steps are in PR_DESCRIPTION.md / README.md.
+ * `bun run migrate:legacy` (src/scripts/migrate-legacy.ts); the steps are in README.md ("Migrating from the old app").
  *
  * Idempotent: every row is upserted by its (mapped) id or path, so a second run changes nothing and creates
  * no duplicates; rows created in the new app are left alone. Sessions are not copied: everyone logs in again.
