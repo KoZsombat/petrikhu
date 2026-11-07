@@ -1,5 +1,6 @@
-# Services: postgres (internal network only), petrik (the single port: 4000), backup (nightly pg_dump) and
-# optionally cloudflared (`docker compose --profile tunnel up`), which exposes this one port to the internet.
+# Production: postgres (internal only), api (Bun, internal only), web (Next.js, the single port: 127.0.0.1:4000),
+# backup (nightly pg_dump), and optionally cloudflared (`docker compose --profile tunnel up`), which exposes the
+# web port to the internet. Deploy: git pull; docker compose run --rm backup once; docker compose up -d --build
 services:
   postgres:
     image: postgres:17
@@ -7,53 +8,58 @@ services:
     environment:
       POSTGRES_USER: petrik
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a database password}
-      POSTGRES_DB: petrik
+      POSTGRES_DB: ${PNW_DB_NAME:-petrik}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U petrik -d petrik"]
+      test: ["CMD-SHELL", "pg_isready -U petrik -d ${PNW_DB_NAME:-petrik}"]
       interval: 5s
       timeout: 5s
       retries: 10
-    # No published port: only the petrik service is reachable on the compose network.
 
-  petrik:
-    build: .
+  api:
+    build: { context: ., target: api }
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
-    # Bound to the host loopback only: cloudflared points here (http://localhost:4000); it is not directly reachable from outside.
-    ports: ["127.0.0.1:${PNW_PORT:-4000}:${PNW_PORT:-4000}"]
+      postgres: { condition: service_healthy }
     environment:
-      DATABASE_URL: postgres://petrik:${POSTGRES_PASSWORD}@postgres:5432/petrik
-      PNW_PORT: ${PNW_PORT:-4000}
-      # Required for production: PNW_SESSION_SECRET and PNW_SEED_PASSWORD (see .env.example, server/config.ts).
+      DATABASE_URL: postgres://petrik:${POSTGRES_PASSWORD}@postgres:5432/${PNW_DB_NAME:-petrik}
+      # Required in production (see .env.example): the server refuses to start without them.
       PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:?set a session secret}
       PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?set an initial password}
-      # How many proxies sit in front of the server (cloudflared is one).
-      PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-1}
-      # The public address, e.g. https://petrik.hu - the allowed origin for modifying API calls.
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
-      PNW_TEST_MODE: ${PNW_TEST_MODE:-false}
-    security_opt:
-      - no-new-privileges:true
+      # Proxies in front of the API: Next.js, plus cloudflared.
+      PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-2}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # No published port: only the web service reaches it.
+
+  web:
+    build: { context: ., target: web, args: { PNW_API_URL: http://api:4001 } }
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      PNW_API_URL: http://api:4001
+      PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
+    # Bound to the host loopback only: cloudflared points here (http://localhost:4000).
+    ports: ["127.0.0.1:${PNW_PORT:-4000}:4000"]
+    security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
 
-  # Nightly pg_dump of the whole database (posts, pages, accounts AND media) into ./backups on the host.
+  # Nightly pg_dump of the whole database (content, accounts AND media) into ./backups on the host.
   # Run one now: docker compose run --rm backup once. Restore: README.md "Backups".
   backup:
     image: postgres:17
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres: { condition: service_healthy }
     entrypoint: ["/bin/sh", "/backup.sh"]
     environment:
       PGHOST: postgres
       PGUSER: petrik
-      PGDATABASE: petrik
+      PGDATABASE: ${PNW_DB_NAME:-petrik}
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PNW_BACKUP_KEEP_DAYS: ${PNW_BACKUP_KEEP_DAYS:-14}
       PNW_BACKUP_AT: ${PNW_BACKUP_AT:-03:30}
@@ -65,11 +71,11 @@ services:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel"]
     restart: unless-stopped
-    depends_on: [petrik]
-    # The tunnel's Public Hostname in the Cloudflare Zero Trust dashboard: http://petrik:4000
+    depends_on: [web]
+    # The tunnel's Public Hostname in the Cloudflare Zero Trust dashboard: http://web:4000
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set the Cloudflare tunnel token}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
 
 volumes:
   pgdata:

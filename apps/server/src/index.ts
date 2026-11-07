@@ -37,6 +37,11 @@ if (IS_PRODUCTION) {
     process.exit(1)
   }
   if (affected.length) console.log(`[petrik] demo passwords replaced with PNW_SEED_PASSWORD: ${affected.join(', ')}`)
+  // An empty database would get the demo accounts: never with their public passwords.
+  if (!config.seedPassword && (await db.select({ id: users.id }).from(users).limit(1)).length === 0) {
+    console.error('[petrik] The database has no accounts and PNW_SEED_PASSWORD is not set - refusing to create the demo accounts with public passwords in production.')
+    process.exit(1)
+  }
 }
 
 await seed(db, config.seedPassword)

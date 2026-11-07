@@ -1,11 +1,10 @@
-# Development with Docker:  docker compose -f docker-compose.dev.yml up
-#   site (Vite, HMR):   http://localhost:5173   (/api, /uploads and /media are proxied to the api service)
-#   API directly:       http://localhost:4000
-# The source code is bind-mounted from the host, so changes apply immediately (Vite HMR, `node --watch` for the API).
-# node_modules lives in a separate volume so it does not clash with the host's (macOS) packages.
-# An empty database gets 3 demo accounts (igazgato, helyettes, mk.vezeto; passwords: server/data/users-repo.ts).
-x-node: &node
-  image: node:24-slim
+# Development, one command:  docker compose -f docker-compose.dev.yml up
+#   public site (Next.js dev):  http://localhost:4000      admin (Vite, HMR):  http://localhost:5173/admin/
+#   API directly:               http://localhost:4001      Postgres:           127.0.0.1:5432 (petrik / petrik)
+# The repository is bind-mounted, so edits apply live. node_modules lives in its own volume.
+# An empty database gets the demo accounts (igazgato, helyettes, mk.vezeto; passwords in apps/server/src/lib/seed.ts).
+x-bun: &bun
+  image: oven/bun:1.4.4
   working_dir: /app
   volumes:
     - .:/app
@@ -20,7 +19,6 @@ services:
       POSTGRES_DB: petrik
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
-    # So host tools (psql, `npm run db:import`) can reach it too: DATABASE_URL=postgres://petrik:petrik@localhost:5432/petrik
     ports: ["127.0.0.1:5432:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U petrik -d petrik"]
@@ -30,29 +28,43 @@ services:
 
   # One-off: installs the dependencies into the shared node_modules volume.
   deps:
-    <<: *node
-    command: npm install --ignore-scripts
+    <<: *bun
+    command: bun install --frozen-lockfile
 
   api:
-    <<: *node
+    <<: *bun
     depends_on:
       postgres: { condition: service_healthy }
       deps: { condition: service_completed_successfully }
-    command: node --watch --experimental-strip-types server/index.ts
+    command: bun --watch apps/server/src/index.ts
     environment:
       DATABASE_URL: postgres://petrik:petrik@postgres:5432/petrik
-      PNW_PORT: "4000"
-      PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:-dev-only-secret}
+      PNW_API_PORT: "4001"
       PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:-}
-    ports: ["127.0.0.1:4000:4000"]
+    ports: ["127.0.0.1:4001:4001"]
 
   web:
-    <<: *node
+    # Next.js runs on Node; the image only needs bun to start the script.
+    image: node:24-slim
+    working_dir: /app/apps/client
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
     depends_on:
       deps: { condition: service_completed_successfully }
-    command: npx vite --host 0.0.0.0
+    command: node /app/node_modules/next/dist/bin/next dev --port 4000 --hostname 0.0.0.0
     environment:
-      VITE_PROXY_TARGET: http://api:4000
+      PNW_API_URL: http://api:4001
+    ports: ["127.0.0.1:4000:4000"]
+
+  admin:
+    <<: *bun
+    working_dir: /app/apps/admin
+    depends_on:
+      deps: { condition: service_completed_successfully }
+    command: bun run dev --host 0.0.0.0
+    environment:
+      VITE_SITE_URL: http://web:4000
     ports: ["127.0.0.1:5173:5173"]
 
 volumes:
