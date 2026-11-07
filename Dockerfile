@@ -37,7 +37,8 @@ CMD ["bun", "apps/server/src/index.ts"]
 FROM node:24-slim AS web
 WORKDIR /app
 ENV NODE_ENV=production PORT=4000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
-COPY --from=build /app/apps/client/.next/standalone ./
+# Owned by node: Next.js writes its data cache under apps/client/.next/cache at run time.
+COPY --from=build --chown=node:node /app/apps/client/.next/standalone ./
 COPY --from=build /app/apps/client/.next/static ./apps/client/.next/static
 COPY --from=build /app/apps/client/public ./apps/client/public
 USER node

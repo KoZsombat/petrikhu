@@ -4,6 +4,8 @@
  */
 import { defineConfig, devices } from '@playwright/test'
 
+/** The API and the site share it, so saves in the admin refresh the site's data cache at once. */
+const REVALIDATE_SECRET = 'e2e-revalidate-secret'
 const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL ?? 'postgres://petrik:petrik@localhost:5432/petrik_e2e'
 
 export default defineConfig({
@@ -18,14 +20,14 @@ export default defineConfig({
     {
       command: 'bun e2e/reset-db.ts && bun apps/server/src/index.ts',
       url: 'http://localhost:4001/healthz',
-      env: { DATABASE_URL: E2E_DATABASE_URL, PNW_API_PORT: '4001', NODE_ENV: 'test' },
+      env: { DATABASE_URL: E2E_DATABASE_URL, PNW_API_PORT: '4001', NODE_ENV: 'test', PNW_SITE_URL: 'http://localhost:4000', PNW_REVALIDATE_SECRET: REVALIDATE_SECRET, PNW_CLIENT_IP_HEADER: 'cf-connecting-ip' },
       reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: 'bun run --cwd apps/client start',
       url: 'http://localhost:4000/',
-      env: { PNW_API_URL: 'http://localhost:4001' },
+      env: { PNW_API_URL: 'http://localhost:4001', PNW_REVALIDATE_SECRET: REVALIDATE_SECRET, PNW_CLIENT_IP_HEADER: 'cf-connecting-ip' },
       reuseExistingServer: false,
       timeout: 120_000,
     },

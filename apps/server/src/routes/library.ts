@@ -8,6 +8,8 @@ import { logAudit } from '../lib/audit.ts'
 import { storeDocument } from '../lib/media.ts'
 import { defaultLibrary, getVersionedSetting, putSetting, putSettingIfVersion } from '../lib/seed.ts'
 import { conflictBody } from '../lib/conflict.ts'
+import { revalidateSite } from '../lib/revalidate.ts'
+import { TAG } from '@petrik/shared/cache-tags'
 import { validate } from '../lib/validate.ts'
 import { readUpload } from './media.ts'
 
@@ -26,6 +28,7 @@ library.put('/', validate('json', librarySaveBody), async (c) => {
   if (version === null) return c.json(await conflictBody(c.var.db, await getVersionedSetting(c.var.db, 'library')), 409)
   const count = value.categories.reduce((n, category) => n + category.docs.length, 0)
   await logAudit(c.var.db, { entityType: 'library', subject: 'Dokumentumtár', action: 'library_updated', note: `${value.categories.length} kategória, ${count} dokumentum`, userId: user.id })
+  await revalidateSite(c.var.config, [TAG.site])
   return c.json({ library: value, version })
 })
 
@@ -34,6 +37,7 @@ library.delete('/', async (c) => {
   const value = await defaultLibrary()
   await putSetting(c.var.db, 'library', value, user.id)
   await logAudit(c.var.db, { entityType: 'library', subject: 'Dokumentumtár', action: 'library_reset', userId: user.id })
+  await revalidateSite(c.var.config, [TAG.site])
   return c.json({ library: value, version: (await getVersionedSetting(c.var.db, 'library')).version })
 })
 

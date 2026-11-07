@@ -30,6 +30,10 @@ export type Config = {
   /** Username of the single admin seeded into an empty production database. */
   adminUsername: string
   showDemoLogins: boolean
+  /** The public site as the API reaches it (compose: http://web:4000), for cache revalidation. */
+  siteUrl: string
+  /** Shared with the site; without it the API does not ask the site to revalidate. */
+  revalidateSecret: string | undefined
   /** The built admin app, served at /admin. */
   adminDist: string
   /** Secure cookies: on behind HTTPS. */
@@ -50,6 +54,8 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     seedPassword: env.PNW_SEED_PASSWORD || undefined,
     adminUsername: env.PNW_ADMIN_USERNAME?.trim() || 'admin',
     showDemoLogins: env.PNW_SHOW_DEMO_LOGINS !== undefined ? env.PNW_SHOW_DEMO_LOGINS === 'true' : !IS_PRODUCTION,
+    siteUrl: (env.PNW_SITE_URL || 'http://localhost:4000').replace(/\/+$/, ''),
+    revalidateSecret: env.PNW_REVALIDATE_SECRET || undefined,
     adminDist: env.PNW_ADMIN_DIST ? resolve(env.PNW_ADMIN_DIST) : resolve(import.meta.dir, '../../admin/dist'),
     secureCookies: publicUrl.startsWith('https://'),
   }

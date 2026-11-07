@@ -28,7 +28,7 @@ export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
  */
 export const RESERVED_SLUGS = [
   'api', 'uploads', 'media', 'healthz', 'admin', '_next', 'en', 'hirek', 'kereses', 'elonezet', 'about-us',
-  'favicon.ico', 'robots.txt', 'sitemap.xml',
+  'favicon.ico', 'robots.txt', 'sitemap.xml', 'revalidate',
 ] as const
 
 export function isReservedSlug(slug: string): boolean {

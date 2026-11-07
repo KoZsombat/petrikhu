@@ -11,6 +11,8 @@ import type { Db } from '../db/client.ts'
 import { documents } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
 import { addRedirect, dropRedirectFrom, pagePath } from '../lib/redirects.ts'
+import { pageTags, revalidateSite } from '../lib/revalidate.ts'
+import { TAG } from '@petrik/shared/cache-tags'
 import { findDocument, searchTextOf, toPage, toPageSummary } from '../lib/documents.ts'
 import { defaultMenu, getVersionedSetting, putSetting, putSettingIfVersion } from '../lib/seed.ts'
 import { conflictBody } from '../lib/conflict.ts'
@@ -36,6 +38,7 @@ pages.put('/menu/:locale', validate('param', localeParam), validate('json', menu
   const version = await putSettingIfVersion(c.var.db, `menu.${locale}`, menu, user.id, expected)
   if (version === null) return c.json(await conflictBody(c.var.db, await getVersionedSetting(c.var.db, `menu.${locale}`)), 409)
   await logAudit(c.var.db, { entityType: 'menu', entityId: locale, subject: `Menü (${locale})`, action: 'menu_updated', note: `${menu.length} menüpont`, userId: user.id })
+  await revalidateSite(c.var.config, [TAG.site])
   return c.json({ menu, version })
 })
 
@@ -46,6 +49,7 @@ pages.delete('/menu/:locale', validate('param', localeParam), async (c) => {
   const menu = await defaultMenu(locale)
   await putSetting(c.var.db, `menu.${locale}`, menu, user.id)
   await logAudit(c.var.db, { entityType: 'menu', entityId: locale, subject: `Menü (${locale})`, action: 'menu_reset', userId: user.id })
+  await revalidateSite(c.var.config, [TAG.site])
   return c.json({ menu, version: (await getVersionedSetting(c.var.db, `menu.${locale}`)).version })
 })
 
@@ -114,6 +118,7 @@ pages.post('/', validate('json', pageSaveBody), async (c) => {
     })
     .returning()
   if (row.status === 'published') await dropRedirectFrom(c.var.db, pagePath(row.locale, row.slug))
+  if (row.status === 'published') await revalidateSite(c.var.config, pageTags(row.locale, [row.slug], true))
   await logAudit(c.var.db, { entityType: 'page', entityId: row.id, subject: row.title, action: 'page_created', toStatus: row.status, note: `/${row.locale === 'en' ? 'en/' : ''}${row.slug}`, userId: user.id })
   return c.json({ page: toPage(row) }, 201)
 })
@@ -153,6 +158,10 @@ pages.put('/:id', validate('json', pageSaveBody), async (c) => {
   if (existing.slug !== row.slug && existing.status === 'published') await addRedirect(c.var.db, pagePath(existing.locale, existing.slug), pagePath(row.locale, row.slug), user.id)
   if (row.status === 'published') await dropRedirectFrom(c.var.db, pagePath(row.locale, row.slug))
   const note = [existing.status !== row.status ? `${existing.status} → ${row.status}` : '', existing.slug !== row.slug ? `/${existing.slug} → /${row.slug}` : ''].filter(Boolean).join('\n')
+  if (existing.status === 'published' || row.status === 'published') {
+    const structural = existing.slug !== row.slug || existing.status !== row.status || existing.translationOf !== row.translationOf || existing.title !== row.title
+    await revalidateSite(c.var.config, pageTags(row.locale, [existing.slug, row.slug], structural))
+  }
   await logAudit(c.var.db, { entityType: 'page', entityId: row.id, subject: row.title, action: 'page_updated', fromStatus: existing.status, toStatus: row.status, note: note || null, userId: user.id })
   return c.json({ page: toPage(row) })
 })
@@ -170,6 +179,7 @@ pages.delete('/:id', async (c) => {
   }
   const trashed = await c.var.db.update(documents).set({ status: 'trash', updatedAt: new Date(), updatedById: user.id }).where(and(eq(documents.id, page.id), eq(documents.status, page.status))).returning({ id: documents.id })
   if (!trashed.length) return c.json({ error: 'status_changed' }, 409)
+  if (page.status === 'published') await revalidateSite(c.var.config, pageTags(page.locale, [page.slug], true))
   await logAudit(c.var.db, { entityType: 'page', entityId: page.id, subject: page.title, action: 'page_trashed', fromStatus: page.status, toStatus: 'trash', userId: user.id })
   return c.json({ ok: true, permanent: false })
 })

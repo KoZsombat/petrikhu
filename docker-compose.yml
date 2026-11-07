@@ -35,6 +35,9 @@ services:
       PNW_CLIENT_IP_HEADER: ${PNW_CLIENT_IP_HEADER-cf-connecting-ip}
       # Opt-in X-Forwarded-For hop counting instead of the header (0 = off). See .env.example.
       PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-0}
+      # After a change the API asks the site to refresh its data cache (shared secret, see .env.example).
+      PNW_SITE_URL: http://web:4000
+      PNW_REVALIDATE_SECRET: ${PNW_REVALIDATE_SECRET:-}
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     # No published port: only the web service reaches it.
@@ -49,6 +52,8 @@ services:
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       # Passed on to the API with searches, so the per-IP search limit counts visitors, not this server.
       PNW_CLIENT_IP_HEADER: ${PNW_CLIENT_IP_HEADER-cf-connecting-ip}
+      # Only the API may refresh the data cache (POST /revalidate).
+      PNW_REVALIDATE_SECRET: ${PNW_REVALIDATE_SECRET:-}
     # Bound to the host loopback only: cloudflared points here (http://localhost:4000).
     ports: ["127.0.0.1:${PNW_PORT:-4000}:4000"]
     security_opt: [no-new-privileges:true]

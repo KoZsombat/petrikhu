@@ -60,7 +60,7 @@ await seed(db, config.seedPassword, { production: IS_PRODUCTION, adminUsername: 
 const app = createApp(createDeps(db, config))
 
 setInterval(() => {
-  sweepScheduledPosts(db).catch((error) => console.error('[petrik] scheduled-publish sweep failed', error))
+  sweepScheduledPosts(db, new Date(), config).catch((error) => console.error('[petrik] scheduled-publish sweep failed', error))
 }, SCHEDULE_CHECK_MS)
 
 const server = Bun.serve({ port: config.port, fetch: app.fetch, maxRequestBodySize: 16 * 1024 * 1024 })

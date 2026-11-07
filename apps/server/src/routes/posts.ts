@@ -12,6 +12,7 @@ import { uniqueSlug } from '@petrik/shared/slug'
 import { isEmptyDoc } from '@petrik/shared/tiptap'
 import { canDecidePost, canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
 import type { PostStatus } from '@petrik/shared/workflow'
+import type { Config } from '../config.ts'
 import type { AppEnv } from '../context.ts'
 import { requireUser, userOf } from '../context.ts'
 import type { Db } from '../db/client.ts'
@@ -19,6 +20,7 @@ import { documents } from '../db/schema.ts'
 import { listAudit, logAudit } from '../lib/audit.ts'
 import { conflictBody } from '../lib/conflict.ts'
 import { addRedirect, postPath } from '../lib/redirects.ts'
+import { postTags, revalidateSite } from '../lib/revalidate.ts'
 import type { DocumentRow } from '../lib/documents.ts'
 import { countSql, existingTermIds, findDocument, likePattern, postBlocks, searchTextOf, setTerms, slugsOf, termIdsOf, toPost, toPostSummary } from '../lib/documents.ts'
 import { validate } from '../lib/validate.ts'
@@ -241,6 +243,8 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
   if (schedule) {
     await logAudit(c.var.db, { entityType: 'post', entityId: row.id, subject: row.title, action: 'rescheduled', fromStatus: 'scheduled', toStatus: 'scheduled', note: `Publikálás: ${budapest(existing.scheduledFor)} → ${budapest(schedule.scheduledFor)}`, userId: user.id })
   }
+  // A published post's edit goes live at once (news.manage); its cached pages are refreshed.
+  if (existing.status === 'published') await revalidateSite(c.var.config, postTags(existing.slug, slug))
   const notice = submit ? 'submitted' : action === 'reviewer_edited' ? 'review_saved' : action === 'published_updated' ? 'published_updated' : action === 'scheduled_edited' ? (schedule ? 'rescheduled' : 'scheduled_saved') : 'draft_saved'
   return c.json({ post: await full(c.var.db, row), notice })
 })
@@ -281,6 +285,7 @@ posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
     return c.json({ error: 'status_changed' }, 409)
   }
   await audit('approved', 'published', body.note || undefined)
+  await revalidateSite(c.var.config, postTags(existing.slug))
   return c.json({ notice: 'approved' })
 })
 
@@ -297,6 +302,7 @@ posts.post('/:id/unschedule', async (c) => {
     .returning({ id: documents.id })
   if (!row) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'unscheduled', fromStatus: 'scheduled', toStatus: 'in_review', note: `Volt: ${budapest(existing.scheduledFor)}`, userId: user.id })
+  await revalidateSite(c.var.config, postTags(existing.slug))
   return c.json({ notice: 'unscheduled' })
 })
 
@@ -309,6 +315,7 @@ posts.post('/:id/archive', async (c) => {
   if (!existing || existing.status !== 'published') return c.json({ error: 'not_found' }, 404)
   if (!(await moved(c.var.db, existing.id, 'published', { status: 'archived', archivedAt: new Date(), archivedById: user.id, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'published_archived', fromStatus: 'published', toStatus: 'archived', userId: user.id })
+  await revalidateSite(c.var.config, postTags(existing.slug))
   return c.json({ notice: 'published_archived' })
 })
 
@@ -319,6 +326,7 @@ posts.post('/:id/unarchive', async (c) => {
   if (!existing || existing.status !== 'archived') return c.json({ error: 'not_found' }, 404)
   if (!(await moved(c.var.db, existing.id, 'archived', { status: 'published', archivedAt: null, archivedById: null, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'archived_restored', fromStatus: 'archived', toStatus: 'published', userId: user.id })
+  await revalidateSite(c.var.config, postTags(existing.slug))
   return c.json({ notice: 'archived_restored' })
 })
 
@@ -335,6 +343,7 @@ posts.delete('/:id', async (c) => {
   }
   if (!(await moved(c.var.db, existing.id, existing.status, { status: 'trash', trashedFrom: existing.status, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'trashed', fromStatus: existing.status, toStatus: 'trash', userId: user.id })
+  if (existing.status === 'published') await revalidateSite(c.var.config, postTags(existing.slug))
   return c.json({ notice: 'trashed', permanent: false })
 })
 
@@ -350,16 +359,20 @@ posts.post('/:id/untrash', async (c) => {
 
 export default posts
 
-/** Publishes the scheduled posts that are due. Runs every minute (index.ts); single instance assumed. */
-export async function sweepScheduledPosts(db: Db, now = new Date()): Promise<number> {
+/**
+ * Publishes the scheduled posts that are due. Runs every minute (index.ts); single instance assumed. With
+ * `config`, the site's cache is refreshed for them.
+ */
+export async function sweepScheduledPosts(db: Db, now = new Date(), config?: Pick<Config, 'siteUrl' | 'revalidateSecret'>): Promise<number> {
   const due = await db
     .update(documents)
     .set({ status: 'published', scheduledFor: null, updatedAt: now })
     .where(and(isPost, eq(documents.status, 'scheduled'), lte(documents.scheduledFor, now)))
-    .returning({ id: documents.id, title: documents.title, publishedAt: documents.publishedAt })
+    .returning({ id: documents.id, slug: documents.slug, title: documents.title, publishedAt: documents.publishedAt })
   for (const post of due) {
     await logAudit(db, { entityType: 'post', entityId: post.id, subject: post.title, action: 'scheduled_published', fromStatus: 'scheduled', toStatus: 'published', note: 'Az időzített hír automatikusan megjelent.', userId: null })
   }
+  if (due.length && config) await revalidateSite(config, postTags(...due.map((post) => post.slug)))
   return due.length
 }
 

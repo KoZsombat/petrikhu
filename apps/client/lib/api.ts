@@ -1,10 +1,14 @@
 /**
- * Server-side reads from the Hono API (never from the browser): every page is rendered with its content,
- * so nothing is swapped in after load. No caching here: an edit in the admin shows on the next request.
+ * Server-side reads from the Hono API (never from the browser): every page is rendered with its content, so
+ * nothing is swapped in after load. Public reads go through Next's data cache, tagged per document, per list and
+ * for the site settings (packages/shared/src/cache-tags.ts); the API revalidates the tags after every change
+ * (app/revalidate/route.ts), and REVALIDATE_SECONDS is the safety net. Pages are still rendered per request
+ * (the CSP nonce), only their data comes from the cache. Previews and searches are never cached.
  */
 import 'server-only'
 import { cache } from 'react'
 import { headers } from 'next/headers'
+import { TAG } from '@petrik/shared/cache-tags'
 import { PUBLIC_POSTS_MAX_LIMIT, PUBLIC_POSTS_MAX_OFFSET } from '@petrik/shared/schemas'
 import type { Locale, PublicPage, PublicPost, PublicPostSummary, PublicSite, PublicSitemap } from '@petrik/shared/schemas'
 
@@ -22,24 +26,31 @@ export class ApiStatusError extends Error {
   }
 }
 
-async function get<T>(path: string, init: RequestInit = {}): Promise<T | null> {
-  const res = await fetch(`${API}${path}`, { cache: 'no-store', ...init })
+/** The longest any public data is served from the cache when a revalidation call was missed. */
+export const REVALIDATE_SECONDS = 60
+
+/** Cached for REVALIDATE_SECONDS under these tags (plus TAG.all). */
+const cached = (...tags: string[]): RequestInit => ({ next: { revalidate: REVALIDATE_SECONDS, tags: [TAG.all, ...tags] } })
+const uncached: RequestInit = { cache: 'no-store' }
+
+async function get<T>(path: string, init: RequestInit): Promise<T | null> {
+  const res = await fetch(`${API}${path}`, init)
   if (res.status === 404 || res.status === 401) return null
   if (!res.ok) throw new ApiStatusError(path, res.status)
   return (await res.json()) as T
 }
 
 export const getSite = cache(async (locale: Locale): Promise<PublicSite> => {
-  const site = await get<PublicSite>(`/api/public/site/${locale}`)
+  const site = await get<PublicSite>(`/api/public/site/${locale}`, cached(TAG.site, TAG.pages))
   return site ?? { menu: [], library: { categories: [] }, translations: [] }
 })
 
 export const getPage = cache(async (locale: Locale, slug: string): Promise<PublicPage | null> => {
-  return (await get<{ page: PublicPage }>(`/api/public/pages/${locale}/${encodeURIComponent(slug)}`))?.page ?? null
+  return (await get<{ page: PublicPage }>(`/api/public/pages/${locale}/${encodeURIComponent(slug)}`, cached(TAG.page(locale, slug), TAG.pages)))?.page ?? null
 })
 
 export const getPost = cache(async (slug: string): Promise<PublicPost | null> => {
-  return (await get<{ post: PublicPost }>(`/api/public/posts/${encodeURIComponent(slug)}`))?.post ?? null
+  return (await get<{ post: PublicPost }>(`/api/public/posts/${encodeURIComponent(slug)}`, cached(TAG.post(slug), TAG.posts)))?.post ?? null
 })
 
 /**
@@ -52,7 +63,8 @@ export async function getPosts(query: { limit?: number; offset?: number; categor
   const params = new URLSearchParams()
   const bounded = { ...query, offset, limit: Math.min(PUBLIC_POSTS_MAX_LIMIT, Math.max(1, Math.floor(query.limit ?? 10))), q: query.q?.trim().slice(0, 200) }
   for (const [key, value] of Object.entries(bounded)) if (value !== undefined && value !== '') params.set(key, String(value))
-  const init: RequestInit = {}
+  // A list is cached; a search (any text) is not, and carries the visitor's IP for the API's search limit.
+  const init: RequestInit = bounded.q ? { ...uncached } : cached(TAG.posts)
   if (bounded.q && CLIENT_IP_HEADER) {
     const ip = (await headers()).get(CLIENT_IP_HEADER)
     if (ip) init.headers = { [CLIENT_IP_HEADER]: ip }
@@ -63,11 +75,11 @@ export async function getPosts(query: { limit?: number; offset?: number; categor
 /** A preview made in the admin: the visitor's own session cookie is passed on, only its author can open it. */
 export async function getPreview(id: string): Promise<{ kind: 'page'; page: PublicPage } | { kind: 'post'; post: PublicPost } | null> {
   const cookie = (await headers()).get('cookie') ?? ''
-  return get(`/api/preview/${encodeURIComponent(id)}`, { headers: { cookie } })
+  return get(`/api/preview/${encodeURIComponent(id)}`, { ...uncached, headers: { cookie } })
 }
 
 export async function getSitemap(): Promise<PublicSitemap> {
-  return (await get<PublicSitemap>('/api/public/sitemap')) ?? { pages: [], posts: [], translations: [] }
+  return (await get<PublicSitemap>('/api/public/sitemap', cached(TAG.sitemap, TAG.pages, TAG.posts))) ?? { pages: [], posts: [], translations: [] }
 }
 
 /**
@@ -75,6 +87,6 @@ export async function getSitemap(): Promise<PublicSitemap> {
  * Only called when a page is not found.
  */
 export async function resolveRedirect(path: string): Promise<string | null> {
-  const body = await get<{ redirect: string | null }>(`/api/public/resolve?path=${encodeURIComponent(path)}`)
+  const body = await get<{ redirect: string | null }>(`/api/public/resolve?path=${encodeURIComponent(path)}`, cached(TAG.redirects, TAG.pages, TAG.posts))
   return body?.redirect ?? null
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { connection } from 'next/server'
 import { getSite } from '@/lib/api'
 import { t as translatorFor } from '@/lib/i18n'
 import type { Locale } from '@/lib/i18n'
@@ -7,8 +8,13 @@ import { Footer } from './Footer'
 import { Header } from './Header'
 import { UpperHeader } from './UpperHeader'
 
-/** The page frame of the public site: top bar, main menu, footer. */
+/**
+ * The page frame of the public site: top bar, main menu, footer. Every page is rendered per request (the CSP
+ * nonce is per request, so nothing may be prerendered at build time); `connection()` says so without turning
+ * off the data cache that the reads in lib/api.ts use.
+ */
 export async function Frame({ locale, children }: { locale: Locale; children: ReactNode }) {
+  await connection()
   const site = await getSite(locale)
   const t = translatorFor(locale)
   return (

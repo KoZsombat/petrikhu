@@ -209,6 +209,27 @@ Steps (all on the server, in the repository folder):
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
 migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
 
+## Caching
+
+Pages are still rendered on the server for every request (each response gets its own CSP nonce), but their data
+comes from Next.js's data cache: the public reads in `apps/client/lib/api.ts` are tagged per document
+(`page:<locale>:<slug>`, `post:<slug>`), per list (`pages`, `posts`, `sitemap`, `redirects`) and for the site
+settings (`site`: menus, library, translations), with a 60-second `revalidate` as a safety net. Previews and
+searches are never cached. After every change to public output (page save/publish/trash, post publish, edit of a
+published post, archive, unarchive, trash, unschedule, the scheduled-post sweep, menu, library, media delete,
+redirects) the API calls the site's `POST /revalidate` with the shared secret `PNW_REVALIDATE_SECRET`, and the tags
+expire at once. A failed call is logged and never fails the API request; without the secret the site catches up
+within a minute. The API reaches the site at `PNW_SITE_URL` (compose: `http://web:4000`).
+
+Measured on the seeded site (API requests made by the site per page view, 2nd and later views):
+
+| Page | Before | After |
+|---|---|---|
+| `/` | 2 | 0 |
+| `/bemutatkozas`, `/elerhetoseg` | 3 (incl. the proxy's `/resolve`) | 0 |
+| `/hirek` | 3 | 0 |
+| `/en/contact` | 2 | 0 |
+
 ## Media and documents
 
 Uploads get an unguessable name (128 random bits; documents keep a readable prefix), e.g.

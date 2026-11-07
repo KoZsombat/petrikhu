@@ -12,6 +12,8 @@ import type { Db } from '../db/client.ts'
 import { listImages, mediaKey, storeImage } from '../lib/media.ts'
 import { listDocuments, unusedUploads, usagesOf } from '../lib/media-usage.ts'
 import { validate } from '../lib/validate.ts'
+import { revalidateSite } from '../lib/revalidate.ts'
+import { TAG } from '@petrik/shared/cache-tags'
 
 /** The single `file` field of a multipart upload; null for anything else (wrong field, not multipart). */
 export async function readUpload(c: Context): Promise<File | null> {
@@ -77,6 +79,7 @@ routes.delete('/:id', async (c) => {
   if (usages.length) return c.json({ error: 'in_use', usages }, 409)
   const [gone] = await c.var.db.delete(media).where(eq(media.id, row.id)).returning({ path: media.path })
   if (!gone) return c.json({ error: 'not_found' }, 404)
+  await revalidateSite(c.var.config, [TAG.all])
   await logAudit(c.var.db, { entityType: 'media', entityId: row.id, subject: gone.path, action: 'media_deleted', note: `${row.mime}, ${Math.round(row.size / 1024)} KB`, userId: user.id })
   return c.json({ ok: true })
 })
