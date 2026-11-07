@@ -8,7 +8,7 @@ import { useLocation, useNavigate, useParams } from 'react-router'
 import { emptyDoc } from '@petrik/shared/tiptap'
 import type { RichDoc } from '@petrik/shared/tiptap'
 import type { Post, PostSaveBody } from '@petrik/shared/schemas'
-import { AUDIT_ACTION_LABEL, canEditPost, canTrashPost } from '@petrik/shared/workflow'
+import { AUDIT_ACTION_LABEL, canDecidePost, canEditPost, canTrashPost } from '@petrik/shared/workflow'
 import { dateTime } from '@petrik/shared/format'
 import { del, get, openPreview, post, put } from '../api.ts'
 import { useTerms, useUserNames } from '../data.ts'
@@ -34,6 +34,17 @@ const NOTICES: Record<string, string> = {
   untrashed: 'Visszaállítva piszkozatként.',
   published_archived: 'Archiválva.',
   archived_restored: 'Visszaállítva és újrapublikálva.',
+  scheduled_saved: 'Módosítások elmentve; az időzítés nem változott.',
+  rescheduled: 'Módosítások és az új időzítés elmentve.',
+  unscheduled: 'Időzítés visszavonva; a hír újra jóváhagyásra vár.',
+}
+
+/** An ISO time as the value of a datetime-local input (local time, minutes). */
+export function toLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export function PostEditor() {
@@ -50,6 +61,8 @@ export function PostEditor() {
   const [picking, setPicking] = useState(false)
   const [note, setNote] = useState('')
   const [publishAt, setPublishAt] = useState('')
+  // A scheduled post's time, editable by a reviewer (follows the loaded post).
+  const [scheduleAt, setScheduleAt] = useState('')
   const [newTerm, setNewTerm] = useState('')
   const action = useAction()
   // A notice handed over by the previous screen (a new post saves, then opens at its own address).
@@ -62,6 +75,7 @@ export function PostEditor() {
   if (formFor !== key && (isNew || current)) {
     setFormFor(key)
     setForm(current ? fromPost(current) : blank())
+    setScheduleAt(toLocalInput(current?.scheduledFor ?? null))
   }
 
   if (!isNew && !current) return loaded.error ? <Notice tone="error">{loaded.error}</Notice> : null
@@ -71,7 +85,8 @@ export function PostEditor() {
   const toggle = (field: 'categoryIds' | 'tagIds', termId: string) => set(field, form[field].includes(termId) ? form[field].filter((x) => x !== termId) : [...form[field], termId])
 
   async function save(command: 'draft' | 'submit') {
-    const body = { ...form, command }
+    const moved = current?.status === 'scheduled' && scheduleAt && scheduleAt !== toLocalInput(current.scheduledFor)
+    const body = { ...form, command, ...(moved ? { publishAt: new Date(scheduleAt).toISOString() } : {}) }
     await action.run(async () => {
       if (isNew) {
         const res = await post<{ post: Post; notice: string }>('/posts', body)
@@ -122,7 +137,7 @@ export function PostEditor() {
 
   const categories = treeOrder(terms.filter((t) => t.kind === 'category'))
   const tags = terms.filter((t) => t.kind === 'tag')
-  const reviewer = can('news.review')
+  const reviewer = !!user && canDecidePost(user)
 
   return (
     <div className="max-w-5xl">
@@ -239,6 +254,11 @@ export function PostEditor() {
             Módosítások mentése
           </Button>
         )}
+        {current && status === 'scheduled' && reviewer && (
+          <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/unschedule`)}>
+            Időzítés visszavonása
+          </Button>
+        )}
         {current && status === 'published' && can('news.manage') && <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/archive`)}>Archiválás</Button>}
         {current && status === 'archived' && can('news.manage') && <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/unarchive`)}>Visszaállítás és újrapublikálás</Button>}
         {current && status === 'trash' && user && canTrashPost(current, user) && (
@@ -255,6 +275,16 @@ export function PostEditor() {
           </Button>
         )}
       </div>
+
+      {current && status === 'scheduled' && reviewer && (
+        <Card title="Időzítés" className="mt-6">
+          <div className="flex flex-wrap items-end gap-2">
+            <Label label="Megjelenés időpontja" hint="A „Módosítások mentése” gomb ezt is elmenti. Legalább egy perccel későbbi időpont legyen.">
+              <Input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
+            </Label>
+          </div>
+        </Card>
+      )}
 
       {current && status === 'in_review' && reviewer && (
         <Card title="Döntés" className="mt-6">

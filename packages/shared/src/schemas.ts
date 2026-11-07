@@ -69,6 +69,8 @@ export const postSaveBody = z.object({
   imagePosition: z.enum(['top', 'bottom']).default('top'),
   /** `submit`: save and send for review (authors), otherwise save only. */
   command: z.enum(['draft', 'submit']).default('draft'),
+  /** Only for a scheduled post (news.review): its new publication time. */
+  publishAt: z.iso.datetime({ offset: true }).optional(),
 })
 export type PostSaveBody = z.input<typeof postSaveBody>
 

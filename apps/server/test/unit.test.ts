@@ -6,7 +6,7 @@ import { CAPABILITIES, ROLES, ROLE_CAPABILITIES, can, smallestRoleCovering } fro
 import { menuSchema } from '@petrik/shared/schemas'
 import { fold, isReservedSlug, slugify, uniqueSlug } from '@petrik/shared/slug'
 import { firstImage, isEmptyDoc, plainText } from '@petrik/shared/tiptap'
-import { canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
+import { canDecidePost, canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
 import { limitFor, DEFAULT_BODY_BYTES, DOCUMENT_BODY_BYTES, UPLOAD_BODY_BYTES } from '../src/lib/limits.ts'
 import { htmlToTiptap } from '../src/lib/html-to-tiptap.ts'
 import { convertPageBlocks, runsToTiptap } from '../src/lib/legacy-content.ts'
@@ -47,6 +47,14 @@ describe('workflow access', () => {
     expect(canEditPost({ authorId: 'x', status: 'in_review' }, reviewer)).toBe(true)
     expect(canEditPost({ authorId: 'x', status: 'published' }, reviewer)).toBe(true)
     expect(canEditPost({ authorId: 'x', status: 'archived' }, reviewer)).toBe(false)
+    expect(canEditPost({ authorId: 'x', status: 'scheduled' }, reviewer)).toBe(true)
+    expect(canEditPost({ authorId: 'a', status: 'scheduled' }, author)).toBe(false)
+  })
+  test('deciding (approve, schedule, unschedule) is news.review only; authors never', () => {
+    expect(canDecidePost(reviewer)).toBe(true)
+    expect(canDecidePost({ role: 'admin' })).toBe(true)
+    expect(canDecidePost(author)).toBe(false)
+    expect(canDecidePost({ role: 'editor' })).toBe(false)
   })
   test('trashing or deleting a published, scheduled or archived post needs news.manage', () => {
     const manageless = { id: 'm', role: 'reviewer' }

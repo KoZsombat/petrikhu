@@ -35,9 +35,12 @@ export function trashRuleStatus(post: PostRef): string {
   return post.trashedFrom ?? (post.publishedAt ? 'published' : 'draft')
 }
 
-/** Edit the content: the author their own draft (also a rejected one); a reviewer any post in review or draft. */
+/**
+ * Edit the content: the author their own draft (also a rejected one); a reviewer any draft, post in review or
+ * scheduled post (which keeps its schedule); a manager a published post.
+ */
 export function canEditPost(post: PostRef, user: User): boolean {
-  if (can(user, 'news.review') && (post.status === 'draft' || post.status === 'in_review')) return true
+  if (can(user, 'news.review') && (post.status === 'draft' || post.status === 'in_review' || post.status === 'scheduled')) return true
   if (can(user, 'news.manage') && post.status === 'published') return true
   return can(user, 'news.write') && post.authorId === user.id && post.status === 'draft'
 }
@@ -50,6 +53,14 @@ export function canTrashPost(post: PostRef, user: User): boolean {
   if (PUBLIC_POST_STATUSES.includes(trashRuleStatus(post))) return can(user, 'news.manage')
   if (can(user, 'news.review')) return true
   return can(user, 'news.write') && post.authorId === user.id && (post.status === 'draft' || post.status === 'trash')
+}
+
+/**
+ * Approve (now or scheduled), reject, unschedule: whoever holds `news.review`, for any post, their own included.
+ * An author (news.write only) never decides.
+ */
+export function canDecidePost(user: { role: string }): boolean {
+  return can(user, 'news.review')
 }
 
 /** See it in the admin: reviewers and managers everything, an author their own posts. */
@@ -80,6 +91,9 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   approved: 'Jóváhagyva és publikálva',
   scheduled: 'Jóváhagyva és időzítve',
   scheduled_published: 'Időzített hír automatikusan megjelent',
+  scheduled_edited: 'Időzített hír módosítva',
+  rescheduled: 'Időzítés módosítva',
+  unscheduled: 'Időzítés visszavonva (újra jóváhagyásra vár)',
   trashed: 'Lomtárba helyezve',
   published_updated: 'Publikált hír módosítva',
   published_archived: 'Archiválva',

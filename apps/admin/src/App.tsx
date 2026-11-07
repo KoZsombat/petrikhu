@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router'
-import { BarChart3, FileText, FolderOpen, Gauge, History, Image, Inbox, KeyRound, LayoutTemplate, ListTree, LogOut, Newspaper, Trash2, Users } from 'lucide-react'
+import { BarChart3, CalendarClock, FileText, FolderOpen, Gauge, History, Image, Inbox, KeyRound, LayoutTemplate, ListTree, LogOut, Newspaper, Trash2, Users } from 'lucide-react'
 import { Suspense, lazy } from 'react'
 import type { ReactNode } from 'react'
 import type { Capability } from '@petrik/shared/roles'
@@ -31,6 +31,7 @@ const NAV: { title?: string; items: NavItem[] }[] = [
     items: [
       { to: '/hirek/uj', label: 'Új hír', icon: <Newspaper size={16} />, caps: ['news.write'] },
       { to: '/hirek/jovahagyas', label: 'Jóváhagyásra vár', icon: <Inbox size={16} />, caps: ['news.review'] },
+      { to: '/hirek/idozitett', label: 'Időzített', icon: <CalendarClock size={16} />, caps: ['news.review'] },
       { to: '/hirek/kint', label: 'Publikált', icon: <FileText size={16} />, caps: ['news.manage'] },
       { to: '/hirek/archivum', label: 'Archívum', icon: <History size={16} />, caps: ['news.manage'] },
       { to: '/hirek/lomtar', label: 'Lomtár', icon: <Trash2 size={16} />, caps: ['news.write', 'news.review'] },
@@ -112,6 +113,7 @@ export function App() {
           <Route path="/hirek/uj" element={<Guard caps={['news.write']}><PostEditor /></Guard>} />
           <Route path="/hirek/:id" element={<PostEditor />} />
           <Route path="/hirek/jovahagyas" element={<Guard caps={['news.review']}><PostList status="in_review" /></Guard>} />
+          <Route path="/hirek/idozitett" element={<Guard caps={['news.review']}><PostList status="scheduled" /></Guard>} />
           <Route path="/hirek/kint" element={<Guard caps={['news.manage']}><PostList status="published" /></Guard>} />
           <Route path="/hirek/archivum" element={<Guard caps={['news.manage']}><PostList status="archived" /></Guard>} />
           <Route path="/hirek/lomtar" element={<Guard caps={['news.write', 'news.review']}><PostList status="trash" /></Guard>} />

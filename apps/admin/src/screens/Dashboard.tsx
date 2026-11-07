@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import type { ReactNode } from 'react'
 import type { PostSummary } from '@petrik/shared/schemas'
 import type { PostStatus } from '@petrik/shared/workflow'
 import { dateTime } from '@petrik/shared/format'
@@ -30,7 +31,7 @@ function Stat({ label, value, to }: { label: string; value: number; to?: string 
   return to ? <Link to={to}>{body}</Link> : body
 }
 
-export function PostRows({ posts, empty, date = 'updatedAt' }: { posts: PostSummary[]; empty: string; date?: 'updatedAt' | 'publishedAt' | 'scheduledFor' }) {
+export function PostRows({ posts, empty, date = 'updatedAt', actions }: { posts: PostSummary[]; empty: string; date?: 'updatedAt' | 'publishedAt' | 'scheduledFor'; actions?: (post: PostSummary) => ReactNode }) {
   const names = useUserNames()
   if (!posts.length) return <Empty>{empty}</Empty>
   return (
@@ -46,7 +47,10 @@ export function PostRows({ posts, empty, date = 'updatedAt' }: { posts: PostSumm
             </p>
             {post.reviewNote && post.status === 'draft' && <p className="mt-0.5 text-xs text-amber-800">„{post.reviewNote}”</p>}
           </div>
-          <StatusBadge status={post.status} rejected={!!post.reviewNote} />
+          <span className="flex items-center gap-2">
+            {actions?.(post)}
+            <StatusBadge status={post.status} rejected={!!post.reviewNote} />
+          </span>
         </li>
       ))}
     </ul>
@@ -99,7 +103,7 @@ export function Dashboard() {
             <Card title="Saját piszkozataim" actions={<Link className="text-sm font-medium text-petrikaccentdark hover:underline" to="/hirek/uj">+ Új hír</Link>}>
               <PostRows posts={data.own} empty="Nincs piszkozatod." />
             </Card>
-            <Card title="Időzített hírek">
+            <Card title="Időzített hírek" actions={<Link className="text-sm font-medium text-petrikaccentdark hover:underline" to="/hirek/idozitett">Mind</Link>}>
               <PostRows posts={data.scheduled} empty="Nincs időzített hír." date="scheduledFor" />
             </Card>
             <Card title="Legutóbb módosított kint lévő hírek">

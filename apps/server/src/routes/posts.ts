@@ -10,7 +10,7 @@ import { can } from '@petrik/shared/roles'
 import { adminPostsQuery, postSaveBody, reviewDecisionBody } from '@petrik/shared/schemas'
 import { uniqueSlug } from '@petrik/shared/slug'
 import { isEmptyDoc } from '@petrik/shared/tiptap'
-import { canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
+import { canDecidePost, canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
 import type { PostStatus } from '@petrik/shared/workflow'
 import type { AppEnv } from '../context.ts'
 import { requireUser, userOf } from '../context.ts'
@@ -25,6 +25,10 @@ const posts = new Hono<AppEnv>()
 posts.use(requireUser)
 
 const isPost = eq(documents.type, 'post')
+
+/** A date as the school reads it, for audit notes. */
+const budapest = (date: Date | null) => (date ? date.toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' }) : '—')
+
 
 async function summaries(db: Db, rows: DocumentRow[]) {
   const termIds = await termIdsOf(db, rows.map((r) => r.id))
@@ -182,24 +186,44 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
 
   const submit = existing.status === 'draft' && body.command === 'submit'
   const status = submit ? 'in_review' : existing.status
+  // A scheduled post keeps its schedule; a reviewer may move it (at least a minute ahead).
+  let schedule: { scheduledFor: Date; publishedAt: Date; scheduledById: string } | undefined
+  if (existing.status === 'scheduled' && body.publishAt) {
+    const at = new Date(body.publishAt)
+    if (at.getTime() <= Date.now() + 60_000) return c.json({ error: 'schedule_invalid' }, 422)
+    if (at.getTime() !== existing.scheduledFor?.getTime()) schedule = { scheduledFor: at, publishedAt: at, scheduledById: user.id }
+  }
   const [row] = await c.var.db
     .update(documents)
-    .set({ ...contentColumns(body), status, updatedById: user.id, ...(submit ? { submittedAt: new Date(), reviewNote: null } : {}) })
-    .where(eq(documents.id, existing.id))
+    .set({ ...contentColumns(body), status, updatedById: user.id, ...(submit ? { submittedAt: new Date(), reviewNote: null } : {}), ...schedule })
+    .where(and(eq(documents.id, existing.id), eq(documents.status, existing.status)))
     .returning()
+  if (!row) return c.json({ error: 'status_changed' }, 409)
   await setTerms(c.var.db, row.id, [...checked.categoryIds, ...checked.tagIds])
 
-  const action = submit ? 'submitted' : existing.status === 'in_review' ? 'reviewer_edited' : existing.status === 'published' ? 'published_updated' : 'updated_draft'
+  const action = submit
+    ? 'submitted'
+    : existing.status === 'in_review'
+      ? 'reviewer_edited'
+      : existing.status === 'published'
+        ? 'published_updated'
+        : existing.status === 'scheduled'
+          ? 'scheduled_edited'
+          : 'updated_draft'
   await logAudit(c.var.db, { entityType: 'post', entityId: row.id, subject: row.title, action, fromStatus: existing.status, toStatus: status, userId: user.id })
-  const notice = submit ? 'submitted' : action === 'reviewer_edited' ? 'review_saved' : action === 'published_updated' ? 'published_updated' : 'draft_saved'
+  if (schedule) {
+    await logAudit(c.var.db, { entityType: 'post', entityId: row.id, subject: row.title, action: 'rescheduled', fromStatus: 'scheduled', toStatus: 'scheduled', note: `Publikálás: ${budapest(existing.scheduledFor)} → ${budapest(schedule.scheduledFor)}`, userId: user.id })
+  }
+  const notice = submit ? 'submitted' : action === 'reviewer_edited' ? 'review_saved' : action === 'published_updated' ? 'published_updated' : action === 'scheduled_edited' ? (schedule ? 'rescheduled' : 'scheduled_saved') : 'draft_saved'
   return c.json({ post: await full(c.var.db, row), notice })
 })
 
 /* --- review ------------------------------------------------------------------------------------------- */
 
+/** Approve or reject: any `news.review` holder, also for their own post (the audit entry records who). */
 posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
   const user = userOf(c)
-  if (!can(user, 'news.review')) return c.json({ error: 'forbidden' }, 403)
+  if (!canDecidePost(user)) return c.json({ error: 'forbidden' }, 403)
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || existing.status !== 'in_review') return c.json({ error: 'not_in_review' }, 400)
   const body = c.req.valid('json')
@@ -222,7 +246,7 @@ posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
       .update(documents)
       .set({ status: 'scheduled', scheduledFor: at, scheduledById: user.id, publishedAt: at, reviewNote: null, reviewedById: user.id, reviewedAt: now, updatedAt: now })
       .where(eq(documents.id, existing.id))
-    const display = at.toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })
+    const display = budapest(at)
     await audit('scheduled', 'scheduled', body.note ? `${body.note}\nPublikálás: ${display}` : `Publikálás: ${display}`)
     return c.json({ notice: 'scheduled' })
   }
@@ -233,6 +257,22 @@ posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
     .where(eq(documents.id, existing.id))
   await audit('approved', 'published', body.note || undefined)
   return c.json({ notice: 'approved' })
+})
+
+/** A scheduled post back to the review queue: the schedule is cleared, nothing goes public. */
+posts.post('/:id/unschedule', async (c) => {
+  const user = userOf(c)
+  if (!canDecidePost(user)) return c.json({ error: 'forbidden' }, 403)
+  const existing = await loadPost(c.var.db, c.req.param('id'))
+  if (!existing || existing.status !== 'scheduled') return c.json({ error: 'not_scheduled' }, 400)
+  const [row] = await c.var.db
+    .update(documents)
+    .set({ status: 'in_review', scheduledFor: null, scheduledById: null, publishedAt: null, updatedAt: new Date(), updatedById: user.id })
+    .where(and(eq(documents.id, existing.id), eq(documents.status, 'scheduled')))
+    .returning({ id: documents.id })
+  if (!row) return c.json({ error: 'status_changed' }, 409)
+  await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'unscheduled', fromStatus: 'scheduled', toStatus: 'in_review', note: `Volt: ${budapest(existing.scheduledFor)}`, userId: user.id })
+  return c.json({ notice: 'unscheduled' })
 })
 
 /* --- archive, trash ---------------------------------------------------------------------------------------- */
