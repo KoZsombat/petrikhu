@@ -1,4 +1,5 @@
 import type { BlockProps } from '@petrik/shared/blocks'
+import { isEmail } from '@petrik/shared/links'
 import { cx } from '../cx'
 import { Picture } from '../Picture'
 import { SmartLink } from '../SmartLink'
@@ -91,9 +92,13 @@ function PersonCard({ item, ctx }: { item: PersonItem; ctx: BlockContext }) {
             )}
             {email && (
               <p className="break-words">
-                <a href={`mailto:${email}`} className="hover:underline">
-                  {email}
-                </a>
+                {isEmail(email) ? (
+                  <a href={`mailto:${email}`} className="hover:underline">
+                    {email}
+                  </a>
+                ) : (
+                  email
+                )}
               </p>
             )}
           </div>

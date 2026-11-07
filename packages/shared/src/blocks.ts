@@ -4,7 +4,7 @@
  * admin generates the editing form from them: `.meta({ title, widget })` gives a field its label and input.
  */
 import { z } from 'zod'
-import { isImageSrc, isSafeHref } from './links.ts'
+import { isEmail, isImageSrc, isSafeHref } from './links.ts'
 import { richDocSchema } from './tiptap.ts'
 
 export type Widget = 'textarea' | 'image' | 'url' | 'richtext' | 'file'
@@ -79,7 +79,7 @@ export const BLOCK_SCHEMAS = {
           role: optStr('Beosztás'),
           room: optArea('Szoba', 300),
           phone: optStr('Telefon', 60),
-          email: optStr('E-mail', 120),
+          email: field(z.string().trim().max(120).refine((v) => v === '' || isEmail(v), 'invalid_email'), 'E-mail').optional(),
           photo: field(z.string().trim().max(2000).refine((v) => v === '' || isImageSrc(v), 'unsafe_src'), 'Fénykép', 'image').optional(),
         }),
         'Személyek',

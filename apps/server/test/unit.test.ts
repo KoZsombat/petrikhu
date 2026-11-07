@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { BLOCK_SCHEMAS, BLOCK_TYPES, blocksSchema } from '@petrik/shared/blocks'
 import { MESSAGES, messageKeys, translate } from '@petrik/shared/i18n'
-import { isEmbedSrc, isSafeColor, isSafeHref, youtubeId } from '@petrik/shared/links'
+import { isEmail, isEmbedSrc, isImageSrc, isSafeColor, isSafeHref, youtubeId } from '@petrik/shared/links'
 import { CAPABILITIES, ROLES, ROLE_CAPABILITIES, can, smallestRoleCovering } from '@petrik/shared/roles'
+import { menuSchema } from '@petrik/shared/schemas'
 import { fold, isReservedSlug, slugify, uniqueSlug } from '@petrik/shared/slug'
 import { firstImage, isEmptyDoc, plainText } from '@petrik/shared/tiptap'
 import { canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
@@ -67,6 +68,29 @@ describe('slugs and links', () => {
   test('isSafeHref / isSafeColor / isEmbedSrc / youtubeId', () => {
     for (const ok of ['/hirek', 'https://x.hu', 'mailto:a@b.hu', 'tel:+36 1 234']) expect(isSafeHref(ok)).toBe(true)
     for (const bad of ['javascript:alert(1)', '//evil.com', 'data:text/html,x', 'vbscript:x']) expect(isSafeHref(bad)).toBe(false)
+  })
+  test('isSafeHref / isImageSrc refuse paths a browser reads as another host', () => {
+    for (const bad of ['/\\evil.com', '/\\/evil.com', '/evil.com\\', '/a\\b/c', '//evil.com/x', '/\t/evil.com', '/\n/evil.com', '/x\u0000y']) {
+      expect(isSafeHref(bad)).toBe(false)
+      expect(isImageSrc(bad)).toBe(false)
+    }
+    // A backslash after the first segment, a query or a fragment is harmless.
+    for (const ok of ['/', '/hirek/a\\b', '/kereses?q=a\\b', '/oldal#a\\b', '/hirek?kategoria=Esti munkarend']) expect(isSafeHref(ok)).toBe(true)
+  })
+  test('isEmail and the card e-mail field', () => {
+    for (const ok of ['titkarsag@petrik.hu', 'dr.szabo.marianna@petrik.hu', 'lelkiero@yahoo.com']) expect(isEmail(ok)).toBe(true)
+    for (const bad of ['', 'titkarsag', 'a@b', 'a b@petrik.hu', 'x@petrik.hu?subject=hi', 'javascript:alert(1)@x.hu']) expect(isEmail(bad)).toBe(false)
+    const card = (email: string) => blocksSchema.safeParse([{ id: 'b1', type: 'cards', props: { variant: 'person', columns: 3, items: [{ name: 'Kiss Anna', email }] } }]).success
+    expect(card('kiss.anna@petrik.hu')).toBe(true)
+    expect(card('')).toBe(true)
+    expect(card('kiss.anna')).toBe(false)
+  })
+  test('menu links use the same rules', () => {
+    const menu = (href: string) => menuSchema.safeParse([{ label: 'X', href }]).success
+    expect(menu('/hirek')).toBe(true)
+    expect(menu('https://petrik.hu')).toBe(true)
+    expect(menu('/\\evil.com')).toBe(false)
+    expect(menu('//evil.com')).toBe(false)
     expect(isSafeColor('#2b8272')).toBe(true)
     expect(isSafeColor('red; background:url(x)')).toBe(false)
     expect(isEmbedSrc('https://www.youtube.com/embed/x')).toBe(true)

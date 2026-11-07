@@ -119,7 +119,7 @@ export type PageSummary = Omit<Page, 'blocks'>
 
 /* --- menu, library, terms ------------------------------------------------------ */
 
-const menuHref = z.string().trim().max(300).regex(/^(\/[^\s]*|https?:\/\/[^\s]+)$/, 'invalid_href')
+const menuHref = z.string().trim().max(300).regex(/^(\/[^\s]*|https?:\/\/[^\s]+)$/, 'invalid_href').refine(isSafeHref, 'invalid_href')
 const menuLabel = z.string().trim().min(1).max(80)
 
 export const menuSchema = z

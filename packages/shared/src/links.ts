@@ -1,15 +1,36 @@
+import { z } from 'zod'
+
 /**
  * Link and media address rules shared by validation and rendering: a root-relative path, or an
  * http(s)/mailto/tel URL. `javascript:` and friends never pass.
  */
 export function isSafeHref(href: string): boolean {
-  if (href.startsWith('/') && !href.startsWith('//')) return true
+  if (href.startsWith('/')) return isLocalPath(href)
   return /^(https?:\/\/[^\s]+|mailto:[^\s]+|tel:[+\d][\d\s()-]*)$/i.test(href)
+}
+
+/**
+ * A path on this site. Browsers treat `//host`, `/\host` and a backslash anywhere in the first segment as another
+ * host, and drop tabs and newlines inside URLs (so `/\t/host` is `//host`): none of these pass.
+ */
+export function isLocalPath(path: string): boolean {
+  if (!path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')) return false
+  // eslint-disable-next-line no-control-regex -- control characters are exactly what is refused
+  if (/[\u0000-\u001f\u007f]/.test(path)) return false
+  const firstSegment = path.slice(1).split(/[/?#]/)[0]
+  return !firstSegment.includes('\\')
 }
 
 /** An image address: an upload/media path or an https/http URL. */
 export function isImageSrc(src: string): boolean {
-  return (src.startsWith('/') && !src.startsWith('//')) || /^https?:\/\/[^\s]+$/i.test(src)
+  return isLocalPath(src) || /^https?:\/\/[^\s]+$/i.test(src)
+}
+
+const email = z.email()
+
+/** A real e-mail address (zod's rules), e.g. for a `mailto:` link. */
+export function isEmail(value: string): boolean {
+  return email.safeParse(value).success
 }
 
 /** `#rgb`, `#rrggbb`, `rgb()`/`rgba()` or a bare colour keyword - nothing that could break out of a style. */
