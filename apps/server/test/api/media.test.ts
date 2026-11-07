@@ -26,7 +26,7 @@ describe('image uploads', () => {
   test('a real image → url; variants in WebP and AVIF, never wider than the original', async () => {
     const res = await author.post('/api/media', fileForm('Kép.JPG', await jpeg(1200), 'image/jpeg'))
     expect(res.status).toBe(200)
-    expect(res.body.url).toMatch(/^\/uploads\/[0-9a-f-]+\.jpg$/)
+    expect(res.body.url).toMatch(/^\/uploads\/[A-Za-z0-9_-]{22}\.jpg$/)
     const variants = await s.db.select({ width: mediaVariants.width, format: mediaVariants.format }).from(mediaVariants).where(eq(mediaVariants.mediaId, res.body.id))
     expect(variants.map((v) => `${v.width}.${v.format}`).sort()).toEqual(['1200.avif', '1200.webp', '480.avif', '480.webp', '960.avif', '960.webp'])
     const original = await s.client().get(res.body.url)
@@ -102,7 +102,7 @@ describe('image uploads', () => {
 describe('documents (library uploads)', () => {
   test('.pdf accepted under a slugified name and served', async () => {
     const res = await admin.post('/api/library/file', fileForm('Házirend 2024 (végleges).pdf', '%PDF-1.4', 'application/pdf'))
-    expect(res.body.url).toMatch(/^\/uploads\/hazirend-2024-vegleges-[0-9a-f]{6}\.pdf$/)
+    expect(res.body.url).toMatch(/^\/uploads\/hazirend-2024-vegleges-[A-Za-z0-9_-]{22}\.pdf$/)
     const served = await s.client().get(res.body.url)
     expect(served.headers.get('content-type')).toBe('application/pdf')
     expect(served.headers.get('content-security-policy')).not.toStartWith('sandbox')
@@ -115,7 +115,7 @@ describe('documents (library uploads)', () => {
   })
   test('path traversal names are slugged; the author has no access', async () => {
     const res = await admin.post('/api/library/file', fileForm('../../etc/passwd.pdf', 'x'))
-    expect(res.body.url).toMatch(/^\/uploads\/etc-passwd-[0-9a-f]{6}\.pdf$/)
+    expect(res.body.url).toMatch(/^\/uploads\/etc-passwd-[A-Za-z0-9_-]{22}\.pdf$/)
     expect((await author.post('/api/library/file', fileForm('a.pdf', 'x'))).status).toBe(403)
   })
 })

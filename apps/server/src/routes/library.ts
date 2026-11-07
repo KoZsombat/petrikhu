@@ -44,7 +44,7 @@ library.post('/file', async (c) => {
   const result = await storeDocument(c.var.db, file, user.id)
   if (!result.ok) return c.json({ error: result.error }, result.error === 'file_too_large' ? 413 : 422)
   await logAudit(c.var.db, { entityType: 'media', entityId: result.id, subject: result.url, action: 'media_uploaded', userId: user.id })
-  return c.json({ url: result.url })
+  return c.json({ id: result.id, url: result.url })
 })
 
 export default library

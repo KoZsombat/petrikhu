@@ -209,6 +209,15 @@ Steps (all on the server, in the repository folder):
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
 migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
 
+## Media and documents
+
+Uploads get an unguessable name (128 random bits; documents keep a readable prefix), e.g.
+`/uploads/hazirend-2026-k3J…Q.pdf`; files uploaded before keep their addresses. The Médiatár has three tabs: images,
+documents (name, size, date, uploader) and the uploads that nothing uses (cleanup). A file used by any page, post
+(blocks, text, cover image), menu, the document library or a setting cannot be deleted: the API answers 409 `in_use`
+with the places, which the admin lists with links. Removing a document from the Dokumentumtár list offers to delete
+its file from the server too (after the save). Every delete is in the audit log.
+
 ## Concurrent edits
 
 Posts, pages, the menus and the document library carry a `version` (+1 on every change). A save sends the version

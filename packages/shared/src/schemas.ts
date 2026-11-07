@@ -152,7 +152,14 @@ export type PageSummary = Omit<Page, 'blocks'>
 
 /* --- menu, library, terms ------------------------------------------------------ */
 
-const menuHref = z.string().trim().max(300).regex(/^(\/[^\s]*|https?:\/\/[^\s]+)$/, 'invalid_href').refine(isSafeHref, 'invalid_href')
+// A path on the site, whose query may hold spaces (`/hirek?kategoria=Esti munkarend` in the seeded menus; the path
+// itself may not), or an http(s) URL.
+const menuHref = z
+  .string()
+  .trim()
+  .max(300)
+  .regex(/^(\/[^\s?#]*([?#][^\t\n\r]*)?|https?:\/\/[^\s]+)$/, 'invalid_href')
+  .refine(isSafeHref, 'invalid_href')
 const menuLabel = z.string().trim().min(1).max(80)
 
 export const menuSchema = z
@@ -301,6 +308,9 @@ const queryDate = z
   .regex(/^(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?)?$/, 'invalid_date')
   .refine((value) => value === '' || !Number.isNaN(new Date(value).getTime()), 'invalid_date')
   .optional()
+
+/** GET /api/media/lookup */
+export const mediaLookupQuery = z.object({ path: z.string().max(2000).regex(/^\/(uploads|media)\/[^\s]+$/, 'invalid_path') })
 
 /** GET /api/audit */
 export const auditQuery = z.object({

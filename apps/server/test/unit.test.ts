@@ -3,7 +3,7 @@ import { BLOCK_SCHEMAS, BLOCK_TYPES, blocksSchema } from '@petrik/shared/blocks'
 import { MESSAGES, messageKeys, translate } from '@petrik/shared/i18n'
 import { isEmail, isEmbedSrc, isImageSrc, isSafeColor, isSafeHref, youtubeId } from '@petrik/shared/links'
 import { CAPABILITIES, ROLES, ROLE_CAPABILITIES, can, smallestRoleCovering } from '@petrik/shared/roles'
-import { menuSchema } from '@petrik/shared/schemas'
+import { librarySchema, menuSchema } from '@petrik/shared/schemas'
 import { fold, isReservedSlug, slugify, uniqueSlug } from '@petrik/shared/slug'
 import { firstImage, isEmptyDoc, plainText } from '@petrik/shared/tiptap'
 import { canDecidePost, canEditPost, canTrashPost, canViewPost } from '@petrik/shared/workflow'
@@ -123,6 +123,15 @@ describe('slugs and links', () => {
     expect(menu('https://petrik.hu')).toBe(true)
     expect(menu('/\\evil.com')).toBe(false)
     expect(menu('//evil.com')).toBe(false)
+    expect(menu('javascript:alert(1)')).toBe(false)
+    expect(menu('mailto:a@b.hu')).toBe(false)
+    expect(menu('https://x.hu/a b')).toBe(false)
+    // Regression: the seeded menus (a path with a space in its query) are valid as they are.
+    expect(menu('/hirek?kategoria=Esti munkarend')).toBe(true)
+  })
+  test('the seeded menus and library pass their own schemas', async () => {
+    for (const locale of ['hu', 'en']) expect(menuSchema.safeParse(await Bun.file(`${import.meta.dir}/../seed/menu.${locale}.json`).json()).success).toBe(true)
+    expect(librarySchema.safeParse(await Bun.file(`${import.meta.dir}/../seed/library.json`).json()).success).toBe(true)
     expect(isSafeColor('#2b8272')).toBe(true)
     expect(isSafeColor('red; background:url(x)')).toBe(false)
     expect(isEmbedSrc('https://www.youtube.com/embed/x')).toBe(true)

@@ -42,7 +42,7 @@ const NAV: { title?: string; items: NavItem[] }[] = [
     items: [
       { to: '/oldalak', label: 'Oldalak', icon: <LayoutTemplate size={16} />, caps: ['pages.manage'] },
       { to: '/menu', label: 'Menü', icon: <ListTree size={16} />, caps: ['pages.manage'] },
-      { to: '/media', label: 'Médiatár', icon: <Image size={16} />, caps: ['media.upload', 'pages.manage'] },
+      { to: '/media', label: 'Médiatár', icon: <Image size={16} />, caps: ['media.upload', 'pages.manage', 'library.manage'] },
       { to: '/dokumentumtar', label: 'Dokumentumtár', icon: <FolderOpen size={16} />, caps: ['library.manage'] },
     ],
   },
@@ -120,7 +120,7 @@ export function App() {
           <Route path="/oldalak" element={<Guard caps={['pages.manage']}><PageList /></Guard>} />
           <Route path="/oldalak/:id" element={<Guard caps={['pages.manage']}><PageEditor /></Guard>} />
           <Route path="/menu" element={<Guard caps={['pages.manage']}><MenuEditor /></Guard>} />
-          <Route path="/media" element={<Guard caps={['media.upload', 'pages.manage']}><MediaLibrary /></Guard>} />
+          <Route path="/media" element={<Guard caps={['media.upload', 'pages.manage', 'library.manage']}><MediaLibrary /></Guard>} />
           <Route path="/dokumentumtar" element={<Guard caps={['library.manage']}><LibraryEditor /></Guard>} />
           <Route path="/fiokok" element={<Guard caps={['users.manage']}><UsersScreen /></Guard>} />
           <Route path="/naplo" element={<Guard caps={['audit.view']}><AuditScreen /></Guard>} />

@@ -73,6 +73,14 @@ export function looksLikeImage(bytes: Uint8Array, extension: string): boolean {
   }
 }
 
+/**
+ * An unguessable file name part: 128 random bits as 22 base64url characters. A document's address must not be
+ * guessable from its name (wrongly uploaded files may hold personal data until they are deleted).
+ */
+export function randomName(): string {
+  return Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64url')
+}
+
 export type StoreResult = { ok: true; url: string; id: string } | { ok: false; error: 'not_an_image' | 'unsupported_file' | 'file_too_large' }
 
 /** An uploaded image: checked, stored under a fresh name, variants made. */
@@ -82,7 +90,7 @@ export async function storeImage(db: Db, file: File, userId: string | null): Pro
   if (!file.type.startsWith('image/') || !IMAGE_EXTENSIONS.has(extension)) return { ok: false, error: 'not_an_image' }
   const bytes = Buffer.from(await file.arrayBuffer())
   if (!looksLikeImage(bytes, extension)) return { ok: false, error: 'not_an_image' }
-  const path = `/uploads/${crypto.randomUUID()}${extension}`
+  const path = `/uploads/${randomName()}${extension}`
   const mime = mimeFor(path)
   let width: number | null = null
   let height: number | null = null
@@ -100,13 +108,13 @@ export async function storeImage(db: Db, file: File, userId: string | null): Pro
   return { ok: true, url: path, id: row.id }
 }
 
-/** A document for the library: stored under a readable, slugified name. */
+/** A document for the library: a readable, slugified name plus an unguessable part. */
 export async function storeDocument(db: Db, file: File, userId: string | null): Promise<StoreResult> {
   const extension = extname(file.name).toLowerCase()
   if (file.size > DOCUMENT_MAX_BYTES) return { ok: false, error: 'file_too_large' }
   if (!DOCUMENT_EXTENSIONS.has(extension)) return { ok: false, error: 'unsupported_file' }
   const base = slugify(file.name.slice(0, file.name.length - extension.length), 'dokumentum').slice(0, 60)
-  const path = `/uploads/${base}-${crypto.randomUUID().slice(0, 6)}${extension}`
+  const path = `/uploads/${base}-${randomName()}${extension}`
   const bytes = Buffer.from(await file.arrayBuffer())
   const [row] = await db.insert(media).values({ path, mime: mimeFor(path), size: bytes.length, data: bytes, createdById: userId }).returning({ id: media.id })
   return { ok: true, url: path, id: row.id }

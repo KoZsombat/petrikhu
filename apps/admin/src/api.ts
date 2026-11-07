@@ -62,6 +62,7 @@ const MESSAGES: Record<string, string> = {
   server_error: 'Szerverhiba. Próbáld újra később.',
   network: 'Nem érhető el a szerver.',
   conflict: 'Közben valaki más is mentett.',
+  in_use: 'A fájl használatban van, ezért nem törölhető.',
   status_changed: 'Közben valaki más már módosította a hír állapotát. Töltsd újra az oldalt.',
   version_required: 'Hiányzik a betöltött változat azonosítója. Töltsd újra az oldalt.',
   not_scheduled: 'A hír már nincs időzítve.',
@@ -100,7 +101,7 @@ export const post = <T,>(path: string, body?: unknown) => api<T>(path, { method:
 export const put = <T,>(path: string, body: unknown) => api<T>(path, { method: 'PUT', body })
 export const del = <T,>(path: string) => api<T>(path, { method: 'DELETE' })
 
-export function upload(path: string, file: File): Promise<{ url: string; id?: string }> {
+export function upload(path: string, file: File): Promise<{ url: string; id: string }> {
   const form = new FormData()
   form.append('file', file)
   return api(path, { method: 'POST', body: form })
