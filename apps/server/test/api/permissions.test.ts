@@ -38,9 +38,12 @@ test('an inactive account can log in but reaches nothing', async () => {
   expect((await nobody.get('/api/auth/me')).body.capabilities).toEqual([])
   expect((await nobody.get('/api/posts?status=draft')).status).toBe(403)
   expect((await nobody.get('/api/pages')).status).toBe(403)
+  // Not even the staff directory.
+  expect((await nobody.get('/api/users')).status).toBe(403)
 })
 
-test('the user directory gives a non-manager only names', async () => {
+test('the user directory gives a non-manager only names; every active role has it', async () => {
+  for (const who of [DEMO.author, DEMO.reviewer]) expect((await (await s.login(who)).get('/api/users')).status).toBe(200)
   const list = await editor.get('/api/users')
   expect(Object.keys(list.body.users[0]).sort()).toEqual(['displayName', 'id'])
   const full = await admin.get('/api/users')

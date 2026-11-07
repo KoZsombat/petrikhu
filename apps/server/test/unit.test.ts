@@ -48,6 +48,30 @@ describe('workflow access', () => {
     expect(canEditPost({ authorId: 'x', status: 'published' }, reviewer)).toBe(true)
     expect(canEditPost({ authorId: 'x', status: 'archived' }, reviewer)).toBe(false)
   })
+  test('trashing or deleting a published, scheduled or archived post needs news.manage', () => {
+    const manageless = { id: 'm', role: 'reviewer' }
+    const saved = ROLE_CAPABILITIES.reviewer
+    ROLE_CAPABILITIES.reviewer = saved.filter((capability) => capability !== 'news.manage')
+    try {
+      for (const status of ['published', 'scheduled', 'archived']) {
+        expect(canTrashPost({ authorId: 'x', status }, manageless)).toBe(false)
+        expect(canTrashPost({ authorId: 'x', status: 'trash', trashedFrom: status }, manageless)).toBe(false)
+        expect(canTrashPost({ authorId: 'x', status }, { id: 'a', role: 'admin' })).toBe(true)
+      }
+      for (const status of ['draft', 'in_review']) {
+        expect(canTrashPost({ authorId: 'x', status }, manageless)).toBe(true)
+        expect(canTrashPost({ authorId: 'x', status: 'trash', trashedFrom: status }, manageless)).toBe(true)
+      }
+      // Trashed before the previous status was recorded: public if it ever had a publication date.
+      expect(canTrashPost({ authorId: 'x', status: 'trash', publishedAt: '2024-01-01T00:00:00Z' }, manageless)).toBe(false)
+      expect(canTrashPost({ authorId: 'x', status: 'trash', publishedAt: null }, manageless)).toBe(true)
+    } finally {
+      ROLE_CAPABILITIES.reviewer = saved
+    }
+    // The author never deletes a once-published post of theirs, even from the trash.
+    expect(canTrashPost({ authorId: 'a', status: 'trash', trashedFrom: 'published' }, author)).toBe(false)
+    expect(canTrashPost({ authorId: 'a', status: 'trash', trashedFrom: 'draft' }, author)).toBe(true)
+  })
   test('trash and view', () => {
     expect(canTrashPost({ authorId: 'a', status: 'draft' }, author)).toBe(true)
     expect(canTrashPost({ authorId: 'a', status: 'trash' }, author)).toBe(true)

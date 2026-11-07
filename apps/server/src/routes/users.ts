@@ -1,6 +1,7 @@
 /**
- * Accounts. Everyone logged in gets a name directory (to show authors); only `users.manage` sees usernames
- * and roles and may change them. Setting someone's password ends all of their sessions.
+ * Accounts. Every account with a role (`users.directory`, not `inactive`) gets a name directory (to show
+ * authors); only `users.manage` sees usernames and roles and may change them. Setting someone's password ends
+ * all of their sessions.
  */
 import { Hono } from 'hono'
 import { asc, eq, sql } from 'drizzle-orm'
@@ -8,7 +9,7 @@ import { can, ROLE_LABEL } from '@petrik/shared/roles'
 import type { Role } from '@petrik/shared/roles'
 import { userCreateBody, userUpdateBody } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
-import { requireCap, requireUser, userOf } from '../context.ts'
+import { requireCap, userOf } from '../context.ts'
 import { users } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
 import { hashPassword } from '../lib/auth.ts'
@@ -17,7 +18,7 @@ import { validate } from '../lib/validate.ts'
 
 const routes = new Hono<AppEnv>()
 
-routes.get('/', requireUser, async (c) => {
+routes.get('/', requireCap('users.directory', 'users.manage'), async (c) => {
   const rows = await c.var.db.select().from(users).orderBy(asc(sql`lower(${users.name})`))
   if (can(userOf(c), 'users.manage')) return c.json({ users: rows.map(toAccount) })
   return c.json({ users: rows.map((row) => ({ id: row.id, displayName: row.name })) })

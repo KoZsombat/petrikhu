@@ -21,7 +21,19 @@ export const STATUS_LABEL: Record<PostStatus, string> = {
 }
 
 type User = { id: string; role: string }
-type PostRef = { authorId: string | null; status: string }
+type PostRef = { authorId: string | null; status: string; trashedFrom?: string | null; publishedAt?: Date | string | null }
+
+/** Statuses in which a post is (or will be, or was) public. */
+export const PUBLIC_POST_STATUSES: readonly string[] = ['published', 'scheduled', 'archived']
+
+/**
+ * The status the trash rules look at: a trashed post's status before the trash. A post trashed before that was
+ * recorded counts as public if it ever had a publication date.
+ */
+export function trashRuleStatus(post: PostRef): string {
+  if (post.status !== 'trash') return post.status
+  return post.trashedFrom ?? (post.publishedAt ? 'published' : 'draft')
+}
 
 /** Edit the content: the author their own draft (also a rejected one); a reviewer any post in review or draft. */
 export function canEditPost(post: PostRef, user: User): boolean {
@@ -30,8 +42,12 @@ export function canEditPost(post: PostRef, user: User): boolean {
   return can(user, 'news.write') && post.authorId === user.id && post.status === 'draft'
 }
 
-/** Move to the trash, restore, delete for good: a reviewer anything; the author their own draft or trashed post. */
+/**
+ * Move to the trash, restore, delete for good. A published, scheduled or archived post (also once it is in the
+ * trash) needs `news.manage`; otherwise a reviewer may, and the author their own draft or trashed draft.
+ */
 export function canTrashPost(post: PostRef, user: User): boolean {
+  if (PUBLIC_POST_STATUSES.includes(trashRuleStatus(post))) return can(user, 'news.manage')
   if (can(user, 'news.review')) return true
   return can(user, 'news.write') && post.authorId === user.id && (post.status === 'draft' || post.status === 'trash')
 }

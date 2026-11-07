@@ -93,8 +93,9 @@ Cloudflare, set `PNW_CLIENT_IP_HEADER=` (empty) or name the header your own edge
 ## Backups
 
 `backup` writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`) and keeps `PNW_BACKUP_KEEP_DAYS`
-(14) days. Media is in the database, so one dump is the whole site. Copy the dumps off the host. Restore into an
-empty database:
+(14) days. Media is in the database, so one dump is the whole site. Login sessions and verification tokens are left
+out (the tables are kept, empty), so after a restore everyone has to log in again. Copy the dumps off the host.
+Restore into an empty database:
 
 ```bash
 docker compose stop api web
@@ -197,4 +198,6 @@ home pages, `NewsArticle` on news posts, `BreadcrumbList` on pages. Absolute URL
 | Jóváhagyó (`reviewer`) | + review, approve / schedule / reject, manage published news, create categories, log and statistics |
 | Oldalszerkesztő (`editor`) | pages, menus, document library, media |
 | Adminisztrátor (`admin`) | everything, including accounts |
-| `inactive` | can log in, nothing else |
+| `inactive` | can log in, nothing else (not even the staff name directory) |
+
+Trashing or deleting a published, scheduled or archived post (also from the trash) needs `news.manage`.

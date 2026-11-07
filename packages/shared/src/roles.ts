@@ -12,6 +12,7 @@ export const CAPABILITIES = [
   'media.upload', // upload images to the media library
   'audit.view', // audit log and statistics
   'users.manage', // accounts and roles
+  'users.directory', // the staff name directory (authors' names in lists and the log)
 ] as const
 
 export type Capability = (typeof CAPABILITIES)[number]
@@ -21,9 +22,9 @@ export type Role = (typeof ROLES)[number]
 
 export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   inactive: [],
-  author: ['news.write', 'media.upload'],
-  reviewer: ['news.write', 'news.review', 'news.manage', 'terms.create', 'media.upload', 'audit.view'],
-  editor: ['pages.manage', 'library.manage', 'media.upload'],
+  author: ['news.write', 'media.upload', 'users.directory'],
+  reviewer: ['news.write', 'news.review', 'news.manage', 'terms.create', 'media.upload', 'audit.view', 'users.directory'],
+  editor: ['pages.manage', 'library.manage', 'media.upload', 'users.directory'],
   admin: CAPABILITIES,
 }
 

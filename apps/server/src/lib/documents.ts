@@ -129,6 +129,7 @@ export function toPostSummary(row: DocumentRow, termIds = { categoryIds: [] as s
     scheduledFor: iso(row.scheduledFor),
     publishedAt: iso(row.publishedAt),
     archivedAt: iso(row.archivedAt),
+    trashedFrom: (row.trashedFrom as PostStatus | null) ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     legacy: row.legacy,

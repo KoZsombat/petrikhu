@@ -270,7 +270,7 @@ posts.delete('/:id', async (c) => {
     await c.var.db.delete(documents).where(eq(documents.id, existing.id))
     return c.json({ notice: 'deleted', permanent: true })
   }
-  await c.var.db.update(documents).set({ status: 'trash', updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  await c.var.db.update(documents).set({ status: 'trash', trashedFrom: existing.status, updatedAt: new Date() }).where(eq(documents.id, existing.id))
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'trashed', fromStatus: existing.status, toStatus: 'trash', userId: user.id })
   return c.json({ notice: 'trashed', permanent: false })
 })
@@ -280,7 +280,7 @@ posts.post('/:id/untrash', async (c) => {
   const user = userOf(c)
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || existing.status !== 'trash' || !canTrashPost(existing, user)) return c.json({ error: 'not_found' }, 404)
-  await c.var.db.update(documents).set({ status: 'draft', scheduledFor: null, scheduledById: null, updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  await c.var.db.update(documents).set({ status: 'draft', scheduledFor: null, scheduledById: null, trashedFrom: null, updatedAt: new Date() }).where(eq(documents.id, existing.id))
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'untrashed', fromStatus: 'trash', toStatus: 'draft', userId: user.id })
   return c.json({ notice: 'untrashed' })
 })

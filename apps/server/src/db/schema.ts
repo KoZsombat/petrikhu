@@ -116,6 +116,8 @@ export const documents = pgTable(
     scheduledById: userRef('scheduled_by_id'),
     archivedAt: ts('archived_at'),
     archivedById: userRef('archived_by_id'),
+    /** A trashed post's status before the trash: deleting a once-public post needs `news.manage`. */
+    trashedFrom: text('trashed_from'),
   },
   (t) => [
     uniqueIndex('documents_type_locale_slug_idx').on(t.type, t.locale, t.slug),

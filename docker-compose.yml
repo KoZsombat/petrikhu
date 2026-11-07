@@ -71,7 +71,8 @@ services:
       - ${PNW_BACKUP_DIR:-./backups}:/backups
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned: update deliberately (https://github.com/cloudflare/cloudflared/releases).
+    image: cloudflare/cloudflared:2026.10.7
     profiles: ["tunnel"]
     restart: unless-stopped
     depends_on: [web]

@@ -1,4 +1,7 @@
-/** scripts/backup.sh: a dump it writes restores into an empty database with every table and the media bytes. */
+/**
+ * scripts/backup.sh: a dump it writes restores into an empty database with every table and the media bytes, but
+ * without login sessions and verification tokens.
+ */
 import { afterAll, expect, test } from 'bun:test'
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -39,6 +42,8 @@ test('dump with backup.sh, restore with pg_restore', async () => {
   await admin.unsafe(`CREATE DATABASE ${target}`)
   const src = postgres(dbUrl(source), { max: 1, onnotice: () => {} })
   await src`INSERT INTO users (id, name, email, username) VALUES ('u1', 'Árvíz Tűrő', 'a@x.invalid', 'a')`
+  await src`INSERT INTO sessions (id, expires_at, token, user_id) VALUES ('s1', now() + interval '1 day', 'secret-token', 'u1')`
+  await src`INSERT INTO verifications (id, identifier, value, expires_at) VALUES ('v1', 'x', 'secret-value', now() + interval '1 day')`
   await src`INSERT INTO media (path, mime, size, data) VALUES ('/media/x.bin', 'application/octet-stream', 3, ${Buffer.from([1, 2, 3])})`
   await src.end()
 
@@ -62,6 +67,9 @@ test('dump with backup.sh, restore with pg_restore', async () => {
   const restored = postgres(dbUrl(target), { max: 1, onnotice: () => {} })
   expect((await restored`SELECT name FROM users WHERE id = 'u1'`)[0].name).toBe('Árvíz Tűrő')
   expect([...(await restored`SELECT data FROM media WHERE path = '/media/x.bin'`)[0].data]).toEqual([1, 2, 3])
+  // Sessions and verification tokens are not in the dump: the tables are there, empty.
+  expect((await restored`SELECT count(*)::int AS n FROM sessions`)[0].n).toBe(0)
+  expect((await restored`SELECT count(*)::int AS n FROM verifications`)[0].n).toBe(0)
   expect((await restored`SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`)[0].n).toBeGreaterThanOrEqual(2)
   await restored.end()
 })

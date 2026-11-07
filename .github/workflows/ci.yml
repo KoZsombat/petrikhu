@@ -39,6 +39,9 @@ jobs:
           sudo apt-get install -y postgresql-client-17
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
       - run: bun install --frozen-lockfile
+      # Fails on any known high or critical vulnerability in the dependency tree.
+      - name: Dependency audit
+        run: bun audit --audit-level=high
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run build

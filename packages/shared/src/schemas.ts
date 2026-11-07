@@ -82,6 +82,8 @@ export type Post = {
   scheduledFor: string | null
   publishedAt: string | null
   archivedAt: string | null
+  /** In the trash: the status it had before. */
+  trashedFrom: PostStatus | null
   createdAt: string
   updatedAt: string
   legacy: boolean

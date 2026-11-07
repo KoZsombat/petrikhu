@@ -11,7 +11,9 @@ AT="${PNW_BACKUP_AT:-03:30}"
 dump() {
   file="$DIR/petrik-$(date -u +%Y%m%d-%H%M%S).dump"
   # Write to a temporary name first, so a half-written dump is never mistaken for a good one.
-  pg_dump --format=custom --compress=6 --file="$file.part" && mv "$file.part" "$file"
+  # Login sessions and verification tokens are left out (their tables, not their data, are kept): a stolen
+  # dump must not log anyone in. After a restore everyone logs in again.
+  pg_dump --format=custom --compress=6 --exclude-table-data=sessions --exclude-table-data=verifications --file="$file.part" && mv "$file.part" "$file"
   echo "[backup] $(date -u +%FT%TZ) wrote $file ($(du -h "$file" | cut -f1))"
   find "$DIR" -name 'petrik-*.dump' -mtime +"$KEEP_DAYS" -print -delete
   find "$DIR" -name '*.part' -mmin +600 -delete
