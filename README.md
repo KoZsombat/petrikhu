@@ -112,6 +112,24 @@ Logins: 8 failures per account and IP and 30 per IP per 15 minutes; on top of th
 with 10 failures from any IPs backs off exponentially (2 s, 4 s, … at most 15 minutes between attempts, forgotten
 after an hour of quiet or at a successful login). Nothing is ever locked permanently.
 
+### Upgrading an existing installation
+
+One-time steps when deploying this version over a running site (the API applies the database migrations on
+start: `trashed_from`, `must_change_password`, the `pg_trgm` extension and search index, `version` columns, the
+`redirects` table):
+
+1. Add to `.env`: `PNW_REVALIDATE_SECRET` (`openssl rand -hex 32`). Check `PNW_CLIENT_IP_HEADER` (compose default
+   `cf-connecting-ip`: keep it behind Cloudflare, set it empty otherwise); the old `PNW_TRUST_PROXY=2` default is
+   gone (hop counting is now opt-in). Optionally `PNW_ADMIN_USERNAME` (only used on an empty database).
+2. Back up, then deploy as usual (`git pull`, `docker compose run --rm backup once`, `docker compose up -d --build`).
+3. Make the missing image variants once, so no visitor waits for an encode:
+   ```bash
+   docker compose exec api bun run --cwd apps/server media:variants
+   ```
+4. The API needs outbound HTTPS to `i.ytimg.com` for video thumbnails (see "Embedded videos").
+5. Accounts whose demo password is replaced at start, and accounts whose password an admin sets, must choose a new
+   password at their next login. Existing uploads keep their addresses.
+
 ## Backups
 
 `backup` writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`) and keeps `PNW_BACKUP_KEEP_DAYS`

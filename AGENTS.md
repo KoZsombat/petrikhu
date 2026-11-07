@@ -18,6 +18,14 @@ Conventions for working on this repository. Setup, scripts and deployment are in
 - **Public responses** are built only from the `toPublic*` functions in `apps/server/src/lib/documents.ts`, which
   list every field. Never return a database row to the public API.
 - **Audit:** every admin action that changes content or rights calls `logAudit`.
+- **Public cache:** the site caches public reads by tag (`packages/shared/src/cache-tags.ts`); an API change to public
+  output calls `revalidateSite` (`apps/server/src/lib/revalidate.ts`) with the affected tags.
+- **Concurrent saves:** posts, pages, menus and the library carry a `version`; a save sends the loaded one (409
+  `conflict` otherwise) and workflow steps put the expected status in the `UPDATE … WHERE` (409 `status_changed`).
+- **Query strings** are zod schemas in `packages/shared/src/schemas.ts` too (`validate('query', …)`, 400).
+- **Client IP:** rate limits key on `c.var.ip` (configured header or socket peer); never read `X-Forwarded-For` directly.
+- **Admin dialogs:** confirmations go through `useDialog()` (`apps/admin/src/dialog.tsx`), never `window.confirm`;
+  editors use `useUnsavedGuard`.
 - **Schema changes:** edit `apps/server/src/db/schema.ts`, run `bun run db:generate`, commit the migration. Never edit
   a migration that has run.
 - **Styling:** Tailwind 4 with the tokens in `packages/shared/src/theme.css`; no new colours or fonts. The public
