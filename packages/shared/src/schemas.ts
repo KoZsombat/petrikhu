@@ -52,7 +52,7 @@ export const postSaveBody = z.object({
   content: richDocSchema,
   categoryIds: z.array(z.string().max(200)).max(20).default([]),
   tagIds: z.array(z.string().max(200)).max(50).default([]),
-  featuredImage: z.string().max(2000).regex(/^\/uploads\/[^\s]+$/).nullish(),
+  featuredImage: z.string().max(2000).regex(/^\/(uploads|media)\/[^\s]+$/).nullish(),
   imagePosition: z.enum(['top', 'bottom']).default('top'),
   /** `submit`: save and send for review (authors), otherwise save only. */
   command: z.enum(['draft', 'submit']).default('draft'),
@@ -189,7 +189,7 @@ export type PublicPostSummary = {
   categories: string[]
   image: string | null
 }
-export type PublicPost = PublicPostSummary & { content: RichDoc; imagePosition: 'top' | 'bottom' }
+export type PublicPost = PublicPostSummary & { content: RichDoc; featuredImage: string | null; imagePosition: 'top' | 'bottom' }
 export type PublicPage = {
   slug: string
   locale: Locale
@@ -199,6 +199,11 @@ export type PublicPage = {
   /** The other language's version of this page, if there is one. */
   alternate: { locale: Locale; slug: string } | null
 }
-export type PublicSite = { menu: Menu; library: Library }
+export type PublicSite = {
+  menu: Menu
+  library: Library
+  /** Published pages that exist in both languages: the language switch links them. */
+  translations: { hu: string; en: string }[]
+}
 
 export const linkSchema = z.string().refine(isSafeHref)

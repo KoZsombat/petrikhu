@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts",
-    "./i18n/*.json": "./src/i18n/*.json"
+    "./theme.css": "./src/theme.css",
+    "./i18n/*.json": "./src/i18n/*.json",
+    "./*": "./src/*.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -21,12 +22,24 @@
     "@tiptap/extension-text-style": "^3.33.0"
   },
   "peerDependenciesMeta": {
-    "@tiptap/core": { "optional": true },
-    "@tiptap/starter-kit": { "optional": true },
-    "@tiptap/extension-image": { "optional": true },
-    "@tiptap/extension-table": { "optional": true },
-    "@tiptap/extension-text-align": { "optional": true },
-    "@tiptap/extension-text-style": { "optional": true }
+    "@tiptap/core": {
+      "optional": true
+    },
+    "@tiptap/starter-kit": {
+      "optional": true
+    },
+    "@tiptap/extension-image": {
+      "optional": true
+    },
+    "@tiptap/extension-table": {
+      "optional": true
+    },
+    "@tiptap/extension-text-align": {
+      "optional": true
+    },
+    "@tiptap/extension-text-style": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@tiptap/core": "^3.33.0",

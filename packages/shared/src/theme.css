@@ -1,0 +1,23 @@
+/*
+ * The design tokens (colours, typefaces) of the public site and the admin. Use only these: no new colours or fonts.
+ * The font variables are set by next/font on the public site; elsewhere the named fallbacks apply.
+ */
+@theme {
+  --color-petrikbg: #F7F4EC;
+  --color-petrikcard: #FFFFFF;
+  --color-petrikink: #16211D;
+  --color-petriksoft: #48524B;
+  --color-petrikfaint: #7A8279;
+  --color-petrikcream: #FBFAF6;
+  --color-petrikaccent: #2B8272;
+  --color-petrikaccentdark: #1D5D51;
+  --color-petriktint: #EEF4EA;
+  --color-petrikpale: #85C1B6;
+  --color-petriklight: #B1D258;
+  --color-petrikline: rgba(22,33,29,0.14);
+  --color-petriklinesoft: rgba(22,33,29,0.08);
+  --color-petriklink: rgba(251, 250, 246, 0.78);
+  --font-display: var(--font-newsreader, Newsreader), var(--font-newsreader-ext, Newsreader), Georgia, serif;
+  --font-body: var(--font-archivo, Archivo), var(--font-archivo-ext, Archivo), system-ui, sans-serif;
+  --font-mono: var(--font-plex, "IBM Plex Mono"), var(--font-plex-ext, "IBM Plex Mono"), Consolas, monospace;
+}

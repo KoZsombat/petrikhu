@@ -190,7 +190,8 @@ export const BLOCK_SCHEMAS = {
   }),
 
   documentLibrary: z.object({
-    intro: optStr('Felülcím', 200),
+    eyebrow: optStr('Felülcím', 200),
+    title: str('Cím', 200),
   }),
 } as const
 
