@@ -1,0 +1,70 @@
+{
+  "site": {
+    "name": "Petrik Lajos Bilingual Technical School",
+    "description": "Chemical, Environmental and IT technical school in the heart of the city.",
+    "logoAlt": "Petrik Logo"
+  },
+  "nav": {
+    "home": "Home", "news": "News", "about": "About us", "education": "Education", "eighthGraders": "For 8th graders",
+    "publicEducation": "General education", "vocational": "Vocational training", "evening": "Evening classes", "communityService": "Community service",
+    "summerInternships": "Summer internships", "exams": "Exams", "maturaExam": "School-leaving exam", "sectoralExam": "Sectoral basic exam",
+    "additionalQualification": "Additional qualification", "vocationalExam": "Vocational exam", "languageCert": "LanguageCert exam",
+    "other": "Other", "jobs": "Job offers", "meals": "Meals", "health": "School health service", "inMemoriam": "In memoriam",
+    "dormitory": "Dormitory", "ecoSchool": "Eco-school", "projects": "Projects", "competitions": "Competition results",
+    "contact": "Contact", "contactDetails": "Contact details", "staff": "Teaching staff",
+    "substitutions": "Substitutions", "calendar": "Event calendar", "timetable": "Timetable", "documents": "Documents",
+    "privacy": "Privacy", "kreta": "Kréta", "mail": "Webmail", "privacyNotice": "Privacy notice",
+    "openMenu": "Open menu", "closeMenu": "Close menu", "languageHu": "Magyar", "languageEn": "English"
+  },
+  "footer": {
+    "schoolLine1": "Budapest Technical VTC Petrik Lajos",
+    "schoolLine2": "Bilingual Technical School",
+    "omId": "OM ID: 203 058",
+    "techCode": "Technical code: 520413",
+    "address": "1146 Budapest, Thököly út 48–54, Hungary",
+    "email": "info@petrik.hu",
+    "copyright": "© 2026 Budapest Technical VTC Petrik Lajos Bilingual Technical School · All rights reserved."
+  },
+  "home": {
+    "eyebrow": "Budapest Technical VTC · OM 203 058 · Budapest",
+    "headline": "Over 140 years of value as the measure.",
+    "lead": "Chemical industry, environmental and IT training in the heart of the capital – in two languages, with industry partners and hands-on projects, from 8th graders to adult education.",
+    "explore": "Explore our programmes",
+    "statYears": "Years of vocational tradition", "statStudents": "Students at Petrik", "statBilingual": "In bilingual education",
+    "latestNews": "Latest news", "details": "Details →", "allNews": "View all news →",
+    "programmes": "Our programmes",
+    "programmesLead": "Chemical industry – the future is in your hands. Environmental protection and water management – you take care of the future. IT and telecommunications – the future is one click away.",
+    "chemistry": "Chemical industry",
+    "chemistryText": "As a future pharmaceutical or chemical industry professional, would you like to help humanity overcome diseases and epidemics, or make everyday life more comfortable with ever more environmentally friendly technologies? Our chemistry programme, with a tradition of more than 140 years and including a bilingual stream, is waiting for you!",
+    "environment": "Environmental protection and water management",
+    "environmentText": "If you care about the environment and want to do more to protect it, the environmental protection track is for you. Environmental protection is both a vocation and a science. Our practice-based training guarantees that you can become a future environmental professional.",
+    "it": "IT and telecommunications",
+    "itText": "Our IT track prepares students for the labour market of the future: in a practice-oriented environment, combining theoretical and practical subjects with foreign-language learning, you receive project-based education that bridges the world of work and the school.",
+    "learnMore": "Learn more →",
+    "whyUs": "Why apply to us?",
+    "reason1Title": "A school with over 140 years of history", "reason1Text": "Our traditions have a long past.",
+    "reason2Title": "Exciting projects and programmes to develop 21st-century skills", "reason2Text": "A bridge between school and the world of work.",
+    "reason3Title": "We take vocational training to an international level", "reason3Text": "You can take part in Erasmus and eTwinning projects.",
+    "reason4Title": "Dynamic cooperation between teachers and students", "reason4Text": "Here, what you think matters!",
+    "reason5Title": "A lively sports life", "reason5Text": "Put your skills to use in a wide range of sports programmes and clubs, or step up to the next level.",
+    "reason6Title": "So that you can become part of a real community", "reason6Text": "Programmes and traditions that forge the school into a community.",
+    "projectsTitle": "Partners, Projects, Vocational programmes",
+    "projectsLead": "Our students take part in international exchanges, digital projects and competitions – the school holds the title of Permanent Eco-School.",
+    "logoMupa": "MÜPA Partner School", "logoLanguageCert": "LanguageCert Partner Institution", "logoTempus": "Tempus Public Foundation",
+    "logoErasmus": "Erasmus+", "logoPenz7": "Money7 School", "logoEtwinning": "eTwinning School", "logoDigitalis": "Digital Theme Week 2023",
+    "logoCodeweek": "CodeWeek", "logoOtpFay": "OTP Fáy Foundation Partner School", "logoProsuli": "ProSuli",
+    "partnersTitle": "Professional partners",
+    "aboutTitle": "About us – Whoever becomes a Petrik student…",
+    "videoTitle": "Choose Petrik!",
+    "aboutText": "… becomes part of a tradition that has existed for more than 140 years and is hallmarked by the Petrik name. Whoever becomes a Petrik student joins an accepting, mutually supportive school community. They gain professional skills that make it easy to find a job, because the Petrik name is a guarantee of outstanding expertise. If you become a Petrik student, you will be enriched with lifelong experiences you will always remember with joy and affection. What are you waiting for?",
+    "counterStudents": "Students", "counterTeachers": "Teachers", "counterClassrooms": "Classrooms", "counterLabs": "Laboratories", "counterGoal": "Goal"
+  },
+  "common": {
+    "notFound": "Page not found", "backHome": "Back to the home page", "search": "Search", "searchNews": "Search the news…",
+    "results": "results", "noResults": "No results.", "searchDocuments": "Search the documents…",
+    "previous": "Previous", "next": "Next", "page": "Page {n}", "noContent": "No content yet.", "details": "DETAILS →",
+    "photoOf": "Photo of {name}", "video": "Video", "breadcrumb": "Breadcrumb", "filters": "Filters", "pagination": "Pagination",
+    "categories": "Categories", "download": "Download", "protected": "Protected", "documents": "documents", "embedded": "Embedded content",
+    "news": "News", "documentLibrary": "Documents", "preview": "Preview – this page is not public."
+  }
+}

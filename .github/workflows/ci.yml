@@ -1,4 +1,4 @@
-# Runs the checks AGENTS.md requires (lint, server type-check, build, tests) on every push and pull request.
+# Lint, type-check, build every app, run the API tests against Postgres 17, then the Playwright smoke tests.
 name: CI
 
 on:
@@ -21,23 +21,36 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       TEST_DATABASE_URL: postgres://petrik:petrik@localhost:5432/petrik_test
+      E2E_DATABASE_URL: postgres://petrik:petrik@localhost:5432/petrik_e2e
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      # Next.js builds and runs on Node (as in the Docker image).
       - uses: actions/setup-node@v4
         with:
-          # Same major version as the Docker image (Dockerfile: node:24-slim).
           node-version: 24
-          cache: npm
-      # pg_dump/pg_restore matching the server (17), so tests/backup.test.ts runs instead of skipping.
+      # pg_dump / pg_restore matching the server (17), so the backup test runs instead of skipping.
       - name: PostgreSQL 17 client
         run: |
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-      - run: npm ci
-      - run: npm run lint
-      - run: npx tsc -p tsconfig.server.json
-      - run: npm run build
-      # After the build, so the test that checks the served index.html (tests/api/page-meta.test.ts) runs too.
-      - run: npm test
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run build
+      - run: bun run test
+      - name: Playwright browser
+        run: bunx playwright install --with-deps chromium
+      - run: bun run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
