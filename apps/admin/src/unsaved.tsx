@@ -30,9 +30,15 @@ export function useUnsavedGuard(dirty: boolean): { allowNext: () => void } {
     return dirty && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search)
   })
 
+  // Ask once per blocked navigation (the blocker object changes on every render while it waits).
+  const asking = useRef(false)
+  const current = useRef(blocker)
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
-    let active = true
+    current.current = blocker
+  })
+  useEffect(() => {
+    if (blocker.state !== 'blocked' || asking.current) return
+    asking.current = true
     dialog
       .confirm({
         title: 'Nem mentett módosítások',
@@ -42,14 +48,13 @@ export function useUnsavedGuard(dirty: boolean): { allowNext: () => void } {
         destructive: true,
       })
       .then((leave) => {
-        if (!active) return
-        if (leave) blocker.proceed()
-        else blocker.reset()
+        asking.current = false
+        const latest = current.current
+        if (latest.state !== 'blocked') return
+        if (leave) latest.proceed()
+        else latest.reset()
       })
-    return () => {
-      active = false
-    }
-  }, [blocker, dialog])
+  }, [blocker.state, dialog])
 
   const allowNext = useCallback(() => {
     skip.current = true

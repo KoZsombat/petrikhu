@@ -75,10 +75,10 @@ test('news: write and submit, reject with a message, fix and resubmit, approve, 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
 
-  // The old /<slug> address of a news post redirects permanently.
+  // The old /<slug> address of a news post redirects permanently (Next.js's permanentRedirect: 308).
   const slug = new URL(page.url()).pathname
   const legacy = await page.request.get(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, { maxRedirects: 0 })
-  expect(legacy.status(), slug).toBe(301)
+  expect(legacy.status(), slug).toBe(308)
   expect(legacy.headers().location).toContain('/hirek/tavaszi-projektnap-')
 })
 
@@ -173,4 +173,147 @@ test('seo: robots.txt, sitemap.xml, structured data, hreflang and canonical link
   await page.waitForURL(/\/hirek\/.+/)
   const article = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((text) => JSON.parse(text))
   expect(article.find((data) => data['@type'] === 'NewsArticle')?.headline).toBeTruthy()
+})
+
+/** A logged-in API client of its own (another person, in another browser). */
+async function apiAs(playwright: typeof import('@playwright/test'), who: keyof typeof USERS) {
+  const api = await playwright.request.newContext({ baseURL: 'http://localhost:4000', extraHTTPHeaders: { 'cf-connecting-ip': `198.51.100.${Math.floor(Math.random() * 200) + 1}` } })
+  const res = await api.post('/api/auth/login', { data: USERS[who] })
+  expect(res.status()).toBe(200)
+  return api
+}
+
+const postBody = (title: string, extra: Record<string, unknown> = {}) => ({
+  title,
+  excerpt: '',
+  content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: `${title} szövege` }] }] },
+  categoryIds: ['hirek'],
+  ...extra,
+})
+
+test('concurrent edit: the second save gets the conflict dialog; reload shows the other version, overwrite saves mine', async ({ page, playwright }) => {
+  const stamp = Date.now()
+  const author = await apiAs(playwright, 'author')
+  const id = (await (await author.post('/api/posts', { data: postBody(`Ütközés ${stamp}`, { command: 'submit' }) })).json()).post.id
+
+  await login(page, 'reviewer')
+  await page.goto(`/admin/hirek/${id}`)
+  await page.getByLabel('Cím', { exact: true }).fill(`Ütközés ${stamp} – jóváhagyó`)
+
+  // Meanwhile the admin saves the same post.
+  const admin = await apiAs(playwright, 'admin')
+  const loaded = (await (await admin.get(`/api/posts/${id}`)).json()).post
+  expect((await admin.put(`/api/posts/${id}`, { data: postBody(`Ütközés ${stamp} – admin`, { version: loaded.version }) })).status()).toBe(200)
+
+  await page.getByRole('button', { name: 'Módosítások mentése' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Közben valaki más is mentett' })
+  await expect(dialog).toContainText('Szabó Éva mentette közben')
+  // Reload: the admin's version replaces mine.
+  await dialog.getByRole('button', { name: 'Újratöltés (az enyém elvetése)' }).click()
+  await expect(page.getByLabel('Cím', { exact: true })).toHaveValue(`Ütközés ${stamp} – admin`)
+
+  // Again, and this time overwrite.
+  const now = (await (await admin.get(`/api/posts/${id}`)).json()).post
+  await admin.put(`/api/posts/${id}`, { data: postBody(`Ütközés ${stamp} – admin 2`, { version: now.version }) })
+  await page.getByLabel('Cím', { exact: true }).fill(`Ütközés ${stamp} – az enyém`)
+  await page.getByRole('button', { name: 'Módosítások mentése' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Felülírás (az enyém mentése)' }).click()
+  await expect(page.getByText('Módosítások elmentve.')).toBeVisible()
+  expect((await (await admin.get(`/api/posts/${id}`)).json()).post.title).toBe(`Ütközés ${stamp} – az enyém`)
+})
+
+test('unschedule: a scheduled post goes back to the review queue', async ({ page, playwright }) => {
+  const title = `Időzített ${Date.now()}`
+  const author = await apiAs(playwright, 'author')
+  const id = (await (await author.post('/api/posts', { data: postBody(title, { command: 'submit' }) })).json()).post.id
+  const reviewerApi = await apiAs(playwright, 'reviewer')
+  await reviewerApi.post(`/api/posts/${id}/decision`, { data: { decision: 'approve', publishAt: new Date(Date.now() + 86_400_000).toISOString() } })
+
+  await login(page, 'reviewer')
+  await page.getByRole('navigation').getByRole('link', { name: 'Időzített' }).click()
+  const row = page.getByRole('listitem').filter({ hasText: title })
+  await row.getByRole('button', { name: 'Időzítés visszavonása' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Időzítés visszavonása' })
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await row.getByRole('button', { name: 'Időzítés visszavonása' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Visszavonás' }).click()
+  await expect(page.getByText('időzítés visszavonva, újra jóváhagyásra vár')).toBeVisible()
+  await page.getByRole('navigation').getByRole('link', { name: 'Jóváhagyásra vár' }).click()
+  await expect(page.getByRole('link', { name: title })).toBeVisible()
+})
+
+test('library: removing a document can delete its file from the server too', async ({ page }) => {
+  const title = `Tanmenet ${Date.now()}`
+  await login(page, 'admin')
+  await page.getByRole('link', { name: 'Dokumentumtár' }).click()
+  const firstCategory = page.locator('section').first()
+  await firstCategory.getByRole('button', { name: 'Dokumentum', exact: true }).click()
+  const row = firstCategory.getByRole('listitem').last()
+  await row.getByLabel('Dokumentum címe').fill(title)
+  await row.locator('input[type=file]').setInputFiles({ name: 'tanmenet.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 e2e') })
+  await expect(page.getByText('Feltöltve. Ne felejtsd el menteni.')).toBeVisible()
+  const url = await row.getByLabel('Fájl', { exact: true }).inputValue()
+  expect(url).toMatch(/^\/uploads\/tanmenet-[A-Za-z0-9_-]{22}\.pdf$/)
+  await page.getByRole('button', { name: 'Mentés', exact: true }).click()
+  await expect(page.getByText('Dokumentumtár elmentve.')).toBeVisible()
+  expect((await page.request.get(url)).status()).toBe(200)
+
+  // While it is in the list the file cannot be deleted from the media library.
+  await page.getByRole('link', { name: 'Médiatár' }).click()
+  await page.getByRole('tab', { name: 'Dokumentumok' }).click()
+  await page.getByRole('row').filter({ hasText: 'tanmenet-' }).first().getByRole('button', { name: 'Törlés' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Végleges törlés' }).click()
+  await expect(page.getByText('Nem törölhető, mert használatban van')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Dokumentumtár' }).last()).toBeVisible()
+
+  // Removed from the list, with the file.
+  await page.getByRole('navigation').getByRole('link', { name: 'Dokumentumtár' }).click()
+  await page.getByRole('listitem').filter({ has: page.getByLabel('Dokumentum címe').and(page.locator(`[value="${title}"]`)) }).getByRole('button', { name: 'Törlés' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Dokumentum eltávolítása a listából' })
+  await expect(dialog.getByRole('checkbox', { name: /A fájlt is törlöm/ })).toBeChecked()
+  await dialog.getByRole('button', { name: 'Eltávolítás' }).click()
+  await expect(page.getByText('Mentéskor ezek a fájlok a szerverről is törlődnek')).toBeVisible()
+  await page.getByRole('button', { name: 'Mentés', exact: true }).click()
+  await expect(page.getByText('Dokumentumtár elmentve, 1 fájl törölve a szerverről.')).toBeVisible()
+  expect((await page.request.get(url)).status()).toBe(404)
+})
+
+test('unsaved changes: leaving the editor asks first', async ({ page }) => {
+  await login(page, 'admin')
+  await page.getByRole('link', { name: 'Menü' }).click()
+  await page.getByLabel('Felirat').first().fill('Módosított, nem mentett')
+  await page.getByRole('link', { name: 'Áttekintés' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Nem mentett módosítások' })
+  await dialog.getByRole('button', { name: 'Maradok' }).click()
+  await expect(page.getByLabel('Felirat').first()).toHaveValue('Módosított, nem mentett')
+  await page.getByRole('link', { name: 'Áttekintés' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Elvetés és továbblépés' }).click()
+  await expect(page.getByRole('heading', { name: /^Szia/ })).toBeVisible()
+})
+
+test('rate limits key on the client-IP header Next.js passes on, not on a spoofed X-Forwarded-For', async ({ request }) => {
+  const statuses: number[] = []
+  for (let i = 0; i < 10; i += 1) {
+    const res = await request.post('/api/auth/login', { data: { username: 'nincs.ilyen.e2e', password: 'rossz-jelszo-1' }, headers: { 'cf-connecting-ip': '203.0.113.50', 'x-forwarded-for': `10.0.0.${i}, 1.2.3.4` } })
+    statuses.push(res.status())
+  }
+  expect(statuses.slice(0, 8).every((status) => status === 401)).toBe(true)
+  expect(statuses.slice(8)).toEqual([429, 429])
+})
+
+test('home page: one h1, and the video loads nothing from YouTube until played', async ({ page }) => {
+  const youtube: string[] = []
+  page.on('request', (req) => {
+    if (/youtube|ytimg|googlevideo/.test(new URL(req.url()).hostname)) youtube.push(req.url())
+  })
+  await page.goto('/')
+  await expect(page.locator('h1')).toHaveCount(1)
+  const play = page.getByRole('button', { name: /^Videó lejátszása/ })
+  await play.scrollIntoViewIfNeeded()
+  expect(youtube).toEqual([])
+  await play.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('iframe[src^="https://www.youtube-nocookie.com/embed/"]')).toHaveCount(1)
 })

@@ -82,6 +82,8 @@ export function PageEditor() {
         const { page } = await post<{ page: Page }>('/pages', payload)
         guard.allowNext()
         navigate(`/oldalak/${page.id}`, { replace: true, state: { notice: success } })
+        // /oldalak/uj and /oldalak/<id> are the same route: this component stays, so it shows the notice itself.
+        action.setMessage({ tone: 'success', text: success })
         return
       }
       const saved = await saveVersioned(dialog, loaded.data!.version, (version) => put(`/pages/${id}`, { ...payload, version }), () => {
