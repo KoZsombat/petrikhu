@@ -82,6 +82,14 @@ docker compose up -d --build
 The API refuses to start in production without a real session secret, or while an account still has a public demo
 password and `PNW_SEED_PASSWORD` is not set (with it, demo passwords are replaced on start).
 
+### Client IP and rate limits
+
+Logins, writes and searches are rate-limited per client IP. The API takes it from the header named in
+`PNW_CLIENT_IP_HEADER` (compose default: `cf-connecting-ip`, set by Cloudflare and passed on by Next.js), otherwise
+from the socket peer. `X-Forwarded-For` is only used with an explicit `PNW_TRUST_PROXY=<n>` (each of the n proxies
+must append to it), and its left-most, visitor-supplied entry is never used on its own. If the site is not behind
+Cloudflare, set `PNW_CLIENT_IP_HEADER=` (empty) or name the header your own edge proxy overwrites.
+
 ## Backups
 
 `backup` writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`) and keeps `PNW_BACKUP_KEEP_DAYS`

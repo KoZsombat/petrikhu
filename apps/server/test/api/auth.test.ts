@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { accounts, sessions, users } from '../../src/db/schema.ts'
-import { DEMO, startTestServer } from '../helpers.ts'
+import { DEMO, TEST_IP_HEADER, startTestServer } from '../helpers.ts'
 import type { TestServer } from '../helpers.ts'
 
 let s: TestServer
@@ -67,7 +67,7 @@ describe('login', () => {
 
 describe('lockout keyed on account + IP', () => {
   test('8 failures from one IP lock that IP out of that account, even with the right password', async () => {
-    const ip = { 'x-forwarded-for': '10.0.0.1' }
+    const ip = { [TEST_IP_HEADER]: '10.0.0.1' }
     for (let i = 0; i < 8; i += 1) await s.client(ip).post('/api/auth/login', { username: 'helyettes', password: 'wrong-wrong-1' })
     const locked = await s.client(ip).post('/api/auth/login', DEMO.reviewer)
     expect(locked.status).toBe(429)
@@ -75,12 +75,12 @@ describe('lockout keyed on account + IP', () => {
   })
 
   test('a stranger cannot lock someone out: another IP still logs in', async () => {
-    const res = await s.client({ 'x-forwarded-for': '10.0.0.2' }).post('/api/auth/login', DEMO.reviewer)
+    const res = await s.client({ [TEST_IP_HEADER]: '10.0.0.2' }).post('/api/auth/login', DEMO.reviewer)
     expect(res.status).toBe(200)
   })
 
   test('a successful login resets the account+IP counter', async () => {
-    const ip = { 'x-forwarded-for': '10.0.0.3' }
+    const ip = { [TEST_IP_HEADER]: '10.0.0.3' }
     for (let i = 0; i < 7; i += 1) await s.client(ip).post('/api/auth/login', { username: 'igazgato', password: 'wrong-wrong-1' })
     expect((await s.client(ip).post('/api/auth/login', DEMO.admin)).status).toBe(200)
     for (let i = 0; i < 7; i += 1) await s.client(ip).post('/api/auth/login', { username: 'igazgato', password: 'wrong-wrong-1' })

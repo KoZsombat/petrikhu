@@ -29,8 +29,11 @@ services:
       PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?set an initial password}
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
-      # Proxies in front of the API: Next.js, plus cloudflared.
-      PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-2}
+      # The visitor's IP (rate limits): Cloudflare sets this header and a visitor cannot supply it through the
+      # tunnel; Next.js passes it on. Set it to empty when the site is not behind Cloudflare (then: the socket peer).
+      PNW_CLIENT_IP_HEADER: ${PNW_CLIENT_IP_HEADER-cf-connecting-ip}
+      # Opt-in X-Forwarded-For hop counting instead of the header (0 = off). See .env.example.
+      PNW_TRUST_PROXY: ${PNW_TRUST_PROXY:-0}
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     # No published port: only the web service reaches it.

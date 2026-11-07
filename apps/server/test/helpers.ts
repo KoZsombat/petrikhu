@@ -80,7 +80,10 @@ export class Client {
   }
 }
 
-const randomIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`
+/** The tests' stand-in for Cloudflare's header. */
+export const TEST_IP_HEADER = 'cf-connecting-ip'
+
+export const randomIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`
 
 export type TestServer = {
   url: string
@@ -106,12 +109,13 @@ export async function startTestServer(options: { content?: boolean; config?: Par
     await seedUsers(db)
     await seedTerms(db)
   }
-  const config = loadConfig({ databaseUrl: dbUrl(name), trustProxy: 1, allowedOrigins: [], publicUrl: '', secureCookies: false, ...options.config })
+  const config = loadConfig({ databaseUrl: dbUrl(name), clientIpHeader: TEST_IP_HEADER, trustProxy: 0, allowedOrigins: [], publicUrl: '', secureCookies: false, ...options.config })
   const app = createApp(createDeps(db, config))
   const server = Bun.serve({ port: 0, fetch: app.fetch })
   const url = `http://127.0.0.1:${server.port}`
-  // Every client gets its own (forwarded) IP, unless the test gives one, so the per-IP limits do not add up across tests.
-  const client = (headers?: Record<string, string>) => new Client(url, { 'x-forwarded-for': randomIp(), ...headers })
+  // Every client gets its own IP (in the configured client-IP header), unless the test gives one, so the per-IP
+  // limits do not add up across tests.
+  const client = (headers?: Record<string, string>) => new Client(url, { [TEST_IP_HEADER]: randomIp(), ...headers })
   return {
     url,
     db,

@@ -55,21 +55,36 @@ export function sameOriginOnly(config: Config): MiddlewareHandler {
     } catch {
       return c.json({ error: 'bad_origin' }, 403)
     }
-    const forwardedHost = config.trustProxy > 0 ? c.req.header('x-forwarded-host')?.split(',')[0]?.trim() : undefined
+    // Next.js always sets X-Forwarded-Host to the host the browser talked to (the API is not reachable directly).
+    // A browser cannot set it on a cross-site request without a CORS preflight, which the API never grants.
+    const forwardedHost = c.req.header('x-forwarded-host')?.split(',')[0]?.trim()
     if (host === (forwardedHost || c.req.header('host')) || config.allowedOrigins.includes(origin)) return next()
     return c.json({ error: 'bad_origin' }, 403)
   }
 }
 
 /**
- * The client's IP: with N trusted proxies in front (Next.js; cloudflared in production), the address N hops
- * back along X-Forwarded-For + the socket peer.
+ * The client's IP, the key of every rate limit. In order:
+ * 1. the configured header (PNW_CLIENT_IP_HEADER, e.g. `cf-connecting-ip`), which the edge proxy sets and
+ *    overwrites, so a visitor cannot choose it;
+ * 2. with PNW_TRUST_PROXY = N (opt-in), the address N hops back along X-Forwarded-For + the socket peer, only
+ *    when there are that many hops;
+ * 3. the socket peer.
+ * The left-most X-Forwarded-For entry (whatever the visitor sent) is never used as a fallback.
  */
 export function clientIp(c: Context, config: Config, peer: string | undefined): string {
-  const hops = (c.req.header('x-forwarded-for') ?? '').split(',').map((h) => h.trim()).filter(Boolean)
-  hops.push(peer ?? 'unknown')
-  const index = hops.length - 1 - config.trustProxy
-  return hops[Math.max(0, index)] ?? 'unknown'
+  const fallback = peer || 'unknown'
+  if (config.clientIpHeader) {
+    const value = c.req.header(config.clientIpHeader)?.split(',')[0]?.trim()
+    return value && value.length <= 64 ? value : fallback
+  }
+  if (config.trustProxy > 0) {
+    const hops = (c.req.header('x-forwarded-for') ?? '').split(',').map((h) => h.trim()).filter(Boolean)
+    hops.push(fallback)
+    const index = hops.length - 1 - config.trustProxy
+    return index >= 0 ? hops[index] : fallback
+  }
+  return fallback
 }
 
 /** Fixed-window counter per key; resets when the window ends. */
