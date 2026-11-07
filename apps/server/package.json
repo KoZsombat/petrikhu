@@ -11,7 +11,8 @@
     "db:migrate": "bun src/scripts/migrate.ts",
     "db:seed": "bun src/scripts/seed.ts",
     "migrate:legacy": "bun src/scripts/migrate-legacy.ts",
-    "media:import": "bun src/scripts/import-media.ts"
+    "media:import": "bun src/scripts/import-media.ts",
+    "media:variants": "bun src/scripts/media-variants.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",

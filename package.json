@@ -15,7 +15,8 @@
     "db:generate": "bun run --cwd apps/server db:generate",
     "db:seed": "bun run --cwd apps/server db:seed",
     "migrate:legacy": "bun run --cwd apps/server migrate:legacy",
-    "media:import": "bun run --cwd apps/server media:import"
+    "media:import": "bun run --cwd apps/server media:import",
+    "media:variants": "bun run --cwd apps/server media:variants"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

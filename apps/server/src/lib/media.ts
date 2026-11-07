@@ -134,6 +134,7 @@ export async function putMediaIfMissing(db: Db, path: string, bytes: Buffer, cre
 const effectiveWidth = (requested: number, original: number) => Math.min(requested, original)
 
 async function encode(bytes: Buffer, width: number, format: Format): Promise<Buffer> {
+  encodeStats.count += 1
   const pipeline = sharp(bytes).rotate().resize({ width, withoutEnlargement: true })
   return format === 'avif' ? pipeline.avif({ quality: 55, effort: 4 }).toBuffer() : pipeline.webp({ quality: 78 }).toBuffer()
 }
@@ -146,6 +147,52 @@ async function makeVariants(db: Db, mediaId: string, bytes: Buffer, originalWidt
       await db.insert(mediaVariants).values({ mediaId, width, format, size: data.length, data }).onConflictDoNothing()
     }
   }
+}
+
+/* --- variants on demand -------------------------------------------------------------------------- */
+
+/** Encodes in progress, per `(mediaId, width, format)`: concurrent requests for a missing variant share one. */
+const inFlight = new Map<string, Promise<{ size: number; createdAt: Date } | null>>()
+
+/** Makes and stores one missing variant; null when the original cannot be encoded. Deduplicated per variant. */
+export function ensureVariant(db: Db, mediaId: string, width: number, format: Format): Promise<{ size: number; createdAt: Date } | null> {
+  const key = `${mediaId}:${width}:${format}`
+  const running = inFlight.get(key)
+  if (running) return running
+  const job = (async () => {
+    const [row] = await db.select({ data: media.data }).from(media).where(eq(media.id, mediaId))
+    if (!row) return null
+    const encoded = await encode(row.data, width, format).catch(() => null)
+    if (!encoded) return null
+    await db.insert(mediaVariants).values({ mediaId, width, format, size: encoded.length, data: encoded }).onConflictDoNothing()
+    return { size: encoded.length, createdAt: new Date() }
+  })().finally(() => inFlight.delete(key))
+  inFlight.set(key, job)
+  return job
+}
+
+/** How many encodes ran (tests). */
+export const encodeStats = { count: 0 }
+
+/**
+ * Every missing variant of every resizable image (one-time, `bun run media:variants`), one at a time, so the
+ * first visitors after a migration do not trigger the encodes. Returns how many were made.
+ */
+export async function generateMissingVariants(db: Db, log: (line: string) => void = () => {}): Promise<number> {
+  const images = await db.select({ id: media.id, path: media.path, mime: media.mime, width: media.width }).from(media).where(sql`${media.width} IS NOT NULL`).orderBy(media.createdAt)
+  let made = 0
+  for (const image of images) {
+    if (!image.width || !RESIZABLE.test(image.mime)) continue
+    const existing = new Set((await db.select({ width: mediaVariants.width, format: mediaVariants.format }).from(mediaVariants).where(eq(mediaVariants.mediaId, image.id))).map((v) => `${v.width}:${v.format}`))
+    for (const width of [...new Set(VARIANT_WIDTHS.map((w) => effectiveWidth(w, image.width!)))]) {
+      for (const format of VARIANT_FORMATS) {
+        if (existing.has(`${width}:${format}`)) continue
+        if (await ensureVariant(db, image.id, width, format)) made += 1
+        else log(`cannot encode ${image.path}`)
+      }
+    }
+  }
+  return made
 }
 
 /* --- serving --------------------------------------------------------------------------------------- */
@@ -250,15 +297,8 @@ export async function serveMedia(db: Db, req: Request, path: string, maxAge: num
 
   if (format && (VARIANT_FORMATS as readonly string[]).includes(format) && (VARIANT_WIDTHS as readonly number[]).includes(requestedWidth) && file.width && RESIZABLE.test(file.mime)) {
     const width = effectiveWidth(requestedWidth, file.width)
-    let variant = (await db.select({ size: mediaVariants.size, createdAt: mediaVariants.createdAt }).from(mediaVariants).where(and(eq(mediaVariants.mediaId, file.id), eq(mediaVariants.width, width), eq(mediaVariants.format, format))).limit(1))[0]
-    if (!variant) {
-      const [{ data }] = await db.select({ data: media.data }).from(media).where(eq(media.id, file.id))
-      const encoded = await encode(data, width, format).catch(() => null)
-      if (encoded) {
-        await db.insert(mediaVariants).values({ mediaId: file.id, width, format, size: encoded.length, data: encoded }).onConflictDoNothing()
-        variant = { size: encoded.length, createdAt: new Date() }
-      }
-    }
+    let variant: { size: number; createdAt: Date } | null | undefined = (await db.select({ size: mediaVariants.size, createdAt: mediaVariants.createdAt }).from(mediaVariants).where(and(eq(mediaVariants.mediaId, file.id), eq(mediaVariants.width, width), eq(mediaVariants.format, format))).limit(1))[0]
+    if (!variant) variant = (await ensureVariant(db, file.id, width, format))
     if (variant) {
       return respond(req, {
         etag: `"${file.id.slice(0, 8)}-${width}-${format}-${variant.size}"`,

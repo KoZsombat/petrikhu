@@ -43,6 +43,11 @@ bun run media:import /path/to/media-seed
 ```
 
 (The former `server/media-seed` folder is in the git history: `git archive 79abeb9 server/media-seed | tar -x -C /tmp`.)
+Then make the resized variants of those images once, so no visitor waits for an encode:
+
+```bash
+bun run media:variants
+```
 
 ## Scripts
 
@@ -56,6 +61,7 @@ bun run media:import /path/to/media-seed
 | `bun run db:generate` | A new SQL migration from `apps/server/src/db/schema.ts` (drizzle-kit) |
 | `bun run db:migrate` | Applies migrations and seeds an empty database (the API does this on start too) |
 | `bun run media:import <dir>` | Loads a folder of files into the media table |
+| `bun run media:variants` | Makes every missing WebP / AVIF variant of the stored images (one-time, safe to repeat) |
 | `bun run migrate:legacy` | Copies the previous app's database into the new schema (see below) |
 
 ## Production
@@ -193,7 +199,11 @@ Steps (all on the server, in the repository folder):
    docker compose up -d --remove-orphans
    ```
    (The first command stops the old `petrik` container, which the new compose file no longer defines.)
-6. **Check the live site**, log in, and fix roles on the Fiókok screen if the report showed any surprises.
+6. **Make the image variants** of the imported files once (takes a while; the site works meanwhile):
+   ```bash
+   docker compose run --rm api bun run --cwd apps/server media:variants
+   ```
+7. **Check the live site**, log in, and fix roles on the Fiókok screen if the report showed any surprises.
 
 **Rollback:** `docker compose down`, rename the databases back (`petrik` → `petrik_new`, `petrik_old` → `petrik`),
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the

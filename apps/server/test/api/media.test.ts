@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import sharp from 'sharp'
 import { eq } from 'drizzle-orm'
 import { media, mediaVariants } from '../../src/db/schema.ts'
-import { CHUNK_BYTES, putMediaIfMissing } from '../../src/lib/media.ts'
+import { CHUNK_BYTES, encodeStats, generateMissingVariants, putMediaIfMissing } from '../../src/lib/media.ts'
 import { DEMO, PNG_BYTES, doc, fileForm, startTestServer } from '../helpers.ts'
 import type { Client, TestServer } from '../helpers.ts'
 
@@ -47,6 +47,26 @@ describe('image uploads', () => {
     expect(res.headers.get('cache-control')).toBe('public, max-age=86400')
     const [row] = await s.db.select().from(media).where(eq(media.path, '/media/regi/kep.png'))
     expect(await s.db.select().from(mediaVariants).where(eq(mediaVariants.mediaId, row.id))).toHaveLength(1)
+  })
+
+  test('parallel first requests for a missing variant share one encode', async () => {
+    await putMediaIfMissing(s.db, '/media/regi/parhuzamos.png', await sharp({ create: { width: 900, height: 300, channels: 3, background: '#abc' } }).png().toBuffer())
+    const before = encodeStats.count
+    const responses = await Promise.all(Array.from({ length: 8 }, () => fetch(`${s.url}/media/regi/parhuzamos.png?w=480&f=avif`)))
+    expect(responses.every((res) => res.status === 200 && res.headers.get('content-type') === 'image/avif')).toBe(true)
+    const sizes = new Set(await Promise.all(responses.map(async (res) => (await res.arrayBuffer()).byteLength)))
+    expect(sizes.size).toBe(1)
+    expect(encodeStats.count - before).toBe(1)
+  })
+
+  test('media:variants makes every missing variant of the old images, once', async () => {
+    await putMediaIfMissing(s.db, '/media/regi/kotegelt.png', await sharp({ create: { width: 2000, height: 500, channels: 3, background: '#123' } }).png().toBuffer())
+    const made = await generateMissingVariants(s.db)
+    expect(made).toBeGreaterThanOrEqual(6)
+    const [row] = await s.db.select().from(media).where(eq(media.path, '/media/regi/kotegelt.png'))
+    const variants = await s.db.select({ width: mediaVariants.width, format: mediaVariants.format }).from(mediaVariants).where(eq(mediaVariants.mediaId, row.id))
+    expect(variants.map((v) => `${v.width}.${v.format}`).sort()).toEqual(['1600.avif', '1600.webp', '480.avif', '480.webp', '960.avif', '960.webp'])
+    expect(await generateMissingVariants(s.db)).toBe(0)
   })
 
   test('forbidden extension or content that does not match it → 422', async () => {
