@@ -54,7 +54,7 @@ export function MenuEditor() {
           <option value="hu">Magyar menü</option>
           <option value="en">Angol menü</option>
         </Select>
-        <Button onClick={() => window.confirm('Visszaállítod az eredeti menüt?') && action.run(async () => (await del(`/pages/menu/${locale}`), loaded.reload()), 'Visszaállítva.')}>
+        <Button onClick={async () => (await dialog.confirm({ title: 'Eredeti menü visszaállítása', message: 'A menü minden módosítása elvész, és a webhelyen azonnal az eredeti menü jelenik meg.', confirmLabel: 'Visszaállítás', destructive: true })) && action.run(async () => (await del(`/pages/menu/${locale}`), loaded.reload()), 'Visszaállítva.')}>
           Eredeti visszaállítása
         </Button>
         <Button tone="primary" disabled={action.busy} onClick={save}>

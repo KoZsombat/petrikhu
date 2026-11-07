@@ -103,7 +103,7 @@ export function LibraryEditor() {
   return (
     <div className="max-w-4xl">
       <PageHeader title="Dokumentumtár">
-        <Button onClick={() => window.confirm('Visszaállítod az eredeti dokumentumtárat?') && action.run(async () => (await del('/library'), loaded.reload()), 'Visszaállítva.')}>Eredeti visszaállítása</Button>
+        <Button onClick={async () => (await dialog.confirm({ title: 'Eredeti dokumentumtár visszaállítása', message: 'A dokumentumtár minden módosítása elvész, és a webhelyen azonnal az eredeti lista jelenik meg. A feltöltött fájlok megmaradnak a Médiatárban.', confirmLabel: 'Visszaállítás', destructive: true })) && action.run(async () => (await del('/library'), loaded.reload()), 'Visszaállítva.')}>Eredeti visszaállítása</Button>
         <Button tone="primary" disabled={action.busy} onClick={save}>
           Mentés
         </Button>
@@ -138,7 +138,7 @@ export function LibraryEditor() {
               <span className="ml-auto flex gap-1">
                 <Button tone="ghost" aria-label="Fel" disabled={i === 0} onClick={() => setLibrary({ categories: moved(library.categories, i, i - 1) })}><ArrowUp size={14} /></Button>
                 <Button tone="ghost" aria-label="Le" disabled={i === library.categories.length - 1} onClick={() => setLibrary({ categories: moved(library.categories, i, i + 1) })}><ArrowDown size={14} /></Button>
-                <Button tone="ghost" aria-label="Kategória törlése" onClick={() => window.confirm('Törlöd a kategóriát és a benne lévő dokumentumokat a listából?') && setLibrary({ categories: library.categories.filter((_, j) => j !== i) })}><Trash2 size={14} /></Button>
+                <Button tone="ghost" aria-label="Kategória törlése" onClick={async () => (await dialog.confirm({ title: 'Kategória törlése', message: `A(z) „${category.title}” kategória és a benne lévő ${category.docs.length} dokumentum kikerül a listából (a fájlok a Médiatárban maradnak).`, confirmLabel: 'Törlés', destructive: true })) && setLibrary({ categories: library.categories.filter((_, j) => j !== i) })}><Trash2 size={14} /></Button>
               </span>
             </div>
             <ol className="space-y-2">

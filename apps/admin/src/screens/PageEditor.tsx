@@ -159,7 +159,7 @@ export function PageEditor() {
                 <Button tone="ghost" aria-label="Le" disabled={i === draft.blocks.length - 1} onClick={() => move(i, i + 1)}>
                   <ArrowDown size={14} />
                 </Button>
-                <Button tone="ghost" aria-label="Blokk törlése" onClick={() => window.confirm('Törlöd ezt a blokkot?') && setBlocks(draft.blocks.filter((b) => b.id !== block.id))}>
+                <Button tone="ghost" aria-label="Blokk törlése" onClick={async () => (await dialog.confirm({ title: 'Blokk törlése', message: `A(z) „${BLOCK_LABELS[block.type]?.label ?? block.type}” blokk kikerül az oldalból (mentésig visszavonható: töltsd újra az oldalt mentés nélkül).`, confirmLabel: 'Törlés', destructive: true })) && setBlocks(draft.blocks.filter((b) => b.id !== block.id))}>
                   <Trash2 size={14} />
                 </Button>
               </div>

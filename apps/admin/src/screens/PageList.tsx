@@ -5,6 +5,7 @@ import { dateTime } from '@petrik/shared/format'
 import { del, get, post } from '../api.ts'
 import { useUserNames } from '../data.ts'
 import { Button, Card, Empty, Notice, PageHeader, Select, StatusBadge, Table, useAction, useLoad } from '../ui.tsx'
+import { useDialog } from '../dialog.tsx'
 
 export function PageList() {
   const [locale, setLocale] = useState<'hu' | 'en'>('hu')
@@ -12,6 +13,7 @@ export function PageList() {
   const names = useUserNames()
   const { data, error, reload } = useLoad(() => get<{ pages: PageSummary[] }>(`/pages?locale=${locale}`), [locale])
   const action = useAction()
+  const dialog = useDialog()
   const live = data?.pages.filter((p) => p.status !== 'trash') ?? []
   const trash = data?.pages.filter((p) => p.status === 'trash') ?? []
   const url = (p: PageSummary) => (p.locale === 'en' ? `/en/${p.slug}` : `/${p.slug}`)
@@ -57,7 +59,7 @@ export function PageList() {
                   {dateTime(p.updatedAt)} · {names(p.updatedById)}
                 </td>
                 <td className="px-2 py-2 text-right">
-                  <Button tone="ghost" onClick={() => window.confirm(`A(z) „${p.title}” oldal a lomtárba kerül, és lekerül a webhelyről. Folytatod?`) && action.run(async () => (await del(`/pages/${p.id}`), reload()), 'Lomtárba helyezve.')}>
+                  <Button tone="ghost" onClick={async () => (await dialog.confirm({ title: 'Oldal a lomtárba', message: `A(z) „${p.title}” oldal a lomtárba kerül, és lekerül a webhelyről. Később visszaállíthatod.`, confirmLabel: 'Lomtárba' })) && action.run(async () => (await del(`/pages/${p.id}`), reload()), 'Lomtárba helyezve.')}>
                     Lomtárba
                   </Button>
                 </td>
@@ -78,7 +80,7 @@ export function PageList() {
                 </span>
                 <span className="flex gap-2">
                   <Button onClick={() => action.run(async () => (await post(`/pages/${p.id}/restore`), reload()), 'Visszaállítva piszkozatként.')}>Visszaállítás</Button>
-                  <Button tone="danger" onClick={() => window.confirm('Véglegesen törlöd? Ez nem vonható vissza.') && action.run(async () => (await del(`/pages/${p.id}`), reload()), 'Véglegesen törölve.')}>
+                  <Button tone="danger" onClick={async () => (await dialog.confirm({ title: 'Végleges törlés', message: `A(z) „${p.title}” oldal véglegesen törlődik. Ez nem vonható vissza.`, confirmLabel: 'Végleges törlés', destructive: true })) && action.run(async () => (await del(`/pages/${p.id}`), reload()), 'Véglegesen törölve.')}>
                     Végleges törlés
                   </Button>
                 </span>

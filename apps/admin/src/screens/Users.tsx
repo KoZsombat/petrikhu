@@ -7,6 +7,7 @@ import { del, get, post, put } from '../api.ts'
 import { invalidateUsers } from '../data.ts'
 import { useSession } from '../session.tsx'
 import { Button, Card, Input, Label, PageHeader, Select, Table, useAction, useLoad } from '../ui.tsx'
+import { useDialog } from '../dialog.tsx'
 
 type Form = { id?: string; username: string; displayName: string; role: Role; password: string }
 const blank: Form = { username: '', displayName: '', role: 'author', password: '' }
@@ -17,6 +18,7 @@ export function UsersScreen() {
   const { data, reload } = useLoad(() => get<{ users: Account[] }>('/users'), [])
   const [form, setForm] = useState<Form | null>(null)
   const action = useAction()
+  const dialog = useDialog()
 
   const save = () =>
     form &&
@@ -83,7 +85,7 @@ export function UsersScreen() {
                   Szerkesztés
                 </Button>
                 {account.id !== user?.id && (
-                  <Button tone="ghost" onClick={() => window.confirm(`Törlöd ${account.displayName} fiókját? A hírei és oldalai megmaradnak.`) && action.run(async () => (await del(`/users/${account.id}`), invalidateUsers(), reload()), 'Fiók törölve.')}>
+                  <Button tone="ghost" onClick={async () => (await dialog.confirm({ title: 'Fiók törlése', message: `Törlöd ${account.displayName} fiókját? A hírei és oldalai megmaradnak, de ő többé nem tud belépni.`, confirmLabel: 'Fiók törlése', destructive: true })) && action.run(async () => (await del(`/users/${account.id}`), invalidateUsers(), reload()), 'Fiók törölve.')}>
                     Törlés
                   </Button>
                 )}

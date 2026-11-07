@@ -3,6 +3,7 @@ import type { PostSummary } from '@petrik/shared/schemas'
 import type { PostStatus } from '@petrik/shared/workflow'
 import { get, post as post_ } from '../api.ts'
 import { Button, Card, Input, Notice, PageHeader, Pager, useAction, useLoad } from '../ui.tsx'
+import { useDialog } from '../dialog.tsx'
 import { PostRows } from './Dashboard.tsx'
 
 const TITLES: Partial<Record<PostStatus, string>> = { in_review: 'Jóváhagyásra vár', scheduled: 'Időzített hírek', published: 'Publikált hírek', archived: 'Archívum', trash: 'Lomtár' }
@@ -13,6 +14,7 @@ export function PostList({ status }: { status: PostStatus }) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const action = useAction()
+  const dialog = useDialog()
   const { data, error, reload } = useLoad(() => get<{ posts: PostSummary[]; total: number; totalPages: number }>(`/posts?status=${status}&page=${page}&q=${encodeURIComponent(query)}`), [status, page, query])
   return (
     <div className="max-w-5xl">
@@ -38,7 +40,7 @@ export function PostList({ status }: { status: PostStatus }) {
           actions={
             status === 'scheduled'
               ? (post) => (
-                  <Button disabled={action.busy} onClick={() => action.run(async () => (await post_(`/posts/${post.id}/unschedule`), reload()), `„${post.title}”: időzítés visszavonva, újra jóváhagyásra vár.`)}>
+                  <Button disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Időzítés visszavonása', message: `„${post.title}” nem jelenik meg az időzített időpontban; újra jóváhagyásra vár.`, confirmLabel: 'Visszavonás' })) && action.run(async () => (await post_(`/posts/${post.id}/unschedule`), reload()), `„${post.title}”: időzítés visszavonva, újra jóváhagyásra vár.`)}>
                     Időzítés visszavonása
                   </Button>
                 )

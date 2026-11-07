@@ -276,7 +276,7 @@ export function PostEditor() {
           </Button>
         )}
         {current && status === 'scheduled' && reviewer && (
-          <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/unschedule`)}>
+          <Button disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Időzítés visszavonása', message: 'A hír nem jelenik meg az időzített időpontban; újra jóváhagyásra vár.', confirmLabel: 'Visszavonás' })) && simple(`/posts/${id}/unschedule`)}>
             Időzítés visszavonása
           </Button>
         )}
@@ -285,13 +285,13 @@ export function PostEditor() {
         {current && status === 'trash' && user && canTrashPost(current, user) && (
           <>
             <Button disabled={action.busy} onClick={() => simple(`/posts/${id}/untrash`)}>Visszaállítás piszkozatként</Button>
-            <Button tone="danger" disabled={action.busy} onClick={() => window.confirm('Véglegesen törlöd? Ez nem vonható vissza.') && simple(`/posts/${id}`, 'del', () => navigate('/hirek/lomtar'))}>
+            <Button tone="danger" disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Végleges törlés', message: 'A hír véglegesen törlődik (a naplóban a címe megmarad). Ez nem vonható vissza.', confirmLabel: 'Végleges törlés', destructive: true })) && simple(`/posts/${id}`, 'del', () => navigate('/hirek/lomtar'))}>
               Végleges törlés
             </Button>
           </>
         )}
         {current && status !== 'trash' && user && canTrashPost(current, user) && (
-          <Button tone="danger" disabled={action.busy} onClick={() => window.confirm('Lomtárba helyezed a hírt?') && simple(`/posts/${id}`, 'del')}>
+          <Button tone="danger" disabled={action.busy} onClick={async () => (await dialog.confirm({ title: 'Hír a lomtárba', message: status === 'published' ? 'A hír lekerül a webhelyről, és a lomtárba kerül.' : 'A hír a lomtárba kerül; onnan visszaállítható.', confirmLabel: 'Lomtárba' })) && simple(`/posts/${id}`, 'del')}>
             Lomtárba
           </Button>
         )}
