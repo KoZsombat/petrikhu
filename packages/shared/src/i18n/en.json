@@ -63,7 +63,7 @@
     "notFound": "Page not found", "backHome": "Back to the home page", "search": "Search", "searchNews": "Search the news…",
     "results": "results", "noResults": "No results.", "searchTooMany": "Too many searches from this network. Please wait a minute and try again.", "searchDocuments": "Search the documents…",
     "previous": "Previous", "next": "Next", "page": "Page {n}", "noContent": "No content yet.", "details": "DETAILS →",
-    "photoOf": "Photo of {name}", "video": "Video", "breadcrumb": "Breadcrumb", "filters": "Filters", "pagination": "Pagination",
+    "photoOf": "Photo of {name}", "video": "Video", "playVideo": "Play video: {title}", "breadcrumb": "Breadcrumb", "filters": "Filters", "pagination": "Pagination",
     "categories": "Categories", "download": "Download", "protected": "Protected", "documents": "documents", "embedded": "Embedded content",
     "news": "News", "documentLibrary": "Documents", "preview": "Preview – this page is not public."
   }

@@ -209,6 +209,14 @@ Steps (all on the server, in the repository folder):
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
 migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
 
+## Embedded videos
+
+YouTube videos (the home page video, the Videó block, YouTube embeds in rich text) load nothing from YouTube until
+the visitor presses play: the site shows a thumbnail it serves itself (`/media/youtube/<id>.jpg`, fetched once by
+the API from `i.ytimg.com` and stored like any media file, so the API needs outbound HTTPS to that host; without it
+a plain dark box with the play button is shown) and only the click inserts the `youtube-nocookie.com` player. The
+CSP's `frame-src` allows `youtube-nocookie.com` and no other YouTube host.
+
 ## Caching
 
 Pages are still rendered on the server for every request (each response gets its own CSP nonce), but their data

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import sharp from 'sharp'
 import { eq } from 'drizzle-orm'
 import { media, mediaVariants } from '../../src/db/schema.ts'
-import { CHUNK_BYTES, encodeStats, generateMissingVariants, putMediaIfMissing } from '../../src/lib/media.ts'
+import { CHUNK_BYTES, encodeStats, ensureYouTubeThumbnail, generateMissingVariants, putMediaIfMissing } from '../../src/lib/media.ts'
 import { DEMO, PNG_BYTES, doc, fileForm, startTestServer } from '../helpers.ts'
 import type { Client, TestServer } from '../helpers.ts'
 
@@ -185,4 +185,23 @@ test('statistics: SQL aggregates for the reviewers', async () => {
   expect(stats.body).toMatchObject({ published: 0, inReview: 0 })
   expect(stats.body.monthlyChart).toHaveLength(6)
   expect((await author.get('/api/statistics')).status).toBe(403)
+})
+
+describe('YouTube thumbnails', () => {
+  test('fetched once from i.ytimg.com, stored under /media/youtube/<id>.jpg; a failure is not retried at once', async () => {
+    const jpeg = await sharp({ create: { width: 480, height: 360, channels: 3, background: '#c00' } }).jpeg().toBuffer()
+    const asked: string[] = []
+    const fake = (async (url: string) => {
+      asked.push(url)
+      return url.includes('aaaaaaaaaaa') ? new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } }) : new Response('nope', { status: 404 })
+    }) as unknown as typeof fetch
+    expect(await ensureYouTubeThumbnail(s.db, 'aaaaaaaaaaa', fake)).toBe(true)
+    expect(asked).toEqual(['https://i.ytimg.com/vi/aaaaaaaaaaa/hqdefault.jpg'])
+    const served = await fetch(`${s.url}/media/youtube/aaaaaaaaaaa.jpg`)
+    expect(served.status).toBe(200)
+    expect(served.headers.get('content-type')).toBe('image/jpeg')
+    expect(await ensureYouTubeThumbnail(s.db, 'bbbbbbbbbbb', fake)).toBe(false)
+    expect(await ensureYouTubeThumbnail(s.db, 'bbbbbbbbbbb', fake)).toBe(false)
+    expect(asked.filter((url) => url.includes('bbbbbbbbbbb'))).toHaveLength(1)
+  })
 })

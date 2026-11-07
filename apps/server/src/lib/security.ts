@@ -15,7 +15,7 @@ export const API_CSP = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob: https:",
-  "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+  "frame-src https://www.youtube-nocookie.com",
   "connect-src 'self'",
   "media-src 'self'",
   "object-src 'none'",

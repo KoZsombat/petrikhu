@@ -338,3 +338,34 @@ export async function listImages(db: Db, limit = 500, offset = 0) {
     .offset(offset)
   return rows.map((row) => ({ ...row, url: row.path, createdAt: row.createdAt.toISOString() }))
 }
+
+/* --- YouTube thumbnails --------------------------------------------------------------------------- */
+
+export const YOUTUBE_THUMB = /^\/media\/youtube\/([\w-]{11})\.jpg$/
+const thumbFailures = new Map<string, number>()
+let thumbWindow = { start: 0, count: 0 }
+
+/**
+ * The thumbnail of a YouTube video, stored once under /media/youtube/<id>.jpg, so the site shows it before the
+ * visitor chooses to load the player (no request to YouTube from the browser until then). At most 30 fetches a
+ * minute, and a failed id is not retried for 10 minutes. Returns whether the file now exists.
+ */
+export async function ensureYouTubeThumbnail(db: Db, id: string, fetcher: typeof fetch = fetch): Promise<boolean> {
+  const now = Date.now()
+  if ((thumbFailures.get(id) ?? 0) > now) return false
+  if (now - thumbWindow.start > 60_000) thumbWindow = { start: now, count: 0 }
+  if (++thumbWindow.count > 30) return false
+  const job = (async () => {
+    try {
+      const res = await fetcher(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, { signal: AbortSignal.timeout(5000) })
+      const bytes = Buffer.from(await res.arrayBuffer())
+      if (!res.ok || bytes.length > 2 * 1024 * 1024 || !looksLikeImage(bytes, '.jpg')) throw new Error(`status ${res.status}`)
+      await putMediaIfMissing(db, `/media/youtube/${id}.jpg`, bytes)
+      return true
+    } catch {
+      thumbFailures.set(id, Date.now() + 10 * 60_000)
+      return false
+    }
+  })()
+  return job
+}

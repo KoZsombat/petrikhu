@@ -4,7 +4,8 @@
  */
 import { Fragment } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { isEmbedSrc, isImageSrc, isSafeColor, isSafeHref } from '@petrik/shared/links'
+import { isEmbedSrc, isImageSrc, isSafeColor, isSafeHref, youtubeId } from '@petrik/shared/links'
+import { YouTube } from './YouTube'
 import type { Mark, RichDoc, RichNode } from '@petrik/shared/tiptap'
 import { Picture } from './Picture'
 import { SmartLink } from './SmartLink'
@@ -14,7 +15,7 @@ export const POST_PROSE =
   'font-body text-[17px] leading-[1.75] text-petrikink break-words ' +
   '[&_p]:mb-4 [&_li>p]:mb-0 [&_h1]:mb-3 [&_h2]:mb-3 [&_h3]:mb-3 [&_h4]:mb-3 [&_h5]:mb-2 [&_h6]:mb-2 ' +
   '[&_h1]:mt-8 [&_h2]:mt-8 [&_h3]:mt-6 [&_h4]:mt-6 [&_h1,&_h2,&_h3,&_h4,&_h5,&_h6]:font-display [&_h1,&_h2,&_h3,&_h4,&_h5,&_h6]:font-bold [&_h1,&_h2,&_h3,&_h4,&_h5,&_h6]:leading-tight ' +
-  '[&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_h4]:text-xl [&_h5]:text-lg [&_h6]:text-base ' +
+  '[&_.petrik-rich-h1]:mt-8 [&_.petrik-rich-h1]:text-4xl [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_h4]:text-xl [&_h5]:text-lg [&_h6]:text-base ' +
   '[&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 [&_li>ul]:mt-1 [&_li>ol]:mt-1 ' +
   '[&_blockquote]:mb-4 [&_blockquote]:border-l-4 [&_blockquote]:border-petrikaccent [&_blockquote]:bg-petriktint [&_blockquote]:px-5 [&_blockquote]:py-3 [&_blockquote]:font-display [&_blockquote]:italic ' +
   '[&_a]:font-medium [&_a]:text-petrikaccentdark [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-petrikaccent ' +
@@ -56,7 +57,7 @@ function children(nodes: RichNode[] | undefined, ctx: Ctx): ReactNode {
   return nodes?.map((node, i) => <Fragment key={i}>{render(node, ctx)}</Fragment>)
 }
 
-type Ctx = { embedTitle: string }
+type Ctx = { embedTitle: string; playLabel: (title: string) => string }
 
 function render(node: RichNode, ctx: Ctx): ReactNode {
   switch (node.type) {
@@ -69,6 +70,8 @@ function render(node: RichNode, ctx: Ctx): ReactNode {
     case 'paragraph':
       return <p style={alignStyle(node.attrs?.textAlign)}>{children(node.content, ctx)}</p>
     case 'heading': {
+      // The page or post title is the page's only <h1>: a level-1 heading in the text is an <h2> that looks the same.
+      if (node.attrs.level === 1) return <h2 className="petrik-rich-h1" style={alignStyle(node.attrs.textAlign)}>{children(node.content, ctx)}</h2>
       const Tag = `h${node.attrs.level}` as 'h2'
       return <Tag style={alignStyle(node.attrs.textAlign)}>{children(node.content, ctx)}</Tag>
     }
@@ -134,6 +137,16 @@ function render(node: RichNode, ctx: Ctx): ReactNode {
     case 'embed': {
       const { src, title, aspect, height } = node.attrs
       if (!isEmbedSrc(src)) return null
+      // YouTube (also www.youtube.com in older content): click-to-load, youtube-nocookie only.
+      const video = /^https:\/\/www\.youtube(-nocookie)?\.com\//.test(src) ? youtubeId(src) : undefined
+      if (video) {
+        const name = title ?? ctx.embedTitle
+        return (
+          <div className="relative my-6 aspect-video overflow-hidden rounded-lg">
+            <YouTube id={video} title={name} playLabel={ctx.playLabel(name)} />
+          </div>
+        )
+      }
       const frame = (
         <iframe
           src={src}
@@ -164,7 +177,20 @@ function render(node: RichNode, ctx: Ctx): ReactNode {
 }
 
 /** `variant`: `page` for page blocks (.petrik-prose), `post` for a news article, `bare` with no typography. */
-export function RichContent({ doc, variant = 'page', className = '', embedTitle = 'Beágyazott tartalom' }: { doc: RichDoc; variant?: 'page' | 'post' | 'bare'; className?: string; embedTitle?: string }) {
+export function RichContent({
+  doc,
+  variant = 'page',
+  className = '',
+  embedTitle = 'Beágyazott tartalom',
+  playLabel = (title: string) => `Videó lejátszása: ${title}`,
+}: {
+  doc: RichDoc
+  variant?: 'page' | 'post' | 'bare'
+  className?: string
+  embedTitle?: string
+  /** The play button's label of an embedded YouTube video. */
+  playLabel?: (title: string) => string
+}) {
   const base = variant === 'page' ? 'petrik-prose' : variant === 'post' ? POST_PROSE : ''
-  return <div className={`${base} ${className}`.trim()}>{children(doc.content, { embedTitle })}</div>
+  return <div className={`${base} ${className}`.trim()}>{children(doc.content, { embedTitle, playLabel })}</div>
 }

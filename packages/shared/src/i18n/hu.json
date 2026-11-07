@@ -63,7 +63,7 @@
     "notFound": "Az oldal nem található", "backHome": "Vissza a kezdőlapra", "search": "Keresés", "searchNews": "Keresés a hírek között…",
     "results": "találat", "noResults": "Nincs találat.", "searchTooMany": "Túl sok keresés érkezett erről a hálózatról. Várj egy percet, és próbáld újra.", "searchDocuments": "Keresés a dokumentumok között…",
     "previous": "Előző", "next": "Következő", "page": "{n}. oldal", "noContent": "Még nincs tartalom.", "details": "RÉSZLETEK →",
-    "photoOf": "{name} fényképe", "video": "Videó", "breadcrumb": "Morzsamenü", "filters": "Szűrők", "pagination": "Lapozó",
+    "photoOf": "{name} fényképe", "video": "Videó", "playVideo": "Videó lejátszása: {title}", "breadcrumb": "Morzsamenü", "filters": "Szűrők", "pagination": "Lapozó",
     "categories": "Kategóriák", "download": "Letöltés", "protected": "Védett", "documents": "dokumentum", "embedded": "Beágyazott tartalom",
     "news": "Hírek", "documentLibrary": "Dokumentumtár", "preview": "Előnézet – ez az oldal nem publikus."
   }

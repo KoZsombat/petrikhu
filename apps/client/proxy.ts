@@ -16,7 +16,7 @@ function csp(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "img-src 'self' data: blob: https:",
-    'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://sway.office.com https://sway.cloud.microsoft https://www.thinglink.com https://view.genial.ly https://view.genially.com https://online.fliphtml5.com https://www.facebook.com https://docs.google.com https://www.canva.com https://padlet.com',
+    'frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://sway.office.com https://sway.cloud.microsoft https://www.thinglink.com https://view.genial.ly https://view.genially.com https://online.fliphtml5.com https://www.facebook.com https://docs.google.com https://www.canva.com https://padlet.com',
     `connect-src 'self'${dev ? ' ws:' : ''}`,
     "media-src 'self'",
     "object-src 'none'",

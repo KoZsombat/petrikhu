@@ -13,7 +13,7 @@ import type { AppEnv, Deps } from './context.ts'
 import type { Db } from './db/client.ts'
 import { createAuth } from './lib/auth.ts'
 import { bodyLimits } from './lib/limits.ts'
-import { serveMedia } from './lib/media.ts'
+import { YOUTUBE_THUMB, ensureYouTubeThumbnail, serveMedia } from './lib/media.ts'
 import { PasswordRuleError } from './lib/users.ts'
 import { AccountBackoff, RateLimiter, clientIp, sameOriginOnly, securityHeaders } from './lib/security.ts'
 import { audit, statistics } from './routes/audit.ts'
@@ -76,7 +76,12 @@ export function createApp(deps: Deps) {
       } catch {
         return c.notFound()
       }
-      return (await serveMedia(c.var.db, c.req.raw, path, maxAge)) ?? c.notFound()
+      const served = await serveMedia(c.var.db, c.req.raw, path, maxAge)
+      if (served) return served
+      // A YouTube thumbnail the site asks for the first time: fetched once, then served like any file.
+      const video = YOUTUBE_THUMB.exec(path)?.[1]
+      if (video && (await ensureYouTubeThumbnail(c.var.db, video))) return (await serveMedia(c.var.db, c.req.raw, path, maxAge)) ?? c.notFound()
+      return c.notFound()
     })
   }
 

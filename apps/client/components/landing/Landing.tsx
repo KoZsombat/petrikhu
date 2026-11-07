@@ -9,6 +9,7 @@ import { getPosts } from '@/lib/api'
 import type { Locale, T } from '@/lib/i18n'
 import { thumbnail } from '../Picture'
 import { SmartLink } from '../SmartLink'
+import { YouTube } from '../YouTube'
 import { CountUp } from './CountUp'
 import { MoleculeField } from './MoleculeField'
 
@@ -84,7 +85,7 @@ async function News({ t, locale }: { t: T; locale: Locale }) {
   return (
     <section className="px-4 py-20 bg-petrikpale/30 w-full max-w-screen overflow-x-hidden min-h-screen">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl">{t('home.latestNews')}</h1>
+        <h2 className="text-2xl font-bold md:text-4xl">{t('home.latestNews')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {posts.map((post) => (
             <article key={post.slug} className="flex flex-col bg-petrikcard rounded-xl overflow-hidden border border-black/5 shadow-sm">
@@ -95,7 +96,7 @@ async function News({ t, locale }: { t: T; locale: Locale }) {
                 <span className="absolute top-4 left-4 bg-petrikaccent text-white font-mono font-semibold text-xs uppercase tracking-widest px-4 py-2 rounded-full">{dateTag(post.publishedAt, locale)}</span>
               </div>
               <div className="flex flex-col flex-1 p-5 gap-2">
-                <h2 className="font-display font-semibold text-lg text-petrikink">{post.title}</h2>
+                <h3 className="font-display font-semibold text-lg text-petrikink">{post.title}</h3>
                 <p className="font-body text-petriksoft leading-relaxed text-sm flex-1 line-clamp-3">{post.excerpt}</p>
                 <SmartLink href={`/hirek/${post.slug}`} className="mt-4 text-xs font-semibold uppercase tracking-wider text-petrikaccentdark">
                   {t('home.details')}
@@ -122,7 +123,7 @@ function Occupations({ t }: { t: T }) {
   return (
     <section className="px-4 py-20 bg-petrikbg w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.programmes')}</h1>
+        <h2 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.programmes')}</h2>
         <p className="text-petrikfaint text-md w-140 max-w-full">{t('home.programmesLead')}</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:max-w-4/6 mx-auto mt-10">
@@ -131,7 +132,7 @@ function Occupations({ t }: { t: T }) {
             <div className={`${bg} text-white size-12 rounded-md flex items-center justify-center`}>
               <Icon size={24} />
             </div>
-            <h2 className="font-display font-semibold text-xl text-petrikink mt-6">{t(title)}</h2>
+            <h3 className="font-display font-semibold text-xl text-petrikink mt-6">{t(title)}</h3>
             <p className="font-body text-petriksoft mt-4 leading-relaxed text-sm">{t(text)}</p>
             <SmartLink href={href} className="text-xs font-semibold uppercase tracking-wider text-petrikaccentdark mt-auto pt-8">
               {t('home.learnMore')}
@@ -156,7 +157,7 @@ function Reasons({ t }: { t: T }) {
   return (
     <section className="px-4 py-20 bg-white w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.whyUs')}</h1>
+        <h2 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.whyUs')}</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-12 md:max-w-4/6 mx-auto mt-10">
         {REASONS.map(({ icon: Icon, n }) => (
@@ -164,7 +165,7 @@ function Reasons({ t }: { t: T }) {
             <div className="bg-petriktint text-petrikaccentdark size-12 rounded-full flex items-center justify-center">
               <Icon size={24} strokeWidth={1.5} />
             </div>
-            <h2 className="font-display font-semibold text-xl text-petrikink mt-6">{t(`home.reason${n}Title`)}</h2>
+            <h3 className="font-display font-semibold text-xl text-petrikink mt-6">{t(`home.reason${n}Title`)}</h3>
             <p className="font-body text-petriksoft mt-4 leading-relaxed text-sm">{t(`home.reason${n}Text`)}</p>
           </article>
         ))}
@@ -207,7 +208,7 @@ function Projects({ t }: { t: T }) {
   return (
     <section className="px-4 py-20 bg-petrikbg w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl w-200 max-w-full">{t('home.projectsTitle')}</h1>
+        <h2 className="text-2xl font-bold md:text-4xl w-200 max-w-full">{t('home.projectsTitle')}</h2>
         <p className="text-petrikfaint text-md w-140 max-w-full">{t('home.projectsLead')}</p>
       </div>
       <div className="flex overflow-x-auto md:overflow-visible md:grid md:grid-cols-5 gap-x-10 gap-y-12 md:max-w-4/6 mx-auto mt-10 items-center pb-4">
@@ -231,18 +232,11 @@ function Introduction({ t }: { t: T }) {
   return (
     <section className="px-4 py-20 bg-white w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:flex-row justify-evenly items-center md:max-w-4/6 mx-auto gap-10">
-        <div className="md:w-1/2 aspect-video">
-          <iframe
-            className="w-full h-full rounded-lg"
-            src="https://www.youtube.com/embed/NnanAwvV8FI"
-            title={t('home.videoTitle')}
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+        <div className="md:w-1/2 w-full aspect-video overflow-hidden rounded-lg">
+          <YouTube id="NnanAwvV8FI" title={t('home.videoTitle')} playLabel={t('common.playVideo', { title: t('home.videoTitle') })} />
         </div>
         <div className="flex flex-col gap-5 md:w-1/2 text-center md:text-start">
-          <h1 className="text-2xl font-bold italic font-serif">{t('home.aboutTitle')}</h1>
+          <h2 className="text-2xl font-bold italic font-serif">{t('home.aboutTitle')}</h2>
           <p className="text-petrikfaint text-md">{t('home.aboutText')}</p>
         </div>
       </div>
@@ -262,7 +256,7 @@ function Partners({ t }: { t: T }) {
   return (
     <section className="px-4 py-20 bg-petrikbg w-full max-w-screen overflow-x-hidden min-h-max">
       <div className="flex flex-col md:max-w-4/6 mx-auto gap-10">
-        <h1 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.partnersTitle')}</h1>
+        <h2 className="text-2xl font-bold md:text-4xl w-140 max-w-full">{t('home.partnersTitle')}</h2>
       </div>
       <div className="flex overflow-x-auto md:overflow-visible md:grid md:grid-cols-6 gap-x-10 gap-y-12 md:max-w-4/6 mx-auto mt-10 items-center pb-4">
         {PARTNER_LOGOS.map(([name, alt]) => (

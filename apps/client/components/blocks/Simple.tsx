@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react'
 import type { BlockProps } from '@petrik/shared/blocks'
 import { youtubeId } from '@petrik/shared/links'
+import { YouTube } from '../YouTube'
 import { cx } from '../cx'
 import { Picture } from '../Picture'
 import { RichContent } from '../RichContent'
@@ -16,7 +17,7 @@ export function RichTextBlock({ content }: BlockProps<'richText'>, ctx: BlockCon
   return (
     <section data-component="richText" className="py-14 md:py-16">
       <Container>
-        <RichContent doc={content} embedTitle={ctx.t('common.embedded')} />
+        <RichContent doc={content} embedTitle={ctx.t('common.embedded')} playLabel={(name) => ctx.t('common.playVideo', { title: name })} />
       </Container>
     </section>
   )
@@ -36,7 +37,7 @@ export function Feature({ eyebrow, title, content, image, imageSide, ctaLabel, c
         <div className={cx(!image && 'md:col-span-2')}>
           {eyebrow && <p className="petrik-eyebrow mb-3">{eyebrow}</p>}
           <h2 className="font-display text-3xl font-bold leading-tight text-balance">{title}</h2>
-          {content && <RichContent doc={content} className="mt-4" embedTitle={ctx.t('common.embedded')} />}
+          {content && <RichContent doc={content} className="mt-4" embedTitle={ctx.t('common.embedded')} playLabel={(name) => ctx.t('common.playVideo', { title: name })} />}
           {ctaLabel && ctaHref && (
             <SmartLink href={ctaHref} className={cx('mt-6', BUTTON)}>
               {ctaLabel}
@@ -68,7 +69,7 @@ export function Callout({ title, content, tone }: BlockProps<'callout'>, ctx: Bl
       <Container>
         <div className={cx('rounded-xl border-l-4 p-6 md:p-8', accent ? 'border-petrikaccentdark bg-petrikaccent text-petrikcard' : 'border-petrikaccent bg-petriktint')}>
           {title && <h2 className="mb-3 font-display text-xl font-bold">{title}</h2>}
-          <RichContent doc={content} className={cx(accent && '[&_a]:text-petrikcard [&_*]:text-petrikcard')} embedTitle={ctx.t('common.embedded')} />
+          <RichContent doc={content} className={cx(accent && '[&_a]:text-petrikcard [&_*]:text-petrikcard')} embedTitle={ctx.t('common.embedded')} playLabel={(name) => ctx.t('common.playVideo', { title: name })} />
         </div>
       </Container>
     </section>
@@ -258,7 +259,7 @@ export function Table({ heading, columns, rows, footnote, limit }: BlockProps<'t
   )
 }
 
-/** A 16:9 YouTube embed (youtube-nocookie); a plain link for anything else. */
+/** A 16:9 YouTube video, loaded only on click (youtube-nocookie); a plain link for anything else. */
 export function Video({ heading, url, title, caption }: BlockProps<'video'>, ctx: BlockContext) {
   const id = youtubeId(url)
   return (
@@ -267,7 +268,7 @@ export function Video({ heading, url, title, caption }: BlockProps<'video'>, ctx
         {heading && <h2 className="mx-auto mb-6 max-w-4xl font-display text-2xl font-bold text-balance">{heading}</h2>}
         {id ? (
           <div className="mx-auto aspect-video max-w-4xl overflow-hidden rounded-xl bg-petrikink">
-            <iframe src={`https://www.youtube-nocookie.com/embed/${id}`} title={title ?? ctx.t('common.video')} loading="lazy" allowFullScreen className="size-full border-0" />
+            <YouTube id={id} title={title ?? ctx.t('common.video')} playLabel={ctx.t('common.playVideo', { title: title ?? ctx.t('common.video') })} />
           </div>
         ) : (
           <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-petrikaccentdark underline">
@@ -295,7 +296,7 @@ export function Accordion({ heading, items, openFirst }: BlockProps<'accordion'>
                   +
                 </span>
               </summary>
-              <RichContent doc={item.content} className="px-5 pb-5" embedTitle={ctx.t('common.embedded')} />
+              <RichContent doc={item.content} className="px-5 pb-5" embedTitle={ctx.t('common.embedded')} playLabel={(name) => ctx.t('common.playVideo', { title: name })} />
             </details>
           ))}
         </div>

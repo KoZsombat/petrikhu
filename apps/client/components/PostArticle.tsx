@@ -21,7 +21,7 @@ export function PostArticle({ post, t, locale }: { post: PublicPost; t: T; local
         ))}
       </p>
       {picture && post.imagePosition === 'top' && <div className="mt-8">{picture}</div>}
-      <div className="mt-8">{isEmptyDoc(post.content) ? <p className="text-petriksoft">{t('common.noContent')}</p> : <RichContent doc={post.content} variant="post" embedTitle={t('common.embedded')} />}</div>
+      <div className="mt-8">{isEmptyDoc(post.content) ? <p className="text-petriksoft">{t('common.noContent')}</p> : <RichContent doc={post.content} variant="post" embedTitle={t('common.embedded')} playLabel={(name) => t('common.playVideo', { title: name })} />}</div>
       {picture && post.imagePosition === 'bottom' && <div className="mt-8">{picture}</div>}
     </article>
   )
