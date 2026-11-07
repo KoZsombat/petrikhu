@@ -15,7 +15,7 @@ import { createAuth } from './lib/auth.ts'
 import { bodyLimits } from './lib/limits.ts'
 import { serveMedia } from './lib/media.ts'
 import { PasswordRuleError } from './lib/users.ts'
-import { RateLimiter, clientIp, sameOriginOnly, securityHeaders } from './lib/security.ts'
+import { AccountBackoff, RateLimiter, clientIp, sameOriginOnly, securityHeaders } from './lib/security.ts'
 import { audit, statistics } from './routes/audit.ts'
 import auth from './routes/auth.ts'
 import library from './routes/library.ts'
@@ -38,6 +38,7 @@ export function createDeps(db: Db, config: Config): Deps {
     limits: {
       loginByIp: new RateLimiter(30, 15 * 60 * 1000),
       loginByAccount: new RateLimiter(8, 15 * 60 * 1000),
+      accountBackoff: new AccountBackoff(),
       writesByIp: new RateLimiter(600, 5 * 60 * 1000),
     },
   }

@@ -128,3 +128,52 @@ export class RateLimiter {
     for (const [key, entry] of this.hits) if (entry.resetAt <= now) this.hits.delete(key)
   }
 }
+
+/**
+ * Per-account backoff across all IPs (distributed guessing). After `threshold` failures, each further attempt
+ * for that account has to wait `baseMs * 2^(failures - threshold)` since the last failure, capped at `maxMs`:
+ * never a permanent lock. The state is forgotten `forgetMs` after the last failure, or at a successful login.
+ * Keyed on the username as typed (lowercased), so unknown usernames behave exactly like existing ones.
+ */
+export class AccountBackoff {
+  private entries = new Map<string, { failures: number; lastFailureAt: number }>()
+  constructor(
+    private options = { threshold: 10, baseMs: 2_000, maxMs: 15 * 60 * 1000, forgetMs: 60 * 60 * 1000 },
+    private now: () => number = Date.now,
+  ) {
+    setInterval(() => this.sweep(), 5 * 60 * 1000).unref?.()
+  }
+
+  private current(key: string) {
+    const entry = this.entries.get(key)
+    if (entry && this.now() - entry.lastFailureAt > this.options.forgetMs) {
+      this.entries.delete(key)
+      return undefined
+    }
+    return entry
+  }
+
+  /** The wait before the next attempt may be made, in ms (0: go ahead). */
+  waitMs(key: string): number {
+    const entry = this.current(key)
+    if (!entry || entry.failures < this.options.threshold) return 0
+    const delay = Math.min(this.options.maxMs, this.options.baseMs * 2 ** (entry.failures - this.options.threshold))
+    return Math.max(0, entry.lastFailureAt + delay - this.now())
+  }
+
+  fail(key: string): void {
+    const entry = this.current(key)
+    if (entry) {
+      entry.failures += 1
+      entry.lastFailureAt = this.now()
+    } else this.entries.set(key, { failures: 1, lastFailureAt: this.now() })
+  }
+
+  reset(key: string): void {
+    this.entries.delete(key)
+  }
+
+  private sweep(): void {
+    for (const key of [...this.entries.keys()]) this.current(key)
+  }
+}

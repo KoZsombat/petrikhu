@@ -56,8 +56,9 @@ describe('login', () => {
       for (let i = 0; i < 3; i += 1) await s.client().post('/api/auth/login', { username, password: 'wrong-password-123' })
       return performance.now() - start
     }
-    await time('igazgato')
-    const known = await time('igazgato')
+    // (mk.vezeto: these 6 failures stay under the per-account backoff threshold of the accounts tested below.)
+    await time('mk.vezeto')
+    const known = await time('mk.vezeto')
     const unknown = await time('senki-sincs')
     // Both run one argon2id computation per attempt: the ratio stays near 1.
     expect(unknown / known).toBeGreaterThan(0.5)

@@ -5,13 +5,13 @@ import type { SessionUser } from '@petrik/shared/schemas'
 import type { Config } from './config.ts'
 import type { Db } from './db/client.ts'
 import type { Auth } from './lib/auth.ts'
-import type { RateLimiter } from './lib/security.ts'
+import type { AccountBackoff, RateLimiter } from './lib/security.ts'
 
 export type Deps = {
   db: Db
   auth: Auth
   config: Config
-  limits: { loginByIp: RateLimiter; loginByAccount: RateLimiter; writesByIp: RateLimiter }
+  limits: { loginByIp: RateLimiter; loginByAccount: RateLimiter; accountBackoff: AccountBackoff; writesByIp: RateLimiter }
 }
 
 export type AppEnv = {

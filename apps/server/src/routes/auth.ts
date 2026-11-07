@@ -3,7 +3,8 @@
  * these routes add the lockout and keep the response format.
  *
  * Lockout: 8 failed attempts per account *and IP* (so a stranger cannot lock a colleague out) and 30 per IP,
- * per 15 minutes. A successful login clears the account+IP counter.
+ * per 15 minutes. Across all IPs, an account (existing or not) that had 10 failures backs off exponentially,
+ * up to 15 minutes between attempts, never permanently. A successful login clears both account counters.
  */
 import { Hono } from 'hono'
 import { eq } from 'drizzle-orm'
@@ -29,11 +30,17 @@ function forwardCookies(from: Headers, to: Headers) {
 auth.post('/login', validate('json', loginBody), async (c) => {
   const { username, password } = c.req.valid('json')
   if (!username || !password) return c.json({ error: 'empty_fields' }, 401)
-  const { loginByIp, loginByAccount } = c.var.limits
+  const { loginByIp, loginByAccount, accountBackoff } = c.var.limits
   const ipKey = c.var.ip
-  const accountKey = `${username.toLowerCase()}|${c.var.ip}`
+  const name = username.trim().toLowerCase()
+  const accountKey = `${name}|${c.var.ip}`
   if (loginByAccount.blocked(accountKey) || !loginByIp.hit(ipKey)) {
     c.header('Retry-After', String(Math.max(loginByIp.retryAfterSeconds(ipKey), loginByAccount.retryAfterSeconds(accountKey))))
+    return c.json({ error: 'too_many_attempts' }, 429)
+  }
+  const wait = accountBackoff.waitMs(name)
+  if (wait > 0) {
+    c.header('Retry-After', String(Math.ceil(wait / 1000)))
     return c.json({ error: 'too_many_attempts' }, 429)
   }
 
@@ -46,9 +53,11 @@ auth.post('/login', validate('json', loginBody), async (c) => {
   }
   if (!response.ok) {
     loginByAccount.hit(accountKey)
+    accountBackoff.fail(name)
     return c.json({ error: 'invalid_credentials' }, 401)
   }
   loginByAccount.reset(accountKey)
+  accountBackoff.reset(name)
 
   const user = (await findUserByUsername(c.var.db, username))!
   // An imported account's old bcrypt hash is replaced by the current one; an old password shorter than today's

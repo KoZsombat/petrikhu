@@ -97,6 +97,10 @@ from the socket peer. `X-Forwarded-For` is only used with an explicit `PNW_TRUST
 must append to it), and its left-most, visitor-supplied entry is never used on its own. If the site is not behind
 Cloudflare, set `PNW_CLIENT_IP_HEADER=` (empty) or name the header your own edge proxy overwrites.
 
+Logins: 8 failures per account and IP and 30 per IP per 15 minutes; on top of that, an account (existing or not)
+with 10 failures from any IPs backs off exponentially (2 s, 4 s, … at most 15 minutes between attempts, forgotten
+after an hour of quiet or at a successful login). Nothing is ever locked permanently.
+
 ## Backups
 
 `backup` writes a daily `pg_dump -Fc` to `PNW_BACKUP_DIR` (default `./backups`) and keeps `PNW_BACKUP_KEEP_DAYS`
