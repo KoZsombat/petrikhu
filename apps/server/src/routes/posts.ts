@@ -17,6 +17,7 @@ import { requireUser, userOf } from '../context.ts'
 import type { Db } from '../db/client.ts'
 import { documents } from '../db/schema.ts'
 import { listAudit, logAudit } from '../lib/audit.ts'
+import { conflictBody } from '../lib/conflict.ts'
 import type { DocumentRow } from '../lib/documents.ts'
 import { countSql, existingTermIds, findDocument, likePattern, postBlocks, searchTextOf, setTerms, slugsOf, termIdsOf, toPost, toPostSummary } from '../lib/documents.ts'
 import { validate } from '../lib/validate.ts'
@@ -42,6 +43,15 @@ async function loadPost(db: Db, id: string) {
 
 async function full(db: Db, row: DocumentRow) {
   return toPost(row, (await termIdsOf(db, [row.id])).get(row.id))
+}
+
+/**
+ * A workflow step: updates the post only if it still has the status `from` (in the WHERE), so of two people
+ * acting at once only one succeeds (and writes the audit entry); false for the other (→ 409 status_changed).
+ */
+async function moved(db: Db, id: string, from: string, set: Partial<typeof documents.$inferInsert>): Promise<boolean> {
+  const rows = await db.update(documents).set(set).where(and(eq(documents.id, id), eq(documents.status, from))).returning({ id: documents.id })
+  return rows.length > 0
 }
 
 const select = (db: Db, where: SQL | undefined, order: SQL[], limit?: number) => {
@@ -181,6 +191,8 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || !canEditPost(existing, user)) return c.json({ error: 'forbidden' }, 403)
   const body = c.req.valid('json')
+  if (body.version === undefined) return c.json({ error: 'version_required' }, 422)
+  if (body.version !== existing.version) return c.json(await conflictBody(c.var.db, existing), 409)
   const checked = await checkContent(c.var.db, body)
   if ('error' in checked) return c.json({ error: checked.error }, 422)
 
@@ -196,9 +208,13 @@ posts.put('/:id', validate('json', postSaveBody), async (c) => {
   const [row] = await c.var.db
     .update(documents)
     .set({ ...contentColumns(body), status, updatedById: user.id, ...(submit ? { submittedAt: new Date(), reviewNote: null } : {}), ...schedule })
-    .where(and(eq(documents.id, existing.id), eq(documents.status, existing.status)))
+    .where(and(eq(documents.id, existing.id), eq(documents.status, existing.status), eq(documents.version, body.version)))
     .returning()
-  if (!row) return c.json({ error: 'status_changed' }, 409)
+  if (!row) {
+    // Someone saved (or decided) between our read and this write.
+    const now = await loadPost(c.var.db, existing.id)
+    return now && now.status === existing.status ? c.json(await conflictBody(c.var.db, now), 409) : c.json({ error: 'status_changed' }, 409)
+  }
   await setTerms(c.var.db, row.id, [...checked.categoryIds, ...checked.tagIds])
 
   const action = submit
@@ -234,7 +250,7 @@ posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
 
   if (body.decision === 'reject') {
     if (!body.note) return c.json({ error: 'rejection_note_required' }, 422)
-    await db.update(documents).set({ status: 'draft', reviewNote: body.note, reviewedById: user.id, reviewedAt: now, updatedAt: now }).where(eq(documents.id, existing.id))
+    if (!(await moved(db, existing.id, 'in_review', { status: 'draft', reviewNote: body.note, reviewedById: user.id, reviewedAt: now, updatedAt: now }))) return c.json({ error: 'status_changed' }, 409)
     await audit('rejected', 'draft', body.note)
     return c.json({ notice: 'rejected' })
   }
@@ -242,19 +258,17 @@ posts.post('/:id/decision', validate('json', reviewDecisionBody), async (c) => {
   if (body.publishAt) {
     const at = new Date(body.publishAt)
     if (at.getTime() <= now.getTime() + 60_000) return c.json({ error: 'schedule_invalid' }, 422)
-    await db
-      .update(documents)
-      .set({ status: 'scheduled', scheduledFor: at, scheduledById: user.id, publishedAt: at, reviewNote: null, reviewedById: user.id, reviewedAt: now, updatedAt: now })
-      .where(eq(documents.id, existing.id))
+    if (!(await moved(db, existing.id, 'in_review', { status: 'scheduled', scheduledFor: at, scheduledById: user.id, publishedAt: at, reviewNote: null, reviewedById: user.id, reviewedAt: now, updatedAt: now }))) {
+      return c.json({ error: 'status_changed' }, 409)
+    }
     const display = budapest(at)
     await audit('scheduled', 'scheduled', body.note ? `${body.note}\nPublikálás: ${display}` : `Publikálás: ${display}`)
     return c.json({ notice: 'scheduled' })
   }
 
-  await db
-    .update(documents)
-    .set({ status: 'published', publishedAt: now, scheduledFor: null, scheduledById: null, reviewNote: null, reviewedById: user.id, reviewedAt: now, updatedAt: now })
-    .where(eq(documents.id, existing.id))
+  if (!(await moved(db, existing.id, 'in_review', { status: 'published', publishedAt: now, scheduledFor: null, scheduledById: null, reviewNote: null, reviewedById: user.id, reviewedAt: now, updatedAt: now }))) {
+    return c.json({ error: 'status_changed' }, 409)
+  }
   await audit('approved', 'published', body.note || undefined)
   return c.json({ notice: 'approved' })
 })
@@ -282,7 +296,7 @@ posts.post('/:id/archive', async (c) => {
   if (!can(user, 'news.manage')) return c.json({ error: 'forbidden' }, 403)
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || existing.status !== 'published') return c.json({ error: 'not_found' }, 404)
-  await c.var.db.update(documents).set({ status: 'archived', archivedAt: new Date(), archivedById: user.id, updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  if (!(await moved(c.var.db, existing.id, 'published', { status: 'archived', archivedAt: new Date(), archivedById: user.id, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'published_archived', fromStatus: 'published', toStatus: 'archived', userId: user.id })
   return c.json({ notice: 'published_archived' })
 })
@@ -292,7 +306,7 @@ posts.post('/:id/unarchive', async (c) => {
   if (!can(user, 'news.manage')) return c.json({ error: 'forbidden' }, 403)
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || existing.status !== 'archived') return c.json({ error: 'not_found' }, 404)
-  await c.var.db.update(documents).set({ status: 'published', archivedAt: null, archivedById: null, updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  if (!(await moved(c.var.db, existing.id, 'archived', { status: 'published', archivedAt: null, archivedById: null, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'archived_restored', fromStatus: 'archived', toStatus: 'published', userId: user.id })
   return c.json({ notice: 'archived_restored' })
 })
@@ -303,11 +317,12 @@ posts.delete('/:id', async (c) => {
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || !canTrashPost(existing, user)) return c.json({ error: 'forbidden' }, 403)
   if (existing.status === 'trash') {
+    const gone = await c.var.db.delete(documents).where(and(eq(documents.id, existing.id), eq(documents.status, 'trash'))).returning({ id: documents.id })
+    if (!gone.length) return c.json({ error: 'status_changed' }, 409)
     await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'deleted', fromStatus: 'trash', userId: user.id })
-    await c.var.db.delete(documents).where(eq(documents.id, existing.id))
     return c.json({ notice: 'deleted', permanent: true })
   }
-  await c.var.db.update(documents).set({ status: 'trash', trashedFrom: existing.status, updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  if (!(await moved(c.var.db, existing.id, existing.status, { status: 'trash', trashedFrom: existing.status, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'trashed', fromStatus: existing.status, toStatus: 'trash', userId: user.id })
   return c.json({ notice: 'trashed', permanent: false })
 })
@@ -317,7 +332,7 @@ posts.post('/:id/untrash', async (c) => {
   const user = userOf(c)
   const existing = await loadPost(c.var.db, c.req.param('id'))
   if (!existing || existing.status !== 'trash' || !canTrashPost(existing, user)) return c.json({ error: 'not_found' }, 404)
-  await c.var.db.update(documents).set({ status: 'draft', scheduledFor: null, scheduledById: null, trashedFrom: null, updatedAt: new Date() }).where(eq(documents.id, existing.id))
+  if (!(await moved(c.var.db, existing.id, 'trash', { status: 'draft', scheduledFor: null, scheduledById: null, trashedFrom: null, updatedAt: new Date() }))) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'post', entityId: existing.id, subject: existing.title, action: 'untrashed', fromStatus: 'trash', toStatus: 'draft', userId: user.id })
   return c.json({ notice: 'untrashed' })
 })

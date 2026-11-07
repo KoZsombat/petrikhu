@@ -57,6 +57,14 @@ export const userUpdateBody = userCreateBody.extend({ password: password.optiona
 export type SessionUser = { id: string; username: string; displayName: string; role: Role; mustChangePassword?: boolean }
 export type Account = SessionUser & { createdAt: string }
 
+/* --- optimistic concurrency ------------------------------------------------ */
+
+/** The version a document or setting was loaded at; a save that names an older one gets 409 `conflict`. */
+export const versionField = z.number().int().min(0).max(2_000_000_000)
+
+/** The 409 of a save that lost the race: who saved in between, when, and the version to overwrite with. */
+export type ConflictInfo = { error: 'conflict'; savedBy: string | null; savedAt: string | null; version: number }
+
 /* --- posts ------------------------------------------------------------------ */
 
 export const postSaveBody = z.object({
@@ -71,6 +79,8 @@ export const postSaveBody = z.object({
   command: z.enum(['draft', 'submit']).default('draft'),
   /** Only for a scheduled post (news.review): its new publication time. */
   publishAt: z.iso.datetime({ offset: true }).optional(),
+  /** Saving an existing post: the version it was loaded at (optimistic concurrency). Required by PUT. */
+  version: versionField.optional(),
 })
 export type PostSaveBody = z.input<typeof postSaveBody>
 
@@ -97,6 +107,7 @@ export type Post = {
   scheduledFor: string | null
   publishedAt: string | null
   archivedAt: string | null
+  version: number
   /** In the trash: the status it had before. */
   trashedFrom: PostStatus | null
   createdAt: string
@@ -115,6 +126,8 @@ export const pageSaveBody = z.object({
   status: z.enum(['draft', 'published']).default('draft'),
   blocks: blocksSchema,
   translationOf: z.uuid().nullish(),
+  /** Saving an existing page: the version it was loaded at. Required by PUT. */
+  version: versionField.optional(),
 })
 export type PageSaveBody = z.input<typeof pageSaveBody>
 
@@ -131,6 +144,7 @@ export type Page = {
   updatedById: string | null
   createdAt: string
   updatedAt: string
+  version: number
 }
 export type PageSummary = Omit<Page, 'blocks'>
 
@@ -171,16 +185,24 @@ export const librarySchema = z
       )
       .max(200),
   })
+  // Category slugs are page anchors: unique. A document's slug only has to be unique within its category (the
+  // same document may be listed under two categories, as in the seeded library).
   .superRefine((library, ctx) => {
-    const seen = new Set<string>()
-    for (const category of library.categories) {
-      for (const slug of [`c:${category.slug}`, ...category.docs.map((doc) => `d:${doc.slug}`)]) {
-        if (seen.has(slug)) ctx.addIssue({ code: 'custom', message: 'duplicate_slug', path: ['categories'] })
-        seen.add(slug)
-      }
-    }
+    const categories = new Set<string>()
+    library.categories.forEach((category, i) => {
+      if (categories.has(category.slug)) ctx.addIssue({ code: 'custom', message: 'duplicate_slug', path: ['categories', i, 'slug'] })
+      categories.add(category.slug)
+      const docs = new Set<string>()
+      category.docs.forEach((doc, d) => {
+        if (docs.has(doc.slug)) ctx.addIssue({ code: 'custom', message: 'duplicate_slug', path: ['categories', i, 'docs', d, 'slug'] })
+        docs.add(doc.slug)
+      })
+    })
   })
 export type Library = z.output<typeof librarySchema>
+
+export const menuSaveBody = z.object({ menu: menuSchema, version: versionField })
+export const librarySaveBody = z.object({ library: librarySchema, version: versionField })
 
 export const termCreateBody = z.object({
   kind: z.enum(['category', 'tag']),

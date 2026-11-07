@@ -9,7 +9,7 @@ import { loadConfig } from '../src/config.ts'
 import type { Config } from '../src/config.ts'
 import { createDb } from '../src/db/client.ts'
 import type { Db } from '../src/db/client.ts'
-import { users } from '../src/db/schema.ts'
+import { documents, users } from '../src/db/schema.ts'
 import { seed, seedTerms, seedUsers } from '../src/lib/seed.ts'
 
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgres://petrik:petrik@localhost:5432/petrik_test'
@@ -94,6 +94,8 @@ export type TestServer = {
   sql: postgres.Sql
   client: (headers?: Record<string, string>) => Client
   login: (credentials: { username: string; password: string }, headers?: Record<string, string>) => Promise<Client>
+  /** A save body with the document's current version (what the admin sends; optimistic concurrency). */
+  versioned: <T extends object>(id: string, body: T) => Promise<T & { version: number }>
   close: () => Promise<void>
 }
 
@@ -132,6 +134,10 @@ export async function startTestServer(options: { content?: boolean; config?: Par
       // (test/api/password-change.test.ts covers it).
       if (res.body.user.mustChangePassword && !options.keepPasswordChange) await db.update(users).set({ mustChangePassword: false }).where(eq(users.id, res.body.user.id))
       return c
+    },
+    async versioned(id, body) {
+      const row = /^[0-9a-f-]{36}$/.test(id) ? (await db.select({ version: documents.version }).from(documents).where(eq(documents.id, id)))[0] : undefined
+      return { ...body, version: row?.version ?? 1 }
     },
     async close() {
       await server.stop(true)

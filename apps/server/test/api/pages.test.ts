@@ -93,7 +93,7 @@ describe('publishing and trash', () => {
     const list = await admin.get('/api/pages?locale=hu')
     const id = list.body.pages.find((p: { slug: string }) => p.slug === 'ebed').id
     const current = (await admin.get(`/api/pages/${id}`)).body.page
-    const res = await admin.put(`/api/pages/${id}`, { ...current, title: 'Étkezés (módosítva)', translationOf: undefined })
+    const res = await admin.put(`/api/pages/${id}`, await s.versioned(id, { ...current, title: 'Étkezés (módosítva)', translationOf: undefined }))
     expect(res.status).toBe(200)
     expect((await s.client().get('/api/public/pages/hu/ebed')).body.page.title).toBe('Étkezés (módosítva)')
   })
@@ -101,7 +101,7 @@ describe('publishing and trash', () => {
   test('unknown id → 404 (GET, PUT, restore)', async () => {
     const id = crypto.randomUUID()
     expect((await admin.get(`/api/pages/${id}`)).status).toBe(404)
-    expect((await admin.put(`/api/pages/${id}`, page())).status).toBe(404)
+    expect((await admin.put(`/api/pages/${id}`, await s.versioned(id, page()))).status).toBe(404)
     expect((await admin.post(`/api/pages/${id}/restore`)).status).toBe(404)
   })
 })
@@ -109,14 +109,14 @@ describe('publishing and trash', () => {
 describe('menu', () => {
   test('a valid menu is stored and public; DELETE restores the original', async () => {
     const menu = [{ label: '  Kezdőlap ', href: '/' }, { label: 'Csoport', children: [{ label: 'Link', href: 'https://example.com' }] }, { label: 'Üres csoport', children: [] }]
-    const res = await admin.put('/api/pages/menu/hu', { menu })
+    const res = await admin.put('/api/pages/menu/hu', { menu, version: (await admin.get('/api/pages/menu/hu')).body.version })
     expect(res.body.menu[0]).toEqual({ label: 'Kezdőlap', href: '/' })
     expect((await s.client().get('/api/public/site/hu')).body.menu).toHaveLength(3)
     const reset = await admin.delete('/api/pages/menu/hu')
     expect(reset.body.menu.length).toBeGreaterThan(5)
   })
   test('invalid menus → 422', async () => {
-    const put = async (menu: unknown) => (await admin.put('/api/pages/menu/hu', { menu })).status
+    const put = async (menu: unknown) => (await admin.put('/api/pages/menu/hu', { menu, version: (await admin.get('/api/pages/menu/hu')).body.version })).status
     expect(await put([])).toBe(422)
     expect(await put('x')).toBe(422)
     expect(await put(Array.from({ length: 31 }, () => ({ label: 'x', href: '/' })))).toBe(422)
@@ -125,25 +125,25 @@ describe('menu', () => {
     expect(await put([{ label: 'x', href: '/van szokoz' }])).toBe(422)
     expect(await put([{ label: 'x', href: 'ftp://x' }])).toBe(422)
     expect(await put([{ label: 'x', children: [{ label: 'y' }] }])).toBe(422)
-    expect((await admin.put('/api/pages/menu/de', { menu: [{ label: 'x', href: '/' }] })).status).toBe(422)
+    expect((await admin.put('/api/pages/menu/de', { menu: [{ label: 'x', href: '/' }], version: 0 })).status).toBe(422)
   })
 })
 
 describe('document library', () => {
   test('valid library is public; invalid or duplicate slugs → 422; DELETE restores the original', async () => {
     const library = { categories: [{ slug: 'alap', title: 'Alap', docs: [{ slug: 'hazirend', title: 'Házirend', file: '/uploads/hazirend.pdf' }, { slug: 'vedett', title: 'Védett' }] }] }
-    expect((await admin.put('/api/library', { library })).status).toBe(200)
+    expect((await admin.put('/api/library', { library, version: (await admin.get('/api/library')).body.version })).status).toBe(200)
     expect((await s.client().get('/api/public/site/hu')).body.library).toEqual(library)
-    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'Rossz Slug', title: 'x', docs: [] }] } })).status).toBe(422)
-    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'a', title: 'x', docs: [{ slug: 'a', title: 'y' }, { slug: 'a', title: 'z' }] }] } })).status).toBe(422)
-    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'a', title: 'x', docs: [{ slug: 'b', title: 'y', file: 'javascript:x' }] }] } })).status).toBe(422)
+    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'Rossz Slug', title: 'x', docs: [] }] }, version: 1 })).status).toBe(422)
+    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'a', title: 'x', docs: [{ slug: 'a', title: 'y' }, { slug: 'a', title: 'z' }] }] }, version: 1 })).status).toBe(422)
+    expect((await admin.put('/api/library', { library: { categories: [{ slug: 'a', title: 'x', docs: [{ slug: 'b', title: 'y', file: 'javascript:x' }] }] }, version: 1 })).status).toBe(422)
     expect((await admin.delete('/api/library')).body.library.categories.length).toBeGreaterThan(3)
   })
 })
 
 describe('audit', () => {
   test('page, menu, library and account actions are logged and filterable', async () => {
-    await admin.put('/api/pages/menu/en', { menu: [{ label: 'Home', href: '/en' }] })
+    await admin.put('/api/pages/menu/en', { menu: [{ label: 'Home', href: '/en' }], version: (await admin.get('/api/pages/menu/en')).body.version })
     await admin.post('/api/users', { username: 'naplo', displayName: 'Napló', role: 'author', password: 'NaploJelszo123' })
     const all = await admin.get('/api/audit?limit=200')
     const actions = all.body.entries.map((e: { action: string }) => e.action)

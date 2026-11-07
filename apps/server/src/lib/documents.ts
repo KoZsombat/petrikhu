@@ -130,6 +130,7 @@ export function toPostSummary(row: DocumentRow, termIds = { categoryIds: [] as s
     publishedAt: iso(row.publishedAt),
     archivedAt: iso(row.archivedAt),
     trashedFrom: (row.trashedFrom as PostStatus | null) ?? null,
+    version: row.version,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     legacy: row.legacy,
@@ -153,6 +154,7 @@ export function toPageSummary(row: DocumentRow): PageSummary {
     updatedById: row.updatedById,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    version: row.version,
   }
 }
 

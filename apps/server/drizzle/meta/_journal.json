@@ -36,6 +36,13 @@
       "when": 1794064460588,
       "tag": "0004_search_trgm_index",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794064843282,
+      "tag": "0005_versions",
+      "breakpoints": true
     }
   ]
 }

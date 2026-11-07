@@ -5,6 +5,7 @@ import { librarySchema } from '@petrik/shared/schemas'
 import { slugify } from '@petrik/shared/slug'
 import { del, get, put, upload } from '../api.ts'
 import { Button, Card, Input, Notice, PageHeader, useAction, useLoad } from '../ui.tsx'
+import { saveVersioned, useDialog } from '../dialog.tsx'
 
 function moved<T>(list: T[], from: number, to: number): T[] {
   const next = [...list]
@@ -23,10 +24,11 @@ function freshSlug(title: string, used: Set<string>): string {
 
 /** The document library: categories with documents (uploaded file, external link, or listed without a file). */
 export function LibraryEditor() {
-  const loaded = useLoad(() => get<{ library: Library }>('/library'), [])
+  const loaded = useLoad(() => get<{ library: Library; version: number }>('/library'), [])
   const [library, setLibrary] = useState<Library | null>(null)
   const [libraryFor, setLibraryFor] = useState<unknown>(null)
   const action = useAction()
+  const dialog = useDialog()
   if (loaded.data && libraryFor !== loaded.data) {
     setLibraryFor(loaded.data)
     setLibrary(structuredClone(loaded.data.library))
@@ -41,7 +43,15 @@ export function LibraryEditor() {
       action.setMessage({ tone: 'error', text: 'Minden kategóriának és dokumentumnak kell cím, és a fájl címe /uploads/, /media/ vagy https:// legyen.' })
       return
     }
-    return action.run(async () => (await put('/library', { library: parsed.data }), loaded.reload()), 'Dokumentumtár elmentve.')
+    return action.run(async () => {
+      const saved = await saveVersioned(dialog, loaded.data!.version, (version) => put('/library', { library: parsed.data, version }), () => {
+        setLibraryFor(null)
+        loaded.reload()
+      })
+      if (!saved) return
+      loaded.reload()
+      action.setMessage({ tone: 'success', text: 'Dokumentumtár elmentve.' })
+    })
   }
 
   return (

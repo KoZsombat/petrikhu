@@ -15,6 +15,7 @@ import { useTerms, useUserNames } from '../data.ts'
 import { MediaPicker } from '../editor/MediaPicker.tsx'
 import { RichEditor } from '../editor/RichEditor.tsx'
 import { useSession } from '../session.tsx'
+import { saveVersioned, useDialog } from '../dialog.tsx'
 import { Button, Card, Input, Label, Notice, PageHeader, StatusBadge, Textarea, useAction, useLoad } from '../ui.tsx'
 
 type Form = Required<Pick<PostSaveBody, 'title' | 'excerpt' | 'categoryIds' | 'tagIds' | 'imagePosition'>> & { content: RichDoc; featuredImage: string | null }
@@ -65,6 +66,7 @@ export function PostEditor() {
   const [scheduleAt, setScheduleAt] = useState('')
   const [newTerm, setNewTerm] = useState('')
   const action = useAction()
+  const dialog = useDialog()
   // A notice handed over by the previous screen (a new post saves, then opens at its own address).
   const location = useLocation()
   const [flash, setFlash] = useState<string | null>((location.state as { notice?: string } | null)?.notice ?? null)
@@ -84,15 +86,24 @@ export function PostEditor() {
   const set = <K extends keyof Form>(field: K, value: Form[K]) => setForm((f) => ({ ...f, [field]: value }))
   const toggle = (field: 'categoryIds' | 'tagIds', termId: string) => set(field, form[field].includes(termId) ? form[field].filter((x) => x !== termId) : [...form[field], termId])
 
-  async function save(command: 'draft' | 'submit') {
+  /** Saves the form (PUT with the loaded version); a conflict asks whether to reload or overwrite. */
+  async function saveExisting(command: 'draft' | 'submit') {
     const moved = current?.status === 'scheduled' && scheduleAt && scheduleAt !== toLocalInput(current.scheduledFor)
     const body = { ...form, command, ...(moved ? { publishAt: new Date(scheduleAt).toISOString() } : {}) }
+    return saveVersioned(dialog, current!.version, (version) => put<{ post: Post; notice: string }>(`/posts/${id}`, { ...body, version }), () => {
+      setFormFor(null)
+      loaded.reload()
+    })
+  }
+
+  async function save(command: 'draft' | 'submit') {
     await action.run(async () => {
       if (isNew) {
-        const res = await post<{ post: Post; notice: string }>('/posts', body)
+        const res = await post<{ post: Post; notice: string }>('/posts', { ...form, command })
         navigate(`/hirek/${res.post.id}`, { replace: true, state: { notice: NOTICES[res.notice] } })
       } else {
-        const res = await put<{ post: Post; notice: string }>(`/posts/${id}`, body)
+        const res = await saveExisting(command)
+        if (!res) return
         loaded.reload()
         action.setMessage({ tone: 'success', text: NOTICES[res.notice] })
       }
@@ -117,7 +128,9 @@ export function PostEditor() {
             ? { decision: 'approve', note, publishAt: publishAt ? new Date(publishAt).toISOString() : '' }
             : { decision: 'approve', note }
       // Unsaved edits of the reviewer are saved first.
-      if (decision !== 'reject' && JSON.stringify(form) !== JSON.stringify(fromPost(current!))) await put(`/posts/${id}`, { ...form, command: 'draft' })
+      if (decision !== 'reject' && JSON.stringify(form) !== JSON.stringify(fromPost(current!))) {
+        if (!(await saveExisting('draft'))) return
+      }
       const res = await post<{ notice: string }>(`/posts/${id}/decision`, body)
       setNote('')
       loaded.reload()

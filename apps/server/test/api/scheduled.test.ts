@@ -46,24 +46,24 @@ describe('scheduled posts', () => {
   test('a reviewer edits one in place: it stays scheduled with the same time', async () => {
     const id = await scheduled('Elírással időzítve')
     const before = (await reviewer.get(`/api/posts/${id}`)).body.post
-    const res = await reviewer.put(`/api/posts/${id}`, body('Elírás nélkül időzítve'))
+    const res = await reviewer.put(`/api/posts/${id}`, await s.versioned(id, body('Elírás nélkül időzítve')))
     expect(res.body).toMatchObject({ notice: 'scheduled_saved', post: { status: 'scheduled', title: 'Elírás nélkül időzítve', scheduledFor: before.scheduledFor } })
     expect(await actionsOf(id)).toContain('scheduled_edited')
-    expect((await author.put(`/api/posts/${id}`, body('Szerző nem szerkeszti'))).status).toBe(403)
+    expect((await author.put(`/api/posts/${id}`, await s.versioned(id, body('Szerző nem szerkeszti')))).status).toBe(403)
   })
 
   test('the publication time can be moved; too close → 422; the sweep uses the new time', async () => {
     const id = await scheduled('Áthelyezett időzítés')
-    expect((await reviewer.put(`/api/posts/${id}`, body('Áthelyezett időzítés', { publishAt: new Date(Date.now() + 10_000).toISOString() }))).body).toEqual({ error: 'schedule_invalid' })
+    expect((await reviewer.put(`/api/posts/${id}`, await s.versioned(id, body('Áthelyezett időzítés', { publishAt: new Date(Date.now() + 10_000).toISOString() })))).body).toEqual({ error: 'schedule_invalid' })
     const at = inHours(2)
-    const res = await reviewer.put(`/api/posts/${id}`, body('Áthelyezett időzítés', { publishAt: at }))
+    const res = await reviewer.put(`/api/posts/${id}`, await s.versioned(id, body('Áthelyezett időzítés', { publishAt: at })))
     expect(res.body).toMatchObject({ notice: 'rescheduled', post: { status: 'scheduled', scheduledFor: at, publishedAt: at } })
     expect(await actionsOf(id)).toContain('rescheduled')
   })
 
   test('publishAt is ignored for a post that is not scheduled', async () => {
     const id = (await author.post('/api/posts', body('Piszkozat időpont nélkül'))).body.post.id
-    const res = await author.put(`/api/posts/${id}`, body('Piszkozat időpont nélkül', { publishAt: inHours(3) }))
+    const res = await author.put(`/api/posts/${id}`, await s.versioned(id, body('Piszkozat időpont nélkül', { publishAt: inHours(3) })))
     expect(res.body.post).toMatchObject({ status: 'draft', scheduledFor: null })
   })
 

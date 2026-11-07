@@ -13,6 +13,7 @@ import { get, openPreview, post, put } from '../api.ts'
 import { clean, defaultFor } from '../editor/schemaForm.tsx'
 import { Field } from '../editor/schemaForm.tsx'
 import { Button, Card, Input, Label, Notice, PageHeader, Select, Textarea, useAction, useLoad } from '../ui.tsx'
+import { saveVersioned, useDialog } from '../dialog.tsx'
 
 type Draft = { slug: string; title: string; description: string; status: 'draft' | 'published'; locale: 'hu' | 'en'; translationOf: string | null; blocks: Block[] }
 
@@ -27,6 +28,7 @@ export function PageEditor() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const action = useAction()
+  const dialog = useDialog()
   const location = useLocation()
   const [flash, setFlash] = useState<string | null>((location.state as { notice?: string } | null)?.notice ?? null)
   const loaded = useLoad(() => (isNew ? Promise.resolve(null) : get<{ page: Page }>(`/pages/${id}`).then((r) => r.page)), [id])
@@ -70,15 +72,21 @@ export function PageEditor() {
       action.setMessage({ tone: 'error', text: `Hiba a(z) ${Number(issue.path[0]) + 1}. blokkban (${block ? BLOCK_LABELS[block.type].label : ''}): ${issue.path.slice(2).join('.') || 'tartalom'} – kötelező vagy hibás mező.` })
       return
     }
+    const success = status === 'published' ? 'Az oldal kint van a webhelyen.' : 'Elmentve.'
     await action.run(async () => {
       if (isNew) {
         const { page } = await post<{ page: Page }>('/pages', payload)
-        navigate(`/oldalak/${page.id}`, { replace: true, state: { notice: status === 'published' ? 'Az oldal kint van a webhelyen.' : 'Elmentve.' } })
-      } else {
-        await put(`/pages/${id}`, payload)
-        loaded.reload()
+        navigate(`/oldalak/${page.id}`, { replace: true, state: { notice: success } })
+        return
       }
-    }, status === 'published' ? 'Az oldal kint van a webhelyen.' : 'Elmentve.')
+      const saved = await saveVersioned(dialog, loaded.data!.version, (version) => put(`/pages/${id}`, { ...payload, version }), () => {
+        setDraftFor(null)
+        loaded.reload()
+      })
+      if (!saved) return
+      loaded.reload()
+      action.setMessage({ tone: 'success', text: success })
+    })
   }
 
   const url = `${draft.locale === 'en' ? '/en/' : '/'}${draft.slug || slugify(draft.title, '')}`

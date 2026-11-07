@@ -4,6 +4,7 @@
  * model (user, session, account, verification).
  */
 import { sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import type { Block } from '@petrik/shared/blocks'
@@ -96,6 +97,8 @@ export const documents = pgTable(
     description: text('description').notNull().default(''),
     blocks: jsonb('blocks').$type<Block[]>().notNull(),
     status: text('status').notNull(),
+    /** Optimistic concurrency: +1 on every update (by drizzle); a save names the version it loaded. */
+    version: integer('version').notNull().default(1).$onUpdate((): SQL => sql`"documents"."version" + 1`),
     authorId: userRef('author_id'),
     updatedById: userRef('updated_by_id'),
     createdAt: created(),
@@ -160,6 +163,8 @@ export const documentTerms = pgTable(
 export const settings = pgTable('settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
+  /** Optimistic concurrency, as on documents. */
+  version: integer('version').notNull().default(1).$onUpdate((): SQL => sql`"settings"."version" + 1`),
   updatedAt: updated(),
   updatedById: userRef('updated_by_id'),
 })

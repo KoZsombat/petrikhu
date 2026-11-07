@@ -1,27 +1,32 @@
 /** The document library (Dokumentumtár): its categories and documents, and document uploads. */
 import { Hono } from 'hono'
-import { z } from 'zod'
-import { librarySchema } from '@petrik/shared/schemas'
+import { librarySaveBody } from '@petrik/shared/schemas'
+import type { Library } from '@petrik/shared/schemas'
 import type { AppEnv } from '../context.ts'
 import { requireCap, userOf } from '../context.ts'
 import { logAudit } from '../lib/audit.ts'
 import { storeDocument } from '../lib/media.ts'
-import { defaultLibrary, getSetting, putSetting } from '../lib/seed.ts'
+import { defaultLibrary, getVersionedSetting, putSetting, putSettingIfVersion } from '../lib/seed.ts'
+import { conflictBody } from '../lib/conflict.ts'
 import { validate } from '../lib/validate.ts'
 import { readUpload } from './media.ts'
 
 const library = new Hono<AppEnv>()
 library.use(requireCap('library.manage'))
 
-library.get('/', async (c) => c.json({ library: (await getSetting(c.var.db, 'library')) ?? (await defaultLibrary()) }))
+library.get('/', async (c) => {
+  const stored = await getVersionedSetting<Library>(c.var.db, 'library')
+  return c.json({ library: stored.value ?? (await defaultLibrary()), version: stored.version })
+})
 
-library.put('/', validate('json', z.object({ library: librarySchema })), async (c) => {
+library.put('/', validate('json', librarySaveBody), async (c) => {
   const user = userOf(c)
-  const { library: value } = c.req.valid('json')
-  await putSetting(c.var.db, 'library', value, user.id)
+  const { library: value, version: expected } = c.req.valid('json')
+  const version = await putSettingIfVersion(c.var.db, 'library', value, user.id, expected)
+  if (version === null) return c.json(await conflictBody(c.var.db, await getVersionedSetting(c.var.db, 'library')), 409)
   const count = value.categories.reduce((n, category) => n + category.docs.length, 0)
   await logAudit(c.var.db, { entityType: 'library', subject: 'Dokumentumtár', action: 'library_updated', note: `${value.categories.length} kategória, ${count} dokumentum`, userId: user.id })
-  return c.json({ library: value })
+  return c.json({ library: value, version })
 })
 
 library.delete('/', async (c) => {
@@ -29,7 +34,7 @@ library.delete('/', async (c) => {
   const value = await defaultLibrary()
   await putSetting(c.var.db, 'library', value, user.id)
   await logAudit(c.var.db, { entityType: 'library', subject: 'Dokumentumtár', action: 'library_reset', userId: user.id })
-  return c.json({ library: value })
+  return c.json({ library: value, version: (await getVersionedSetting(c.var.db, 'library')).version })
 })
 
 library.post('/file', async (c) => {

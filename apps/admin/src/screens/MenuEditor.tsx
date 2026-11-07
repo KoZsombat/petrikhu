@@ -4,6 +4,7 @@ import type { Menu, MenuItem } from '@petrik/shared/schemas'
 import { menuSchema } from '@petrik/shared/schemas'
 import { del, get, put } from '../api.ts'
 import { Button, Card, Input, Notice, PageHeader, Select, useAction, useLoad } from '../ui.tsx'
+import { saveVersioned, useDialog } from '../dialog.tsx'
 
 type Editable = { label: string; href?: string; children?: { label: string; href: string }[] }
 
@@ -17,10 +18,11 @@ function moved<T>(list: T[], from: number, to: number): T[] {
 /** The main menu of each language: top-level links and groups with sub-links. */
 export function MenuEditor() {
   const [locale, setLocale] = useState<'hu' | 'en'>('hu')
-  const loaded = useLoad(() => get<{ menu: Menu }>(`/pages/menu/${locale}`), [locale])
+  const loaded = useLoad(() => get<{ menu: Menu; version: number }>(`/pages/menu/${locale}`), [locale])
   const [menu, setMenu] = useState<Editable[] | null>(null)
   const [menuFor, setMenuFor] = useState<unknown>(null)
   const action = useAction()
+  const dialog = useDialog()
   if (loaded.data && menuFor !== loaded.data) {
     setMenuFor(loaded.data)
     setMenu(loaded.data.menu.map((item) => ({ ...item })))
@@ -34,7 +36,15 @@ export function MenuEditor() {
       action.setMessage({ tone: 'error', text: 'Minden menüpontnak kell felirat, és a linkek / -rel vagy https://-sel kezdődjenek, szóköz nélkül.' })
       return
     }
-    return action.run(async () => (await put(`/pages/menu/${locale}`, { menu: parsed.data satisfies MenuItem[] }), loaded.reload()), 'Menü elmentve. A webhelyen azonnal látszik.')
+    return action.run(async () => {
+      const saved = await saveVersioned(dialog, loaded.data!.version, (version) => put(`/pages/menu/${locale}`, { menu: parsed.data satisfies MenuItem[], version }), () => {
+        setMenuFor(null)
+        loaded.reload()
+      })
+      if (!saved) return
+      loaded.reload()
+      action.setMessage({ tone: 'success', text: 'Menü elmentve. A webhelyen azonnal látszik.' })
+    })
   }
 
   return (

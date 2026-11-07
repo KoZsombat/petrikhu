@@ -31,13 +31,13 @@ describe('drafts and submission', () => {
     const draft = await author.post('/api/posts', body('Első hír ékezetekkel'))
     expect(draft.body).toMatchObject({ notice: 'draft_saved', post: { status: 'draft', slug: 'elso-hir-ekezetekkel' } })
     const id = draft.body.post.id
-    const sent = await author.put(`/api/posts/${id}`, body('Átnevezett cím', { command: 'submit' }))
+    const sent = await author.put(`/api/posts/${id}`, await s.versioned(id, body('Átnevezett cím', { command: 'submit' })))
     expect(sent.body).toMatchObject({ notice: 'submitted', post: { status: 'in_review', slug: 'elso-hir-ekezetekkel' } })
   })
 
   test('after submission the author can no longer edit: PUT → 403', async () => {
     const id = await submitted('Beküldve')
-    expect((await author.put(`/api/posts/${id}`, body('Módosítás'))).status).toBe(403)
+    expect((await author.put(`/api/posts/${id}`, await s.versioned(id, body('Módosítás')))).status).toBe(403)
   })
 
   test('missing title or empty content → 422 missing_fields; no category → 422 category_required', async () => {
@@ -77,7 +77,7 @@ describe('review', () => {
     expect(seen.body.post).toMatchObject({ status: 'draft', reviewNote: 'Pontosítsd a dátumot.' })
     const dash = await author.get('/api/posts/dashboard')
     expect(dash.body.posts.find((p: { id: string }) => p.id === id).reviewNote).toBe('Pontosítsd a dátumot.')
-    const again = await author.put(`/api/posts/${id}`, body('Javított hír', { command: 'submit' }))
+    const again = await author.put(`/api/posts/${id}`, await s.versioned(id, body('Javított hír', { command: 'submit' })))
     expect(again.body.post).toMatchObject({ status: 'in_review', reviewNote: null })
   })
 
@@ -104,7 +104,7 @@ describe('review', () => {
 
   test('the reviewer can edit a post in review (reviewer_edited) and it stays in review', async () => {
     const id = await submitted('Szerkesztendő')
-    const res = await reviewer.put(`/api/posts/${id}`, body('Szerkesztett cím'))
+    const res = await reviewer.put(`/api/posts/${id}`, await s.versioned(id, body('Szerkesztett cím')))
     expect(res.body).toMatchObject({ notice: 'review_saved', post: { status: 'in_review', title: 'Szerkesztett cím' } })
   })
 })
@@ -129,8 +129,8 @@ describe('published posts', () => {
   test('editing a published post needs news.manage and keeps it published', async () => {
     const id = await submitted('Kint lévő')
     await reviewer.post(`/api/posts/${id}/decision`, { decision: 'approve' })
-    expect((await author.put(`/api/posts/${id}`, body('X'))).status).toBe(403)
-    const res = await admin.put(`/api/posts/${id}`, body('Kint lévő, javítva'))
+    expect((await author.put(`/api/posts/${id}`, await s.versioned(id, body('X')))).status).toBe(403)
+    const res = await admin.put(`/api/posts/${id}`, await s.versioned(id, body('Kint lévő, javítva')))
     expect(res.body).toMatchObject({ notice: 'published_updated', post: { status: 'published' } })
   })
 })
@@ -168,7 +168,7 @@ describe('trash', () => {
 test('every step writes an audit entry, visible on the post', async () => {
   const id = await submitted('Naplózott hír')
   await reviewer.post(`/api/posts/${id}/decision`, { decision: 'reject', note: 'Javíts' })
-  await author.put(`/api/posts/${id}`, body('Naplózott hír', { command: 'submit' }))
+  await author.put(`/api/posts/${id}`, await s.versioned(id, body('Naplózott hír', { command: 'submit' })))
   await reviewer.post(`/api/posts/${id}/decision`, { decision: 'approve' })
   const history = await author.get(`/api/posts/${id}/audit`)
   expect(history.body.entries.map((e: { action: string }) => e.action).reverse()).toEqual(['created_draft', 'submitted', 'rejected', 'submitted', 'approved'])

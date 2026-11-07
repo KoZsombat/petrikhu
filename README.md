@@ -209,6 +209,14 @@ Steps (all on the server, in the repository folder):
 `git checkout` the previous commit and `docker compose up -d --build`. The old database is never modified by the
 migration, so nothing is lost. Drop `petrik_old` and the scratch databases once the new site has run for a while.
 
+## Concurrent edits
+
+Posts, pages, the menus and the document library carry a `version` (+1 on every change). A save sends the version
+it loaded; if someone saved in between, the API answers 409 `conflict` with who saved and when, and the admin asks:
+reload (discard mine) or overwrite (save mine with the new version). Workflow steps (decision, archive, unarchive,
+trash, untrash, unschedule) only apply while the post still has the status they expect, so of two reviewers acting
+at once one gets 409 `status_changed` and only one audit entry is written.
+
 ## SEO
 
 Pages are rendered on the server with their title, description, canonical URL, Open Graph / Twitter data and, for

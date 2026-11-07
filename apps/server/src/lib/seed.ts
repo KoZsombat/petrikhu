@@ -3,7 +3,7 @@
  * (seed/pages.*.json, the old site's content), the menus and the document library are written once, after
  * which the database is the only source of truth (`settings.seeded` records that it happened).
  */
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { resolve } from 'node:path'
 import type { Block } from '@petrik/shared/blocks'
 import { blockId } from '@petrik/shared/blocks'
@@ -66,6 +66,29 @@ export async function putSetting(db: Db, key: string, value: unknown, userId: st
     .insert(settings)
     .values({ key, value, updatedById: userId })
     .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date(), updatedById: userId } })
+}
+
+/** A stored setting with its version (0 when it is not stored yet) and who saved it last. */
+export async function getVersionedSetting<T>(db: Db, key: string): Promise<{ value: T | undefined; version: number; updatedAt: Date | null; updatedById: string | null }> {
+  const row = (await db.select().from(settings).where(eq(settings.key, key)).limit(1))[0]
+  return row ? { value: row.value as T, version: row.version, updatedAt: row.updatedAt, updatedById: row.updatedById } : { value: undefined, version: 0, updatedAt: null, updatedById: null }
+}
+
+/**
+ * Saves a setting only if it is still at `expected` (0: not stored yet). Returns the new version, or null when
+ * someone else saved in between.
+ */
+export async function putSettingIfVersion(db: Db, key: string, value: unknown, userId: string | null, expected: number): Promise<number | null> {
+  if (expected === 0) {
+    const [row] = await db.insert(settings).values({ key, value, updatedById: userId }).onConflictDoNothing().returning({ version: settings.version })
+    return row?.version ?? null
+  }
+  const [row] = await db
+    .update(settings)
+    .set({ value, updatedAt: new Date(), updatedById: userId })
+    .where(and(eq(settings.key, key), eq(settings.version, expected)))
+    .returning({ version: settings.version })
+  return row?.version ?? null
 }
 
 /** Rewrites the English pages' links to the English site where an English version exists. */

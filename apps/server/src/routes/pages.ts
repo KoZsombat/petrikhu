@@ -2,7 +2,7 @@
 import { Hono } from 'hono'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { localeSchema, menuSchema, pageSaveBody, pagesQuery } from '@petrik/shared/schemas'
+import { localeSchema, menuSaveBody, pageSaveBody, pagesQuery } from '@petrik/shared/schemas'
 import type { Locale } from '@petrik/shared/schemas'
 import { isReservedSlug, slugify } from '@petrik/shared/slug'
 import type { AppEnv } from '../context.ts'
@@ -11,7 +11,8 @@ import type { Db } from '../db/client.ts'
 import { documents } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
 import { findDocument, searchTextOf, toPage, toPageSummary } from '../lib/documents.ts'
-import { defaultMenu, getSetting, putSetting } from '../lib/seed.ts'
+import { defaultMenu, getVersionedSetting, putSetting, putSettingIfVersion } from '../lib/seed.ts'
+import { conflictBody } from '../lib/conflict.ts'
 import { validate } from '../lib/validate.ts'
 
 const pages = new Hono<AppEnv>()
@@ -23,17 +24,18 @@ const localeParam = z.object({ locale: localeSchema })
 
 pages.get('/menu/:locale', validate('param', localeParam), async (c) => {
   const { locale } = c.req.valid('param')
-  const stored = await getSetting(c.var.db, `menu.${locale}`)
-  return c.json({ menu: stored ?? (await defaultMenu(locale)), custom: stored !== undefined })
+  const stored = await getVersionedSetting(c.var.db, `menu.${locale}`)
+  return c.json({ menu: stored.value ?? (await defaultMenu(locale)), custom: stored.value !== undefined, version: stored.version })
 })
 
-pages.put('/menu/:locale', validate('param', localeParam), validate('json', z.object({ menu: menuSchema })), async (c) => {
+pages.put('/menu/:locale', validate('param', localeParam), validate('json', menuSaveBody), async (c) => {
   const { locale } = c.req.valid('param')
-  const { menu } = c.req.valid('json')
+  const { menu, version: expected } = c.req.valid('json')
   const user = userOf(c)
-  await putSetting(c.var.db, `menu.${locale}`, menu, user.id)
+  const version = await putSettingIfVersion(c.var.db, `menu.${locale}`, menu, user.id, expected)
+  if (version === null) return c.json(await conflictBody(c.var.db, await getVersionedSetting(c.var.db, `menu.${locale}`)), 409)
   await logAudit(c.var.db, { entityType: 'menu', entityId: locale, subject: `Menü (${locale})`, action: 'menu_updated', note: `${menu.length} menüpont`, userId: user.id })
-  return c.json({ menu })
+  return c.json({ menu, version })
 })
 
 /** Back to the original (seed) menu. */
@@ -43,7 +45,7 @@ pages.delete('/menu/:locale', validate('param', localeParam), async (c) => {
   const menu = await defaultMenu(locale)
   await putSetting(c.var.db, `menu.${locale}`, menu, user.id)
   await logAudit(c.var.db, { entityType: 'menu', entityId: locale, subject: `Menü (${locale})`, action: 'menu_reset', userId: user.id })
-  return c.json({ menu })
+  return c.json({ menu, version: (await getVersionedSetting(c.var.db, `menu.${locale}`)).version })
 })
 
 /* --- pages ---------------------------------------------------------------------------------------------- */
@@ -108,6 +110,8 @@ pages.put('/:id', validate('json', pageSaveBody), async (c) => {
   if (!existing) return c.json({ error: 'not_found' }, 404)
   if (existing.status === 'trash') return c.json({ error: 'in_trash' }, 409)
   const body = c.req.valid('json')
+  if (body.version === undefined) return c.json({ error: 'version_required' }, 422)
+  if (body.version !== existing.version) return c.json(await conflictBody(c.var.db, existing), 409)
   const checked = await checkSlug(c.var.db, body.slug || existing.slug, body.title, existing.locale as Locale, existing.id)
   if ('error' in checked) return c.json({ error: checked.error }, checked.status)
   const [row] = await c.var.db
@@ -124,8 +128,12 @@ pages.put('/:id', validate('json', pageSaveBody), async (c) => {
       publishedAt: body.status === 'published' ? (existing.publishedAt ?? new Date()) : existing.publishedAt,
       searchText: searchTextOf(body.title, body.blocks),
     })
-    .where(eq(documents.id, existing.id))
+    .where(and(eq(documents.id, existing.id), eq(documents.version, body.version)))
     .returning()
+  if (!row) {
+    const now = await loadPage(c.var.db, existing.id)
+    return now ? c.json(await conflictBody(c.var.db, now), 409) : c.json({ error: 'not_found' }, 404)
+  }
   const note = [existing.status !== row.status ? `${existing.status} → ${row.status}` : '', existing.slug !== row.slug ? `/${existing.slug} → /${row.slug}` : ''].filter(Boolean).join('\n')
   await logAudit(c.var.db, { entityType: 'page', entityId: row.id, subject: row.title, action: 'page_updated', fromStatus: existing.status, toStatus: row.status, note: note || null, userId: user.id })
   return c.json({ page: toPage(row) })
@@ -137,11 +145,13 @@ pages.delete('/:id', async (c) => {
   const page = await loadPage(c.var.db, c.req.param('id'))
   if (!page) return c.json({ error: 'not_found' }, 404)
   if (page.status === 'trash') {
-    await c.var.db.delete(documents).where(eq(documents.id, page.id))
+    const gone = await c.var.db.delete(documents).where(and(eq(documents.id, page.id), eq(documents.status, 'trash'))).returning({ id: documents.id })
+    if (!gone.length) return c.json({ error: 'status_changed' }, 409)
     await logAudit(c.var.db, { entityType: 'page', entityId: page.id, subject: page.title, action: 'page_deleted', fromStatus: 'trash', note: `/${page.slug}`, userId: user.id })
     return c.json({ ok: true, permanent: true })
   }
-  await c.var.db.update(documents).set({ status: 'trash', updatedAt: new Date(), updatedById: user.id }).where(eq(documents.id, page.id))
+  const trashed = await c.var.db.update(documents).set({ status: 'trash', updatedAt: new Date(), updatedById: user.id }).where(and(eq(documents.id, page.id), eq(documents.status, page.status))).returning({ id: documents.id })
+  if (!trashed.length) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'page', entityId: page.id, subject: page.title, action: 'page_trashed', fromStatus: page.status, toStatus: 'trash', userId: user.id })
   return c.json({ ok: true, permanent: false })
 })
@@ -151,7 +161,8 @@ pages.post('/:id/restore', async (c) => {
   const user = userOf(c)
   const page = await loadPage(c.var.db, c.req.param('id'))
   if (!page || page.status !== 'trash') return c.json({ error: 'not_found' }, 404)
-  const [row] = await c.var.db.update(documents).set({ status: 'draft', updatedAt: new Date(), updatedById: user.id }).where(eq(documents.id, page.id)).returning()
+  const [row] = await c.var.db.update(documents).set({ status: 'draft', updatedAt: new Date(), updatedById: user.id }).where(and(eq(documents.id, page.id), eq(documents.status, 'trash'))).returning()
+  if (!row) return c.json({ error: 'status_changed' }, 409)
   await logAudit(c.var.db, { entityType: 'page', entityId: page.id, subject: page.title, action: 'page_restored', fromStatus: 'trash', toStatus: 'draft', userId: user.id })
   return c.json({ page: toPage(row) })
 })

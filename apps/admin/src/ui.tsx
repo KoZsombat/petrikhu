@@ -6,20 +6,22 @@ import type { PostStatus } from '@petrik/shared/workflow'
 
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ')
 
-type Tone = 'primary' | 'secondary' | 'danger' | 'ghost'
+type Tone = 'primary' | 'secondary' | 'danger' | 'dangerSolid' | 'ghost'
 const TONES: Record<Tone, string> = {
+  /** The confirm button of a destructive action (permanent delete, deleting a file, overwriting). */
+  dangerSolid: 'bg-red-700 text-white border-transparent hover:bg-red-800',
   primary: 'bg-petrikaccent text-white hover:bg-petrikaccentdark border-transparent',
   secondary: 'bg-petrikcard text-petrikink border-petrikline hover:border-petrikaccent',
   danger: 'bg-petrikcard text-red-700 border-red-200 hover:bg-red-50',
   ghost: 'bg-transparent text-petriksoft border-transparent hover:bg-petriktint',
 }
 
-export function Button({ tone = 'secondary', className, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone }) {
+export function Button({ tone = 'secondary', className, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone; 'data-choice'?: boolean; 'data-cancel'?: boolean }) {
   return (
     <button
       type="button"
       {...rest}
-      className={cx('inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50', TONES[tone], className)}
+      className={cx('inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrikaccent disabled:cursor-not-allowed disabled:opacity-50', TONES[tone], className)}
     />
   )
 }

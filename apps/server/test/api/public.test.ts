@@ -11,7 +11,7 @@ beforeAll(async () => {
     const created = await author.post('/api/posts', { title, excerpt: `${title} kivonata`, content: doc(`${title} teste`), categoryIds: [category], command: 'submit' })
     // A rejection leaves a review note behind: it must never reach the public API.
     await reviewer.post(`/api/posts/${created.body.post.id}/decision`, { decision: 'reject', note: 'BELSO-MEGJEGYZES' })
-    await author.put(`/api/posts/${created.body.post.id}`, { title, excerpt: `${title} kivonata`, content: doc(`${title} teste`), categoryIds: [category], command: 'submit' })
+    await author.put(`/api/posts/${created.body.post.id}`, await s.versioned(created.body.post.id, { title, excerpt: `${title} kivonata`, content: doc(`${title} teste`), categoryIds: [category], command: 'submit' }))
     await reviewer.post(`/api/posts/${created.body.post.id}/decision`, { decision: 'approve' })
   }
   await author.post('/api/posts', { title: 'Titkos piszkozat', content: doc('x'), categoryIds: ['hirek'] })

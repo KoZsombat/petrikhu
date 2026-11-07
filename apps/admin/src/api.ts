@@ -1,15 +1,24 @@
 /** The admin's only way to the server: same-origin `/api` calls with the session cookie. */
+import type { ConflictInfo } from '@petrik/shared/schemas'
 
 export class ApiError extends Error {
   status: number
   code: string
   issues: { path: string; message: string }[]
-  constructor(status: number, code: string, issues: { path: string; message: string }[] = []) {
+  /** The whole error body (e.g. a conflict's savedBy / savedAt / version). */
+  body: Record<string, unknown>
+  constructor(status: number, code: string, issues: { path: string; message: string }[] = [], body: Record<string, unknown> = {}) {
     super(messageFor(code, issues))
     this.status = status
     this.code = code
     this.issues = issues
+    this.body = body
   }
+}
+
+/** The conflict info of a 409 `conflict` (someone saved in between), or null for any other error. */
+export function conflictOf(error: unknown): ConflictInfo | null {
+  return error instanceof ApiError && error.code === 'conflict' ? (error.body as unknown as ConflictInfo) : null
 }
 
 /** Hungarian messages for the API's error codes. */
@@ -51,6 +60,10 @@ const MESSAGES: Record<string, string> = {
   invalid_href: 'A link / -rel vagy https://-sel kezdődjön, szóköz nélkül.',
   server_error: 'Szerverhiba. Próbáld újra később.',
   network: 'Nem érhető el a szerver.',
+  conflict: 'Közben valaki más is mentett.',
+  status_changed: 'Közben valaki más már módosította a hír állapotát. Töltsd újra az oldalt.',
+  version_required: 'Hiányzik a betöltött változat azonosítója. Töltsd újra az oldalt.',
+  not_scheduled: 'A hír már nincs időzítve.',
 }
 
 function messageFor(code: string, issues: { path: string; message: string }[]): string {
@@ -77,7 +90,7 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
     throw new ApiError(0, 'network')
   }
   const data = (await res.json().catch(() => ({}))) as { error?: string; issues?: { path: string; message: string }[] }
-  if (!res.ok) throw new ApiError(res.status, data.error ?? 'server_error', data.issues)
+  if (!res.ok) throw new ApiError(res.status, data.error ?? 'server_error', data.issues, data as Record<string, unknown>)
   return data as T
 }
 
