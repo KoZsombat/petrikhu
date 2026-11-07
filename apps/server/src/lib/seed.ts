@@ -25,9 +25,25 @@ export const DEMO_USERS: { username: string; displayName: string; role: Role; pa
   { username: 'igazgato', displayName: 'Szabó Éva', role: 'admin', password: 'PetrikIgazgato2026!' },
 ]
 
-export async function seedUsers(db: Db, seedPassword?: string): Promise<void> {
+export type SeedOptions = {
+  /** Production: one admin account instead of the demo accounts. */
+  production?: boolean
+  /** The production admin's username (PNW_ADMIN_USERNAME, default `admin`). */
+  adminUsername?: string
+}
+
+/**
+ * Accounts of an empty database. Development and tests: the demo accounts (with `seedPassword` instead of their
+ * public passwords, if given). Production: a single admin with `seedPassword`, who must change it at first login.
+ */
+export async function seedUsers(db: Db, seedPassword?: string, options: SeedOptions = {}): Promise<void> {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(users)
   if (n > 0) return
+  if (options.production) {
+    if (!seedPassword) throw new Error('PNW_SEED_PASSWORD is required to create the first admin in production')
+    await createUser(db, { username: options.adminUsername || 'admin', displayName: 'Adminisztrátor', role: 'admin', password: seedPassword, mustChangePassword: true })
+    return
+  }
   for (const user of DEMO_USERS) await createUser(db, { ...user, password: seedPassword ?? user.password })
 }
 
@@ -99,8 +115,8 @@ export async function seedPages(db: Db): Promise<{ created: string[]; issues: st
 }
 
 /** Everything a fresh database needs; safe to call on every start. */
-export async function seed(db: Db, seedPassword?: string): Promise<void> {
-  await seedUsers(db, seedPassword)
+export async function seed(db: Db, seedPassword?: string, options: SeedOptions = {}): Promise<void> {
+  await seedUsers(db, seedPassword, options)
   await seedTerms(db)
   if (await getSetting(db, 'seeded')) return
   const { created, issues } = await seedPages(db)

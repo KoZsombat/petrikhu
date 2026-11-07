@@ -27,6 +27,8 @@ export type Config = {
   trustProxy: number
   /** Password of the demo accounts seeded into an empty database (and the replacement for demo passwords in production). */
   seedPassword: string | undefined
+  /** Username of the single admin seeded into an empty production database. */
+  adminUsername: string
   showDemoLogins: boolean
   /** The built admin app, served at /admin. */
   adminDist: string
@@ -46,6 +48,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     clientIpHeader: env.PNW_CLIENT_IP_HEADER?.trim().toLowerCase() || undefined,
     trustProxy: Math.max(0, Math.floor(Number(env.PNW_TRUST_PROXY ?? 0)) || 0),
     seedPassword: env.PNW_SEED_PASSWORD || undefined,
+    adminUsername: env.PNW_ADMIN_USERNAME?.trim() || 'admin',
     showDemoLogins: env.PNW_SHOW_DEMO_LOGINS !== undefined ? env.PNW_SHOW_DEMO_LOGINS === 'true' : !IS_PRODUCTION,
     adminDist: env.PNW_ADMIN_DIST ? resolve(env.PNW_ADMIN_DIST) : resolve(import.meta.dir, '../../admin/dist'),
     secureCookies: publicUrl.startsWith('https://'),

@@ -2,12 +2,14 @@
  * Integration test helpers: a fresh database per test file (copied from the migrated template, see setup.ts),
  * the real app on a random port, and a small HTTP client with its own cookie jar.
  */
+import { eq } from 'drizzle-orm'
 import postgres from 'postgres'
 import { createApp, createDeps } from '../src/app.ts'
 import { loadConfig } from '../src/config.ts'
 import type { Config } from '../src/config.ts'
 import { createDb } from '../src/db/client.ts'
 import type { Db } from '../src/db/client.ts'
+import { users } from '../src/db/schema.ts'
 import { seed, seedTerms, seedUsers } from '../src/lib/seed.ts'
 
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgres://petrik:petrik@localhost:5432/petrik_test'
@@ -99,7 +101,7 @@ export type TestServer = {
  * Starts the app on a new database. `content: true` also seeds the built-in pages, menus and library
  * (otherwise only the demo accounts and the categories).
  */
-export async function startTestServer(options: { content?: boolean; config?: Partial<Config> } = {}): Promise<TestServer> {
+export async function startTestServer(options: { content?: boolean; config?: Partial<Config>; keepPasswordChange?: boolean } = {}): Promise<TestServer> {
   const name = `t_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
   const admin = postgres(TEST_DATABASE_URL, { max: 1, onnotice: () => {} })
   await admin.unsafe(`CREATE DATABASE ${name} TEMPLATE ${TEMPLATE_DB}`)
@@ -126,6 +128,9 @@ export async function startTestServer(options: { content?: boolean; config?: Par
       const c = client(headers)
       const res = await c.post('/api/auth/login', credentials)
       if (res.status !== 200) throw new Error(`login failed for ${credentials.username}: ${res.status} ${res.text}`)
+      // Accounts created by an admin must change their password first; tests about something else skip that
+      // (test/api/password-change.test.ts covers it).
+      if (res.body.user.mustChangePassword && !options.keepPasswordChange) await db.update(users).set({ mustChangePassword: false }).where(eq(users.id, res.body.user.id))
       return c
     },
     async close() {

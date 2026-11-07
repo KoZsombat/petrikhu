@@ -79,8 +79,15 @@ docker compose run --rm backup once
 docker compose up -d --build
 ```
 
-The API refuses to start in production without a real session secret, or while an account still has a public demo
-password and `PNW_SEED_PASSWORD` is not set (with it, demo passwords are replaced on start).
+On an empty production database the API creates a single admin account, `PNW_ADMIN_USERNAME` (default `admin`)
+with the password `PNW_SEED_PASSWORD`, and no demo accounts. That account must choose a new password at its first
+login; so must every account whose password an admin set (new accounts included) and every account whose demo
+password was replaced on start. Until then the admin shows only the password-change screen and the API answers
+everything except the session, logout and own-password routes with 403 `password_change_required`.
+
+The API refuses to start in production without a real session secret, with a `PNW_SEED_PASSWORD` shorter than 10
+characters, or while an account still has a public demo password and `PNW_SEED_PASSWORD` is not set (with it, demo
+passwords are replaced on start).
 
 ### Client IP and rate limits
 

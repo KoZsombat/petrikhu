@@ -16,7 +16,7 @@ import { LibraryEditor } from './screens/LibraryEditor.tsx'
 import { UsersScreen } from './screens/Users.tsx'
 import { AuditScreen } from './screens/Audit.tsx'
 import { Statistics } from './screens/Statistics.tsx'
-import { Account } from './screens/Account.tsx'
+import { Account, ForcedPasswordChange } from './screens/Account.tsx'
 
 // The two editors carry TipTap: loaded on first use.
 const PostEditor = lazy(() => import('./screens/PostEditor.tsx').then((m) => ({ default: m.PostEditor })))
@@ -66,6 +66,7 @@ export function App() {
   const { user, loading, can, logout } = useSession()
   if (loading) return null
   if (!user) return <Login />
+  if (user.mustChangePassword) return <ForcedPasswordChange />
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_minmax(0,1fr)]">

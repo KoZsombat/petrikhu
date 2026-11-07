@@ -27,6 +27,7 @@ services:
       # Required in production (see .env.example): the server refuses to start without them.
       PNW_SESSION_SECRET: ${PNW_SESSION_SECRET:?set a session secret}
       PNW_SEED_PASSWORD: ${PNW_SEED_PASSWORD:?set an initial password}
+      PNW_ADMIN_USERNAME: ${PNW_ADMIN_USERNAME:-admin}
       PNW_PUBLIC_URL: ${PNW_PUBLIC_URL:-}
       PNW_ALLOWED_ORIGINS: ${PNW_ALLOWED_ORIGINS:-}
       # The visitor's IP (rate limits): Cloudflare sets this header and a visitor cannot supply it through the

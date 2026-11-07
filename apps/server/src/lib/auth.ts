@@ -55,7 +55,12 @@ export function createAuth(db: Db, config: Config) {
         usernameValidator: (value) => /^[a-zA-Z0-9._-]+$/.test(value),
       }),
     ],
-    user: { additionalFields: { role: { type: 'string', required: false, defaultValue: 'author', input: false } } },
+    user: {
+      additionalFields: {
+        role: { type: 'string', required: false, defaultValue: 'author', input: false },
+        mustChangePassword: { type: 'boolean', required: false, defaultValue: false, input: false },
+      },
+    },
     session: { expiresIn: SESSION_DAYS * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
     rateLimit: { enabled: false },
     telemetry: { enabled: false },

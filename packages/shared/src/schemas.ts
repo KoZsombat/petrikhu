@@ -26,7 +26,19 @@ export const loginBody = z.object({
 })
 
 export const PASSWORD_MIN = 10
-const password = z.string().min(PASSWORD_MIN, 'password_too_short').max(200)
+export const PASSWORD_MAX = 200
+
+/** The one password rule, for the request bodies and for every server path that stores a password. */
+export function passwordProblem(password: string): 'password_too_short' | 'password_too_long' | null {
+  if (password.length < PASSWORD_MIN) return 'password_too_short'
+  if (password.length > PASSWORD_MAX) return 'password_too_long'
+  return null
+}
+
+const password = z.string().superRefine((value, ctx) => {
+  const problem = passwordProblem(value)
+  if (problem) ctx.addIssue({ code: 'custom', message: problem })
+})
 
 export const changePasswordBody = z.object({ currentPassword: z.string().max(1000), newPassword: password })
 
@@ -41,7 +53,7 @@ export const userCreateBody = z.object({
 
 export const userUpdateBody = userCreateBody.extend({ password: password.optional().or(z.literal('')) })
 
-export type SessionUser = { id: string; username: string; displayName: string; role: Role }
+export type SessionUser = { id: string; username: string; displayName: string; role: Role; mustChangePassword?: boolean }
 export type Account = SessionUser & { createdAt: string }
 
 /* --- posts ------------------------------------------------------------------ */

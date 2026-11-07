@@ -3,19 +3,29 @@
  * sweep and listens. WARNING: a single instance is assumed (the sweep and the rate limits live in this process).
  */
 import { eq } from 'drizzle-orm'
+import { passwordProblem, usernameSchema } from '@petrik/shared/schemas'
 import { IS_PRODUCTION, DEV_SECRET, SCHEDULE_CHECK_MS, loadConfig } from './config.ts'
 import { createApp, createDeps } from './app.ts'
 import { createDb, migrateDb } from './db/client.ts'
 import { users } from './db/schema.ts'
-import { hashPassword, verifyPassword } from './lib/auth.ts'
+import { verifyPassword } from './lib/auth.ts'
 import { DEMO_USERS, seed } from './lib/seed.ts'
-import { passwordHashOf, setPasswordHash } from './lib/users.ts'
+import { passwordHashOf, setPassword } from './lib/users.ts'
 import { sweepScheduledPosts } from './routes/posts.ts'
 
 const config = loadConfig()
 
 if (IS_PRODUCTION && (config.secret === DEV_SECRET || config.secret.length < 32)) {
   console.error('[petrik] PNW_SESSION_SECRET is missing or shorter than 32 characters - refusing to start in production.')
+  process.exit(1)
+}
+
+if (IS_PRODUCTION && config.seedPassword && passwordProblem(config.seedPassword)) {
+  console.error('[petrik] PNW_SEED_PASSWORD is shorter than the minimum password length (10) - refusing to start in production.')
+  process.exit(1)
+}
+if (IS_PRODUCTION && !usernameSchema.safeParse(config.adminUsername).success) {
+  console.error('[petrik] PNW_ADMIN_USERNAME is not a valid username (letters, digits, . _ -; 2-60 characters) - refusing to start in production.')
   process.exit(1)
 }
 
@@ -30,21 +40,22 @@ if (IS_PRODUCTION) {
     const hash = user && (await passwordHashOf(db, user.id))
     if (!user || !hash || !(await verifyPassword(demo.password, hash))) continue
     affected.push(demo.username)
-    if (config.seedPassword) await setPasswordHash(db, user.id, await hashPassword(config.seedPassword))
+    // The shared seed password is only a starting point: the account must change it at its next login.
+    if (config.seedPassword) await setPassword(db, user.id, config.seedPassword, { mustChange: true })
   }
   if (affected.length && !config.seedPassword) {
     console.error(`[petrik] These accounts still have the public demo password: ${affected.join(', ')}. Set PNW_SEED_PASSWORD - refusing to start in production.`)
     process.exit(1)
   }
   if (affected.length) console.log(`[petrik] demo passwords replaced with PNW_SEED_PASSWORD: ${affected.join(', ')}`)
-  // An empty database would get the demo accounts: never with their public passwords.
+  // An empty database gets a single admin with PNW_SEED_PASSWORD (no demo accounts in production).
   if (!config.seedPassword && (await db.select({ id: users.id }).from(users).limit(1)).length === 0) {
-    console.error('[petrik] The database has no accounts and PNW_SEED_PASSWORD is not set - refusing to create the demo accounts with public passwords in production.')
+    console.error('[petrik] The database has no accounts and PNW_SEED_PASSWORD is not set - refusing to start: the first admin needs an initial password in production.')
     process.exit(1)
   }
 }
 
-await seed(db, config.seedPassword)
+await seed(db, config.seedPassword, { production: IS_PRODUCTION, adminUsername: config.adminUsername })
 
 const app = createApp(createDeps(db, config))
 

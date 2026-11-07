@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import postgres from 'postgres'
 import { createDb } from '../src/db/client.ts'
+import { users } from '../src/db/schema.ts'
 import { seedUsers } from '../src/lib/seed.ts'
 import { TEMPLATE_DB, TEST_DATABASE_URL, dbUrl } from './helpers.ts'
 
@@ -60,4 +61,30 @@ test('refuses to run while an account has a demo password; replaces it when PNW_
   expect(replaced.output).toContain('API listening')
   const again = await start({ PNW_SESSION_SECRET: SECRET })
   expect(again.output).toContain('API listening')
+  // The replaced passwords are the shared seed password: each of those accounts has to change it.
+  const check = createDb(dbUrl(name))
+  const flags = await check.db.select({ username: users.username, flag: users.mustChangePassword }).from(users)
+  expect(flags.every((row) => row.flag)).toBe(true)
+  await check.sql.end()
+})
+
+test('refuses to start with a PNW_SEED_PASSWORD shorter than the minimum', async () => {
+  const result = await start({ PNW_SESSION_SECRET: SECRET, PNW_SEED_PASSWORD: 'rovid123' })
+  expect(result.code).toBe(1)
+  expect(result.output).toContain('shorter than the minimum')
+})
+
+test('an empty production database gets one admin (PNW_ADMIN_USERNAME), no demo accounts', async () => {
+  const fresh = `startup_fresh_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`
+  await admin.unsafe(`CREATE DATABASE ${fresh} TEMPLATE ${TEMPLATE_DB}`)
+  try {
+    const result = await start({ DATABASE_URL: dbUrl(fresh), PNW_SESSION_SECRET: SECRET, PNW_SEED_PASSWORD: 'SeedPassword123', PNW_ADMIN_USERNAME: 'webmester' })
+    expect(result.output).toContain('API listening')
+    const check = createDb(dbUrl(fresh))
+    const rows = await check.db.select({ username: users.username, role: users.role, flag: users.mustChangePassword }).from(users)
+    expect(rows).toEqual([{ username: 'webmester', role: 'admin', flag: true }])
+    await check.sql.end()
+  } finally {
+    await admin.unsafe(`DROP DATABASE IF EXISTS ${fresh} WITH (FORCE)`)
+  }
 })

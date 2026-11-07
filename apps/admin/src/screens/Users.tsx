@@ -55,7 +55,7 @@ export function UsersScreen() {
                 ))}
               </Select>
             </Label>
-            <Label label={form.id ? 'Új jelszó (üresen hagyva marad a régi)' : 'Jelszó'} hint="Legalább 10 karakter.">
+            <Label label={form.id ? 'Új jelszó (üresen hagyva marad a régi)' : 'Kezdő jelszó'} hint={form.id === user?.id ? 'Legalább 10 karakter.' : 'Legalább 10 karakter. Első belépéskor új jelszót kell választania.'}>
               <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" />
             </Label>
           </div>
@@ -73,7 +73,10 @@ export function UsersScreen() {
             <tr key={account.id}>
               <td className="px-2 py-2 font-medium">{account.displayName}</td>
               <td className="px-2 py-2 font-mono text-xs">{account.username}</td>
-              <td className="px-2 py-2">{ROLE_LABEL[account.role] ?? account.role}</td>
+              <td className="px-2 py-2">
+                {ROLE_LABEL[account.role] ?? account.role}
+                {account.mustChangePassword && <span className="block text-xs text-amber-800">Jelszócsere szükséges</span>}
+              </td>
               <td className="px-2 py-2 text-xs text-petrikfaint">{dateTime(account.createdAt)}</td>
               <td className="px-2 py-2 text-right">
                 <Button tone="ghost" onClick={() => setForm({ id: account.id, username: account.username, displayName: account.displayName, role: account.role, password: '' })}>

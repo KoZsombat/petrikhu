@@ -14,6 +14,7 @@ import type { Db } from './db/client.ts'
 import { createAuth } from './lib/auth.ts'
 import { bodyLimits } from './lib/limits.ts'
 import { serveMedia } from './lib/media.ts'
+import { PasswordRuleError } from './lib/users.ts'
 import { RateLimiter, clientIp, sameOriginOnly, securityHeaders } from './lib/security.ts'
 import { audit, statistics } from './routes/audit.ts'
 import auth from './routes/auth.ts'
@@ -25,6 +26,9 @@ import preview from './routes/preview.ts'
 import publicRoutes from './routes/public.ts'
 import terms from './routes/terms.ts'
 import users from './routes/users.ts'
+
+/** What an account with `mustChangePassword` may still call. */
+const PASSWORD_CHANGE_ALLOWED = ['/api/auth/me', '/api/auth/logout', '/api/auth/login', '/api/auth/config', '/api/auth/password']
 
 export function createDeps(db: Db, config: Config): Deps {
   return {
@@ -94,10 +98,19 @@ export function createApp(deps: Deps) {
     if (c.req.header('cookie')?.includes('session_token')) {
       const session = await c.var.auth.api.getSession({ headers: c.req.raw.headers })
       if (session) {
-        const user = session.user as typeof session.user & { username?: string; role?: string }
-        c.set('user', { id: user.id, username: user.username ?? '', displayName: user.name, role: (user.role ?? 'inactive') as Role })
+        const user = session.user as typeof session.user & { username?: string; role?: string; mustChangePassword?: boolean }
+        c.set('user', { id: user.id, username: user.username ?? '', displayName: user.name, role: (user.role ?? 'inactive') as Role, mustChangePassword: !!user.mustChangePassword })
         c.set('sessionId', session.session.id)
       }
+    }
+    await next()
+  })
+
+  // An account that must change its password reaches only its session, logout, its own password change and the
+  // public API (which needs no login anyway).
+  api.use(async (c, next) => {
+    if (c.var.user?.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.some((path) => c.req.path === path) && !c.req.path.startsWith('/api/public/')) {
+      return c.json({ error: 'password_change_required' }, 403)
     }
     await next()
   })
@@ -132,6 +145,7 @@ export function createApp(deps: Deps) {
   }
 
   app.onError((error, c) => {
+    if (error instanceof PasswordRuleError) return c.json({ error: error.code }, 422)
     console.error('[petrik] unhandled error', error)
     return c.json({ error: 'server_error' }, 500)
   })

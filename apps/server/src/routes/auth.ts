@@ -6,14 +6,17 @@
  * per 15 minutes. A successful login clears the account+IP counter.
  */
 import { Hono } from 'hono'
+import { eq } from 'drizzle-orm'
 import { APIError } from 'better-auth/api'
 import { changePasswordBody, loginBody } from '@petrik/shared/schemas'
 import { capabilitiesOf } from '@petrik/shared/roles'
 import type { AppEnv } from '../context.ts'
 import { requireUser, userOf } from '../context.ts'
+import { users } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
 import { hashPassword, needsRehash, verifyPassword } from '../lib/auth.ts'
-import { endSessions, findUserByUsername, passwordHashOf, setPasswordHash } from '../lib/users.ts'
+import { PASSWORD_MIN } from '@petrik/shared/schemas'
+import { endSessions, findUserByUsername, passwordHashOf, setPassword, storePasswordHash } from '../lib/users.ts'
 import { validate } from '../lib/validate.ts'
 
 const auth = new Hono<AppEnv>()
@@ -48,12 +51,20 @@ auth.post('/login', validate('json', loginBody), async (c) => {
   loginByAccount.reset(accountKey)
 
   const user = (await findUserByUsername(c.var.db, username))!
-  // An imported account's old bcrypt hash is replaced by the current one.
+  // An imported account's old bcrypt hash is replaced by the current one; an old password shorter than today's
+  // minimum keeps working once, but has to be changed.
   const hash = await passwordHashOf(c.var.db, user.id)
-  if (hash && needsRehash(hash)) await setPasswordHash(c.var.db, user.id, await hashPassword(password))
+  let mustChangePassword = user.mustChangePassword
+  if (hash && needsRehash(hash)) {
+    await storePasswordHash(c.var.db, user.id, await hashPassword(password))
+    if (password.length < PASSWORD_MIN && !mustChangePassword) {
+      await c.var.db.update(users).set({ mustChangePassword: true }).where(eq(users.id, user.id))
+      mustChangePassword = true
+    }
+  }
 
   forwardCookies(response.headers, c.res.headers)
-  const sessionUser = { id: user.id, username: user.username ?? '', displayName: user.name, role: user.role }
+  const sessionUser = { id: user.id, username: user.username ?? '', displayName: user.name, role: user.role, mustChangePassword }
   return c.json({ user: sessionUser, capabilities: capabilitiesOf(user.role) })
 })
 
@@ -77,7 +88,8 @@ auth.put('/password', requireUser, validate('json', changePasswordBody), async (
   const { currentPassword, newPassword } = c.req.valid('json')
   const hash = await passwordHashOf(c.var.db, user.id)
   if (!hash || !(await verifyPassword(currentPassword, hash))) return c.json({ error: 'wrong_password' }, 422)
-  await setPasswordHash(c.var.db, user.id, await hashPassword(newPassword))
+  if (await verifyPassword(newPassword, hash)) return c.json({ error: 'same_password' }, 422)
+  await setPassword(c.var.db, user.id, newPassword, { mustChange: false })
   await endSessions(c.var.db, user.id, c.var.sessionId)
   await logAudit(c.var.db, { entityType: 'user', entityId: user.id, subject: user.username, action: 'password_changed', userId: user.id })
   return c.json({ ok: true })

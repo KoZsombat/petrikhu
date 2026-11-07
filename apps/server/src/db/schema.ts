@@ -26,6 +26,8 @@ export const users = pgTable('users', {
   username: text('username').unique(),
   displayUsername: text('display_username'),
   role: text('role').notNull().default('author'),
+  /** Set on the seeded admin, replaced demo passwords and passwords set by an admin: the API allows only a password change. */
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
   createdAt: created(),
   updatedAt: updated(),
 })

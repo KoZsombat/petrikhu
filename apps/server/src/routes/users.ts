@@ -12,8 +12,7 @@ import type { AppEnv } from '../context.ts'
 import { requireCap, userOf } from '../context.ts'
 import { users } from '../db/schema.ts'
 import { logAudit } from '../lib/audit.ts'
-import { hashPassword } from '../lib/auth.ts'
-import { createUser, endSessions, findUserByUsername, hasOtherAdmin, placeholderEmail, setPasswordHash, toAccount } from '../lib/users.ts'
+import { createUser, endSessions, findUserByUsername, hasOtherAdmin, placeholderEmail, setPassword, toAccount } from '../lib/users.ts'
 import { validate } from '../lib/validate.ts'
 
 const routes = new Hono<AppEnv>()
@@ -28,7 +27,8 @@ routes.post('/', requireCap('users.manage'), validate('json', userCreateBody), a
   const actor = userOf(c)
   const body = c.req.valid('json')
   if (await findUserByUsername(c.var.db, body.username)) return c.json({ error: 'username_taken' }, 409)
-  const row = await createUser(c.var.db, { username: body.username, displayName: body.displayName, role: body.role, password: body.password })
+  // The admin chose the password: the new account has to replace it at its first login.
+  const row = await createUser(c.var.db, { username: body.username, displayName: body.displayName, role: body.role, password: body.password, mustChangePassword: true })
   await logAudit(c.var.db, { entityType: 'user', entityId: row.id, subject: row.username, action: 'user_created', note: `Szerep: ${ROLE_LABEL[body.role]}`, userId: actor.id })
   return c.json({ user: toAccount(row) }, 201)
 })
@@ -51,14 +51,15 @@ routes.put('/:id', requireCap('users.manage'), validate('json', userUpdateBody),
     .where(eq(users.id, existing.id))
     .returning()
   if (body.password) {
-    await setPasswordHash(c.var.db, existing.id, await hashPassword(body.password))
+    // Someone else's password set by an admin is temporary; one's own is not.
+    await setPassword(c.var.db, existing.id, body.password, { mustChange: existing.id !== actor.id })
     await endSessions(c.var.db, existing.id, existing.id === actor.id ? c.var.sessionId : null)
   }
   const changes = [
     existing.role !== row.role ? `Szerep: ${ROLE_LABEL[existing.role as Role] ?? existing.role} → ${ROLE_LABEL[row.role as Role]}` : '',
     existing.username !== row.username ? `Felhasználónév: ${existing.username} → ${row.username}` : '',
     existing.name !== row.name ? `Név: ${existing.name} → ${row.name}` : '',
-    body.password ? 'Jelszó megváltoztatva (minden munkamenete kijelentkeztetve)' : '',
+    body.password ? `Jelszó megváltoztatva (minden munkamenete kijelentkeztetve${existing.id !== actor.id ? ', első belépéskor új jelszót kell megadnia' : ''})` : '',
   ].filter(Boolean)
   await logAudit(c.var.db, { entityType: 'user', entityId: row.id, subject: row.username, action: 'user_updated', note: changes.join('\n') || null, userId: actor.id })
   return c.json({ user: toAccount(row) })
