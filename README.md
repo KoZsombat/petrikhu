@@ -53,9 +53,11 @@ docker compose up --build
 | Swagger | http://localhost:3001/docs | UI for `/openapi.json`            |
 | Postgres| localhost:5432         | `app` / `app`, database `app`        |
 
-The API container runs the committed Drizzle migrations and the idempotent seed on startup (posts, documents,
-teachers, plus the legacy WordPress media referenced by them), so the first boot is ready to use. Static pages are
-prerendered at build time; the home page, news, search and teachers pages render on the server against the API.
+The API container runs the committed Drizzle migrations on startup. Content seeding is optional: if the seed
+snapshot is mounted/present, it imports posts, documents, teachers and legacy media; otherwise it logs that the
+content seed is missing and starts with an empty content database (the admin account is always created). Static
+pages are prerendered at build time; the home page, news, search and teachers pages render on the server against
+the API.
 
 ## Local development
 
@@ -160,14 +162,18 @@ The Docker API image ships the generated migrations and applies them on boot.
 
 better-auth tables (`user`, `session`, `account`, `verification`) live in `apps/api/src/db/auth-schema.ts`, matching better-auth 1.7's default Drizzle schema.
 
-`apps/api/seed` is a snapshot of the previous site: **584 posts** (WordPress HTML sanitized into `contentHtml`),
-**30 documents** in 11 categories and **88 teachers**, plus the **25 post categories** found in the old posts. `bun run --cwd apps/api db:seed` (also run by the API
-container) fills empty tables only, so existing edits are never overwritten.
+The legacy content snapshot is **not tracked in git** (`apps/api/seed/` is ignored). Place
+`posts.json`, `documents.json` and `teachers.json` there, or point `SEED_DIR` at a directory containing them. The
+snapshot is the previous site: **584 posts** (WordPress HTML sanitized into `contentHtml`), **30 documents** in 11
+categories, **88 teachers** and the **25 post categories** found in the old posts. `bun run db:seed` (also run by
+the API container) fills empty tables only, so existing edits are never overwritten. If the files are absent, the
+seed step skips content and only ensures the admin account exists.
 
-The same seed also reads the old `/tanari-kar/` page to copy each teacher portrait (88 matched by name), then imports
-every legacy `/wp-content/uploads/...` referenced by posts, documents and teachers into the `media` table (deterministic `legacy-<sha1>` ids, served from `/api/media/{id}`) and rewrites those references in
-place. It is idempotent, so later boots reuse the stored bytes; the first boot downloads ~2.2k files from
-`LEGACY_MEDIA_BASE_URL`. Six references that 404 on the old site are skipped and keep their original URLs.
+When present, the seed also reads the old `/tanari-kar/` page to copy each teacher portrait (88 matched by name),
+then imports every legacy `/wp-content/uploads/...` referenced by posts, documents and teachers into the `media`
+table (deterministic `legacy-<sha1>` ids, served from `/api/media/{id}`) and rewrites those references in place. It
+is idempotent, so later boots reuse the stored bytes. Six references that 404 on the old site are skipped and keep
+their original URLs.
 
 ## Auth notes
 

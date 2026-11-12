@@ -29,7 +29,7 @@ bun run typecheck                  # all workspaces (web uses astro check on TS 
 bun run build                      # admin Vite + Astro build
 bun run ci                         # typecheck + build (same as GitHub Actions)
 
-docker compose up --build          # full stack, fresh DB, migrations + content/media seed
+docker compose up --build          # full stack, fresh DB, migrations + optional content/media seed
 docker compose down -v             # stop and drop the volume
 
 bun run dev:api                    # API :3001 (loads root .env)
@@ -38,7 +38,7 @@ bun run dev:web                    # Astro :4321
 
 bun run db:generate                # Drizzle migration from schema changes
 bun run db:migrate                 # apply migrations (loads root .env)
-bun run db:seed                    # idempotent content + legacy media seed
+bun run db:seed                    # optional content + legacy media seed (SEED_DIR)
 ```
 
 Ports: web `3003`, admin `3002`, API `3001`, Postgres `5432` (in Docker), Swagger `/docs`, OpenAPI `/openapi.json`.
@@ -79,8 +79,9 @@ uploaded/seeded `media` bytes. Every other public page is static Astro content c
 `Post` includes `gallery: string[]` (max 24). `Teacher`: `id, name, role, email, room, photo`.
 `LibraryCategory`: `{ slug, title, docs: Document[] }`.
 
-`apps/api/seed` holds the previous site snapshot: 584 WordPress posts, 30 documents (11 categories) and 88
-teachers. The seed runs on boot and only fills empty tables.
+`apps/api/seed` is **ignored by git** and holds the optional previous-site snapshot: 584 WordPress posts, 30
+documents (11 categories) and 88 teachers. The seed reads `SEED_DIR` or that folder; if the files are absent it
+skips content seeding and only ensures the admin account exists. It only fills empty tables.
 
 All write routes require the better-auth session cookie plus the named permission. The admin UI mirrors those
 permissions in its navigation and action buttons, but the server is the authority.
@@ -213,7 +214,8 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
 - `apps/web` reads `PUBLIC_SITE_URL` at runtime first, then the build arg. Docker passes both (build arg
   `http://localhost:3003`); production must set the real public origin.
 - The web image is Node (`node:22-alpine`) and serves `dist/server/entry.mjs`; admin is static files behind nginx
-  with SPA fallback; API is `oven/bun` and runs migrate → seed → start.
+  with SPA fallback; API is `oven/bun` and runs migrate → optional seed → start. The seed folder is ignored by git,
+  so CI images start empty unless seed data is mounted at `SEED_DIR`.
 - Documents are served from the API (`/api/media/{id}`); `apps/web/public/media` is legacy static content and is not
   the source of truth.
 
@@ -248,7 +250,8 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
    rewritten to `/api/media/{id}`; six old-site references 404 and keep their original URL.
 4. Public registration is disabled. Change the default `ADMIN_PASSWORD`/`BETTER_AUTH_SECRET` before deploying;
    existing admin passwords are only reset with `ADMIN_RESET_PASSWORD=true`.
-5. `docker compose down -v` removes the database; the next boot re-seeds posts, documents and teachers.
+5. `docker compose down -v` removes the database; the next boot re-seeds content only if a seed snapshot is
+   present at `apps/api/seed` or `SEED_DIR`.
 
 ## Verification checklist
 
