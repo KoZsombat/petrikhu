@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/app
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+      BETTER_AUTH_URL: http://localhost:3001
+      CORS_ORIGINS: http://localhost:3002,http://localhost:3003
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@petrik.hu}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-PetrikAdmin2026!}
+      ADMIN_RESET_PASSWORD: ${ADMIN_RESET_PASSWORD:-false}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3001
+        VITE_WEB_URL: http://localhost:3003
+    ports:
+      - "3002:80"
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        PUBLIC_SITE_URL: http://localhost:3003
+    environment:
+      API_INTERNAL_URL: http://api:3001
+      PUBLIC_SITE_URL: http://localhost:3003
+      HOST: 0.0.0.0
+      PORT: 4321
+    ports:
+      - "3003:4321"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

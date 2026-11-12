@@ -1,0 +1,82 @@
+---
+interface Props {
+  current: number;
+  total: number;
+  hrefFor: (page: number) => string;
+  label?: string;
+}
+
+const { current, total, hrefFor, label = "Lapozó" } = Astro.props;
+
+const PAGE_BTN =
+  "inline-flex h-10 min-w-10 items-center justify-center rounded-md border border-petriklinesoft bg-petrikcard px-3 text-sm font-medium";
+
+function pageWindow(currentPage: number, totalPages: number): (number | "gap")[] {
+  const pages = [...new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1])]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+  const out: (number | "gap")[] = [];
+  pages.forEach((page, i) => {
+    const previous = pages[i - 1];
+    if (i > 0 && previous !== undefined && page - previous > 1) out.push("gap");
+    out.push(page);
+  });
+  return out;
+}
+---
+
+<nav aria-label={label} class="mt-10">
+  <ul class="flex flex-wrap items-center justify-center gap-2">
+    <li>
+      {
+        current > 1 ? (
+          <a href={hrefFor(current - 1)} rel="prev" class:list={[PAGE_BTN, "hover:border-petrikaccent"]}>
+            ‹ Előző
+          </a>
+        ) : (
+          <span aria-disabled="true" class:list={[PAGE_BTN, "text-petrikfaint"]}>
+            ‹ Előző
+          </span>
+        )
+      }
+    </li>
+    {
+      pageWindow(current, total).map((page) =>
+        page === "gap" ? (
+          <li aria-hidden="true" class="px-1 text-petrikfaint">
+            …
+          </li>
+        ) : (
+          <li>
+            <a
+              href={hrefFor(page)}
+              aria-current={page === current ? "page" : undefined}
+              aria-label={`${page}. oldal`}
+              class:list={[
+                PAGE_BTN,
+                page === current
+                  ? "border-petrikink bg-petrikink text-petrikcard"
+                  : "hover:border-petrikaccent",
+              ]}
+            >
+              {page}
+            </a>
+          </li>
+        ),
+      )
+    }
+    <li>
+      {
+        current < total ? (
+          <a href={hrefFor(current + 1)} rel="next" class:list={[PAGE_BTN, "hover:border-petrikaccent"]}>
+            Következő ›
+          </a>
+        ) : (
+          <span aria-disabled="true" class:list={[PAGE_BTN, "text-petrikfaint"]}>
+            Következő ›
+          </span>
+        )
+      }
+    </li>
+  </ul>
+</nav>

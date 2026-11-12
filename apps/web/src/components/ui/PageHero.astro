@@ -1,0 +1,78 @@
+---
+import Container from "./Container.astro";
+import { breadcrumbJsonLd, jsonLd } from "../../lib/seo";
+
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  breadcrumb?: Crumb[];
+  title: string;
+  intro?: string;
+  cover?: { src: string; alt: string };
+}
+
+const { breadcrumb = [], title, intro, cover } = Astro.props;
+---
+
+<header
+  data-component="pageTitle"
+  data-variant={cover ? "cover" : "default"}
+  class="border-b border-petriklinesoft pt-10 pb-8 md:pt-16 md:pb-12"
+>
+  <Container>
+    {breadcrumb.length > 0 && (
+      <script
+        type="application/ld+json"
+        set:html={jsonLd({
+          "@context": "https://schema.org",
+          ...breadcrumbJsonLd(breadcrumb),
+        })}
+      />
+    )}
+    {
+      breadcrumb.length > 0 && (
+        <nav aria-label="Morzsamenü">
+          <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs">
+            {breadcrumb.map((item, i) => {
+              const last = i === breadcrumb.length - 1;
+              return (
+                <li class="flex items-center gap-2">
+                  {i > 0 && (
+                    <span aria-hidden="true" class="text-petrikfaint">
+                      /
+                    </span>
+                  )}
+                  {item.href && !last ? (
+                    <a href={item.href} class="text-petrikaccentdark hover:underline">
+                      {item.label}
+                    </a>
+                  ) : (
+                    <span aria-current={last ? "page" : undefined} class="text-petrikfaint">
+                      {item.label}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )
+    }
+    <h1 class="mt-5 font-display text-[32px] font-semibold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[40px] md:text-[42px]">
+      {title}
+    </h1>
+    {intro && <p class="mt-4 max-w-[66ch] text-[16.5px] leading-relaxed text-petriksoft md:text-[17px]">{intro}</p>}
+    {
+      cover && (
+        <img
+          src={cover.src}
+          alt={cover.alt}
+          class="mt-8 aspect-[16/6] w-full rounded-lg object-cover"
+        />
+      )
+    }
+  </Container>
+</header>

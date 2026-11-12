@@ -1,0 +1,20 @@
+---
+import type { Teacher } from "../../lib/api";
+import TeacherCard from "./TeacherCard.astro";
+
+interface Props {
+  teachers: Teacher[];
+}
+
+const { teachers } = Astro.props;
+---
+
+<ul class="mx-auto grid w-full max-w-[1240px] grid-cols-1 gap-4 px-5 sm:grid-cols-2 sm:px-10 lg:grid-cols-3">
+  {
+    teachers.map((teacher) => (
+      <li class="flex">
+        <TeacherCard teacher={teacher} />
+      </li>
+    ))
+  }
+</ul>

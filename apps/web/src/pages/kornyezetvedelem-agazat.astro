@@ -1,0 +1,22 @@
+---
+import Layout from "../layouts/Layout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import FeatureSection from "../components/ui/FeatureSection.astro";
+import PageHero from "../components/ui/PageHero.astro";
+import RichTextSection from "../components/ui/RichTextSection.astro";
+import VideoEmbed from "../components/ui/VideoEmbed.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Környezetvédelem és vízügy"} description={"Növények, állatok, vizsgálatok, számítások és még sok-sok más."} canonicalPath={"/kornyezetvedelem-agazat"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Oktatás"}, {"label": "Szakképzés", "href": "/technikusi-kepzesek"}, {"label": "Környezetvédelem és vízügy"}]} title={"Környezetvédelem és vízügy"} intro={"Növények, állatok, vizsgálatok, számítások és még sok-sok más."} />
+  <RichTextSection html={"A környezetvédelmi technikus képzést neked ajánljuk, ha"} />
+  <CardGrid variant={"text"} items={[{"title": "szeretsz a szabadban lenni, mozogni,"}, {"title": "érdekelnek a vadon élő növények és állatok, illetve azok védelme,"}, {"title": "szívesen vizsgálod mikroszkóppal az apró élőlényeket,"}, {"title": "szeretsz vizsgálatokat, méréseket végezni,"}, {"title": "érdekel, mi van a vízben, a levegőben, a talajban és szívesen vizsgálnád ezeket,"}, {"title": "érdekelnek a laboratóriumi műszerek és berendezések,"}, {"title": "nem ijedsz meg a kémiától és egy kis számolástól sem,"}, {"title": "környezetünk megőrzésében aktívan részt szeretnél venni."}]} columns={3} />
+  <RichTextSection html={"<p></p><p>Környezetvédelmi technikussá öt éves technikumi képzés után válhattok. A technikumban az érettségire felkészítő tárgyak mellett szakmai tárgyakat is tanultok. Ennek keretében a képzés első két évében a környezetvédelem és vízügy ágazati alapoktatásban vesztek részt, aminek a végén ágazati alapvizsgát tesztek. A tizenegyedik évfolyamtól kezdődően a környezetvédelmi technikus szakmai tárgyait tanuljátok. Megismerkedtek a környezetvédelem alapjaival, a környezet védelmét szolgáló berendezésekkel, a környezet állapotát vizsgáló terepi és laboratóriumi vizsgálatokkal.</p><p>A környezetvédelmi technikus képzés során az alábbi szakmairányokat tudod választani.</p>"} />
+  <FeatureSection title={"Környezetvédelem szakmairány"} imageSide={"left"} html={"<p>Azok számára ajánljuk, akik szeretnek a laboratóriumban dolgozni, precízek és alaposak. Akik hosszú ideig képesek a figyelmüket összpontosítani egy-egy feladatra. Viszont szívesen kimozdulnak a laboratóriumból környezeti mintavétel érdekében.</p>"} />
+  <FeatureSection title={"Természetvédelem szakmairány"} imageSide={"right"} html={"<p>Azok számára ajánljuk, akik elhívatottak a természet megőrzésben. Akik szívesen töltik az idejük jelentős részét a szabadban a természetes élőhelyek gondozásával, kezelésével, az élőlények vizsgálatával. Nem ijednek meg a természetvédelemhez kapcsolódó fizikai munkától, de a számítógépes nyilvántartások vezetésétől sem.</p>"} />
+  <RichTextSection html={"<p></p><p><strong>Igazgatás <br></strong><strong>szakmairány</strong></p><p>Azok számára ajánljuk, akik szeretik az adminisztratív feladatokat és a környezetünk védelmét szívügyüknek tekintik. Ajánljuk azoknak, akik szeretnek írni és olvasni, és akik mindehhez szívesen használják a számítógépet. Mindemellett szívesen beszélgetnek, kommunikálnak másokkal. A környezetvédelmi adatok kezelése nagy odafigyelést kíván, így ezt a területet azoknak ajánljuk elsősorban, akik rendszeretők és precízek.</p>"} />
+  <FeatureSection title={"Hulladékhasznosító és -feldolgozó szakmairány"} imageSide={"left"} html={"<p>Azok számára ajánljuk<strong>,</strong> akik szeretnek méréseket és vizsgálatokat végezni. Ajánljuk azok számára, akiket érdekel egy gép működése, szívesen beállítanak, vagy működtetnek hulladékgazdálkodási gépeket, berendezéseket. Továbbá ajánljuk azoknak is, akik alaposak, minden részletre figyelnek, így jól tudják követni egy összetett rendszer működését.</p><p>Nézd meg bemutatkozó kisfilmünket:</p>"} />
+  <VideoEmbed url={"https://www.youtube.com/watch?v=pnHsQ2zMRRM"} title={"Környezetvédő technikus promovideó"} />
+</Layout>

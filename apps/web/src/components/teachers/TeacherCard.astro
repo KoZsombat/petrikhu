@@ -1,0 +1,53 @@
+---
+import type { Teacher } from "../../lib/api";
+
+interface Props {
+  teacher: Teacher;
+}
+
+const { teacher } = Astro.props;
+
+const initials = (name: string) => {
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+  const first = words[0][0] ?? "";
+  const last = words.length > 1 ? (words[words.length - 1][0] ?? "") : "";
+  return `${first}${last}`.toUpperCase();
+};
+---
+
+<article class="flex w-full items-start gap-5 rounded-xl border border-petrikline bg-petrikcard p-6 shadow-[0_12px_30px_-24px_rgba(22,33,29,0.45)]">
+  {
+    teacher.photo ? (
+      <img
+        src={teacher.photo}
+        alt={`${teacher.name} fényképe`}
+        loading="lazy"
+        class="size-20 shrink-0 rounded-full object-cover"
+      />
+    ) : (
+      <span
+        aria-hidden="true"
+        class="flex size-20 shrink-0 items-center justify-center rounded-full bg-petriktint font-mono text-base font-medium text-petrikaccentdark"
+      >
+        {initials(teacher.name)}
+      </span>
+    )
+  }
+  <div class="min-w-0">
+    <h3 class="font-body text-[17px] font-semibold leading-snug">{teacher.name}</h3>
+    {teacher.role && <p class="petrik-eyebrow mt-1">{teacher.role}</p>}
+    <div class="mt-2 space-y-0.5 text-[13px] leading-normal text-petriksoft">
+      {teacher.room && <p class="whitespace-pre-line">{teacher.room}</p>}
+      {
+        teacher.email && (
+          <p class="break-words">
+            <a href={`mailto:${teacher.email}`} class="hover:underline">
+              {teacher.email}
+            </a>
+          </p>
+        )
+      }
+    </div>
+  </div>
+</article>

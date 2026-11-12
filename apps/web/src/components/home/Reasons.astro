@@ -1,0 +1,45 @@
+---
+import { Blocks, Clock, Globe, Sparkle, User, Users } from "lucide-react";
+import { translator, type Locale } from "../../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+
+const REASONS = [
+  { Icon: Sparkle, n: 1 },
+  { Icon: Blocks, n: 2 },
+  { Icon: Globe, n: 3 },
+  { Icon: Users, n: 4 },
+  { Icon: Clock, n: 5 },
+  { Icon: User, n: 6 },
+] as const;
+---
+
+<section class="min-h-max w-full max-w-screen overflow-x-hidden bg-petrikcream ">
+  <div class="mx-auto flex w-full max-w-[1240px] flex-col gap-10 px-5 sm:px-10">
+    <h2 class="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-balance text-petrikink md:text-4xl">
+      {t("home.whyUs")}
+    </h2>
+  </div>
+  <div class="mx-auto mt-10 grid w-full max-w-[1240px] grid-cols-1 gap-x-10 gap-y-12 px-5 sm:px-10 md:grid-cols-3">
+    {
+      REASONS.map(({ Icon, n }) => (
+        <article class="flex w-full flex-col items-center text-center md:items-start md:text-start">
+          <div class="flex size-12 items-center justify-center rounded-full bg-petriktint text-petrikaccentdark">
+            <Icon size={24} strokeWidth={1.5} />
+          </div>
+          <h3 class="mt-6 font-display text-xl font-semibold text-petrikink">
+            {t(`home.reason${n}Title`)}
+          </h3>
+          <p class="mt-4 font-body text-[15px] leading-relaxed text-petriksoft">
+            {t(`home.reason${n}Text`)}
+          </p>
+        </article>
+      ))
+    }
+  </div>
+</section>

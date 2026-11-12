@@ -1,0 +1,19 @@
+---
+interface Props {
+  href: string;
+  variant?: "solid" | "text";
+  class?: string;
+}
+
+const { href, variant = "solid", class: className = "" } = Astro.props;
+
+const styles = {
+  solid:
+    "inline-block rounded-md bg-petrikaccent px-5 py-[11px] text-[15px] font-semibold text-petrikcard hover:bg-petrikaccentdark",
+  text: "text-sm font-semibold text-petrikaccentdark border-b-2 border-petrikaccentdark hover:text-petrikaccent",
+}[variant];
+---
+
+<a href={href} class:list={[styles, className]}>
+  <slot />
+</a>

@@ -1,0 +1,39 @@
+---
+import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
+import { localizedHref } from "../../lib/site";
+import type { PostSummary } from "../../lib/api";
+import { toNewsRow } from "../../lib/news";
+import NewsCard from "../ui/NewsCard.astro";
+
+interface Props {
+  locale: Locale;
+  posts: PostSummary[];
+}
+
+const { locale, posts } = Astro.props;
+const t = translator(locale);
+const rows = posts.map((post) => toNewsRow(post, locale));
+---
+
+{
+  rows.length > 0 && (
+    <section class="w-full max-w-screen overflow-x-hidden bg-petrikbg ">
+      <div class="mx-auto flex w-full max-w-[1240px] flex-col gap-10 px-5 sm:px-10">
+        <h2 class="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-balance text-petrikink md:text-4xl">
+          {t("home.latestNews")}
+        </h2>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {rows.map((row) => (
+            <NewsCard item={row} detailsLabel={t("home.details")} />
+          ))}
+        </div>
+        <a
+          class="w-max border-b-2 border-petrikaccentdark text-petrikaccentdark"
+          href={localizedHref(locale, "/hirek", TRANSLATIONS)}
+        >
+          {t("home.allNews")}
+        </a>
+      </div>
+    </section>
+  )
+}

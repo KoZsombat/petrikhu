@@ -1,0 +1,42 @@
+---
+import Container from "./Container.astro";
+
+interface Item {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  items: Item[];
+  columns?: 2 | 3 | 4 | 5;
+  class?: string;
+}
+
+const { items, columns = 4, class: className = "" } = Astro.props;
+
+const COLUMNS: Record<2 | 3 | 4 | 5, string> = {
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 md:grid-cols-3",
+  4: "grid-cols-2 sm:grid-cols-4",
+  5: "grid-cols-2 sm:grid-cols-5",
+};
+---
+
+<section data-component="stats" class:list={[" ", className]}>
+  <Container>
+    <dl class:list={["grid gap-4 gap-y-8", COLUMNS[columns]]}>
+      {
+        items.map((item) => (
+          <div>
+            <dd class="font-display text-[40px] font-bold leading-none text-petrikaccentdark md:text-[42px]">
+              {item.value}
+            </dd>
+            <dt class="mt-2 font-body text-[11.5px] font-semibold uppercase tracking-[0.1em] text-petrikfaint">
+              {item.label}
+            </dt>
+          </div>
+        ))
+      }
+    </dl>
+  </Container>
+</section>

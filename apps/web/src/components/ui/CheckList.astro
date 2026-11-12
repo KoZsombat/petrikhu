@@ -1,0 +1,33 @@
+---
+import SectionHeading from "./SectionHeading.astro";
+
+interface Props {
+  title?: string;
+  items: string[];
+  limit?: number;
+}
+
+const { title, items, limit } = Astro.props;
+const shown = limit === undefined ? items : items.slice(0, Math.max(0, limit));
+---
+
+<section data-component="checkList" class=" ">
+  <div class="mx-auto w-full max-w-[1240px] px-5 sm:px-10">
+    {title && <div class="mb-6"><SectionHeading title={title} /></div>}
+    <ul class="gap-x-12 sm:columns-2">
+      {
+        shown.map((item) => (
+          <li class="mb-3.5 flex break-inside-avoid items-start gap-3 text-[15px] leading-snug">
+            <span
+              aria-hidden="true"
+              class="mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-petriktint text-xs font-bold text-petrikaccentdark"
+            >
+              ✓
+            </span>
+            <span>{item}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

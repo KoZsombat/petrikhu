@@ -1,0 +1,66 @@
+---
+interface Item {
+  id: string;
+  label: string;
+}
+
+interface Props {
+  items: Item[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav
+  aria-label="Oldalnavigáció"
+  class="sticky top-[72px] z-30 border-y border-petriklinesoft bg-petrikcream/95 backdrop-blur"
+>
+  <div class="mx-auto w-full max-w-[1240px] px-5 sm:px-10">
+    <ul class="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {
+        items.map((item) => (
+          <li>
+            <a
+              href={`#${item.id}`}
+              data-section-link
+              class="inline-block whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] font-medium text-petriksoft transition-colors duration-150 hover:bg-petrikbg hover:text-petrikink"
+            >
+              {item.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</nav>
+
+<script>
+  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-section-link]")];
+  const sections = links
+    .map((link) => document.querySelector<HTMLElement>(link.hash))
+    .filter((section): section is HTMLElement => Boolean(section));
+
+  const setActive = (id: string) => {
+    for (const link of links) {
+      const active = link.hash === `#${id}`;
+      link.classList.toggle("bg-petrikbg", active);
+      link.classList.toggle("font-semibold", active);
+      link.classList.toggle("text-petrikaccentdark", active);
+      link.classList.toggle("text-petriksoft", !active);
+      if (active) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    }
+  };
+
+  const update = () => {
+    let current = sections[0]?.id ?? "";
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top <= 160) current = section.id;
+    }
+    setActive(current);
+  };
+
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("hashchange", update);
+  update();
+</script>

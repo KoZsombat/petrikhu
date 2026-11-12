@@ -1,0 +1,38 @@
+---
+import Container from "./Container.astro";
+import { youtubeId } from "../../lib/format";
+
+interface Props {
+  heading?: string;
+  url: string;
+  title?: string;
+  caption?: string;
+}
+
+const { heading, url, title, caption } = Astro.props;
+const id = youtubeId(url);
+---
+
+<section data-component="video" class=" ">
+  <Container>
+    {heading && <h2 class="mx-auto mb-6 max-w-4xl font-display text-2xl font-bold text-balance">{heading}</h2>}
+    {
+      id ? (
+        <div class="mx-auto aspect-video max-w-4xl overflow-hidden rounded-xl bg-petrikink">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${id}`}
+            title={title ?? "Videó"}
+            loading="lazy"
+            allowfullscreen
+            class="size-full border-0"
+          />
+        </div>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer" class="font-semibold text-petrikaccentdark underline">
+          ▶ {title ?? url}
+        </a>
+      )
+    }
+    {caption && <p class="mx-auto mt-3 max-w-4xl text-sm text-petriksoft">{caption}</p>}
+  </Container>
+</section>

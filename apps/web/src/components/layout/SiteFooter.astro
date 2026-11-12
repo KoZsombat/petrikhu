@@ -1,0 +1,101 @@
+---
+import { Mail, MapPin, Phone } from "lucide-react";
+import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
+import { footerColumns, localizedHref, socialLinks } from "../../lib/site";
+import Container from "../ui/Container.astro";
+import { FacebookSolid, InstagramSolid } from "../icons";
+import Logo from "./Logo.astro";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+
+const LINK = "text-petriklink hover:text-white transition-colors duration-200";
+const ROUND =
+  "flex size-11 items-center justify-center rounded-full border border-petriklink/20 hover:border-white hover:text-white transition-colors duration-200";
+---
+
+<footer class="bg-petrikink text-center text-sm text-petriklink md:text-start">
+  <Container class="pt-14 pb-8">
+    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.6fr]">
+      <div>
+        <div class="inline-block rounded-lg bg-white p-1">
+          <Logo alt={t("site.logoAlt")} class="h-auto w-52" />
+        </div>
+        <p class="mt-5 leading-relaxed text-petriklink/80">
+          {t("footer.schoolLine1")}
+          <br />
+          {t("footer.schoolLine2")}
+        </p>
+        <p class="mt-5 font-body text-sm leading-6 tabular-nums text-petriklink/50">
+          {t("footer.omId")}
+          <br />
+          {t("footer.techCode")}
+        </p>
+      </div>
+
+      {
+        footerColumns.map((column) => (
+          <div>
+            <h3 class="mb-4 font-body text-sm font-semibold uppercase tracking-[0.18em] text-petriklink/50">
+              {t(column.title)}
+            </h3>
+            <ul class="space-y-2">
+              {column.links.map((link) => (
+                <li>
+                  <a href={localizedHref(locale, link.href, TRANSLATIONS)} class={LINK}>
+                    {t(link.key)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+
+      <div>
+        <h3 class="mb-4 font-body text-sm font-semibold uppercase tracking-[0.18em] text-petriklink/50">
+          {t("nav.contact")}
+        </h3>
+        <ul class="space-y-3">
+          <li class="flex items-start justify-center gap-3 md:justify-start">
+            <MapPin size={14} className="mt-1 shrink-0" />
+            <span>{t("footer.address")}</span>
+          </li>
+          <li class="flex items-center justify-center gap-3 md:justify-start">
+            <Phone size={14} className="shrink-0" />
+            <a href="tel:+36705021724" class={LINK}>+36 70 502 1724</a>
+          </li>
+          <li class="flex items-center justify-center gap-3 md:justify-start">
+            <Mail size={14} className="shrink-0" />
+            <a href="mailto:info@petrik.hu" class={LINK}>{t("footer.email")}</a>
+          </li>
+          <li>
+            <a href={localizedHref(locale, "/tanari-kar", TRANSLATIONS)} class={LINK}>{t("nav.staff")}</a>
+          </li>
+        </ul>
+        <div class="mt-4 flex justify-center gap-3 md:justify-start">
+          <a href={socialLinks.facebook} aria-label="Facebook" class={ROUND}>
+            <FacebookSolid size={14} />
+          </a>
+          <a href={socialLinks.instagram} aria-label="Instagram" class={ROUND}>
+            <InstagramSolid size={14} />
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="mt-12 flex flex-col gap-3 border-t border-petriklink/15 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p class="text-petriklink/60">{t("footer.copyright")}</p>
+      <div class="flex gap-6">
+        <a href={localizedHref(locale, "/adatvedelem", TRANSLATIONS)} class={LINK}>{t("nav.privacy")}</a>
+        <a href={localizedHref(locale, "/adatkezelesi-tajekoztato", TRANSLATIONS)} class={LINK}>{t("nav.privacyNotice")}</a>
+      </div>
+    </div>
+  </Container>
+</footer>

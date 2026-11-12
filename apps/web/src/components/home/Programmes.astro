@@ -1,0 +1,66 @@
+---
+import { Cpu, Droplet, FlaskConical } from "lucide-react";
+import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
+import { localizedHref } from "../../lib/site";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+
+const PROGRAMMES = [
+  {
+    Icon: FlaskConical,
+    bg: "bg-petrikaccent",
+    title: "home.chemistry",
+    text: "home.chemistryText",
+    href: "/vegyipar-agazat",
+  },
+  {
+    Icon: Droplet,
+    bg: "bg-petrikink",
+    title: "home.environment",
+    text: "home.environmentText",
+    href: "/kornyezetvedelem-agazat",
+  },
+  {
+    Icon: Cpu,
+    bg: "bg-petrikaccentdark",
+    title: "home.it",
+    text: "home.itText",
+    href: "/informatika-agazat",
+  },
+] as const;
+---
+
+<section class="min-h-max w-full max-w-screen overflow-x-hidden bg-petrikbg ">
+  <div class="mx-auto flex w-full max-w-[1240px] flex-col gap-10 px-5 sm:px-10">
+    <h2 class="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-balance text-petrikink md:text-4xl">
+      {t("home.programmes")}
+    </h2>
+    <p class="max-w-2xl text-base leading-relaxed text-petriksoft md:text-lg">
+      {t("home.programmesLead")}
+    </p>
+  </div>
+  <div class="mx-auto mt-10 grid w-full max-w-[1240px] grid-cols-1 gap-6 px-5 sm:px-10 md:grid-cols-3">
+    {
+      PROGRAMMES.map(({ Icon, bg, title, text, href }) => (
+        <article class="flex flex-col rounded-xl border border-petrikline bg-petrikcard p-8">
+          <div class={`${bg} flex size-12 items-center justify-center rounded-md text-white`}>
+            <Icon size={24} />
+          </div>
+          <h3 class="mt-6 font-display text-xl font-semibold text-petrikink">{t(title)}</h3>
+          <p class="mt-4 font-body text-[15px] leading-relaxed text-petriksoft">{t(text)}</p>
+          <a
+            href={localizedHref(locale, href, TRANSLATIONS)}
+            class="mt-auto pt-8 text-xs font-semibold uppercase tracking-wider text-petrikaccentdark"
+          >
+            {t("home.learnMore")}
+          </a>
+        </article>
+      ))
+    }
+  </div>
+</section>

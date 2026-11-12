@@ -1,0 +1,55 @@
+---
+import { translator, type Locale } from "../../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+
+const COUNTERS: [string, string][] = [
+  ["1178", "home.counterStudents"],
+  ["120", "home.counterTeachers"],
+  ["35", "home.counterClassrooms"],
+  ["23", "home.counterLabs"],
+  ["1", "home.counterGoal"],
+];
+---
+
+<section class="min-h-max w-full max-w-screen overflow-x-hidden bg-petrikcream ">
+  <div
+    class="mx-auto flex w-full max-w-[1240px] flex-col items-center justify-evenly gap-10 px-5 sm:px-10 md:flex-row"
+  >
+    <div class="aspect-video md:w-1/2">
+      <iframe
+        class="h-full w-full rounded-lg"
+        src="https://www.youtube.com/embed/NnanAwvV8FI"
+        title={t("home.videoTitle")}
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      />
+    </div>
+    <div class="flex flex-col gap-5 text-center md:w-1/2 md:text-start">
+      <h2 class="font-display text-3xl font-semibold italic leading-tight text-petrikink">
+        {t("home.aboutTitle")}
+      </h2>
+      <p class="text-base leading-relaxed text-petriksoft">{t("home.aboutText")}</p>
+    </div>
+  </div>
+  <dl
+    class="mx-auto mt-14 grid grid-cols-2 gap-6 text-center sm:grid-cols-5 md:max-w-4/6"
+  >
+    {
+      COUNTERS.map(([value, label]) => (
+        <div>
+          <dd class="font-display text-4xl font-bold text-petrikaccentdark">{value}</dd>
+          <dt class="mt-1 font-body text-xs font-semibold uppercase tracking-[0.12em] text-petriksoft">
+            {t(label)}
+          </dt>
+        </div>
+      ))
+    }
+  </dl>
+</section>

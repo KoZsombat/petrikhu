@@ -1,0 +1,16 @@
+---
+interface Props {
+  content: string;
+}
+
+const { content } = Astro.props;
+
+const paragraphs = content
+  .split(/\n{2,}/)
+  .map((paragraph) => paragraph.trim())
+  .filter(Boolean);
+---
+
+<div class="petrik-prose">
+  {paragraphs.map((paragraph) => <p class="whitespace-pre-line">{paragraph}</p>)}
+</div>

@@ -1,0 +1,60 @@
+---
+import { Download, FileText } from "lucide-react";
+import Container from "./Container.astro";
+import SectionHeading from "./SectionHeading.astro";
+
+interface Item {
+  title: string;
+  href: string;
+  meta?: string;
+}
+
+interface Props {
+  heading?: string;
+  intro?: string;
+  items: Item[];
+  id?: string;
+  class?: string;
+}
+
+const { heading, intro, items, id, class: className = "" } = Astro.props;
+
+const fileType = (href: string) => {
+  const extension = href.split("?")[0]?.split(".").pop()?.toUpperCase();
+  return extension && extension.length <= 5 ? extension : "FILE";
+};
+---
+
+<section data-component="documents" id={id} class:list={["scroll-mt-32", className || " "]}>
+  <Container>
+    {heading && <SectionHeading title={heading} intro={intro} />}
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        items.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              target="_blank"
+              rel="noreferrer"
+              class="group flex h-full items-start gap-4 rounded-xl border border-petrikline bg-petrikcard p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+            >
+              <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-petriktint text-petrikaccentdark">
+                <FileText className="size-5" aria-hidden />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-display text-[16px] font-semibold leading-snug text-balance">
+                  {item.title}
+                </span>
+                <span class="mt-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
+                  <span class="rounded-full border border-petrikline px-2 py-0.5">{fileType(item.href)}</span>
+                  {item.meta && item.meta !== fileType(item.href) && <span>{item.meta}</span>}
+                </span>
+              </span>
+              <Download className="mt-0.5 size-4 shrink-0 text-faint transition-colors group-hover:text-petrikaccentdark" aria-hidden />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </Container>
+</section>

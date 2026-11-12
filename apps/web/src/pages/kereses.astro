@@ -1,0 +1,28 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Container from "../components/ui/Container.astro";
+import SearchBox from "../components/ui/SearchBox.astro";
+import NewsRows from "../components/ui/NewsRows.astro";
+import { getPosts } from "../lib/api";
+import { toNewsRow } from "../lib/news";
+
+export const prerender = false;
+
+const raw = Astro.url.searchParams.get("q");
+const q = raw?.trim().slice(0, 200) ?? "";
+
+const { posts, total } = q ? await getPosts({ q, limit: 50 }) : { posts: [], total: 0 };
+const rows = posts.map((post) => toNewsRow(post));
+---
+
+<Layout locale="hu" title="Keresés" noindex canonicalPath={`/kereses${q ? `?q=${encodeURIComponent(q)}` : ""}`}>
+  <Container class="pt-12">
+    <h1 class="font-display text-3xl font-bold">Keresés</h1>
+    <div class="mt-4">
+      <SearchBox value={q} placeholder="Keresés a hírek között…" />
+    </div>
+    {q && <p class="mt-3 text-sm text-petriksoft">{total} találat</p>}
+  </Container>
+
+  {rows.length > 0 && <NewsRows rows={rows} />}
+</Layout>

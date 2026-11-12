@@ -1,0 +1,45 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DocumentLibrary from "../components/ui/DocumentLibrary.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import { getDocuments, type Library } from "../lib/api";
+
+export const prerender = false;
+
+let library: Library = { categories: [] };
+let error = false;
+
+try {
+  library = await getDocuments();
+} catch {
+  error = true;
+}
+---
+
+<Layout
+  locale="hu"
+  title="Dokumentumtár"
+  description="Az iskola dokumentumai: alapdokumentumok, szabályzatok, tananyagok és statisztikai információk."
+  canonicalPath="/dokumentumtar"
+>
+  {
+    error ? (
+      <div class="mx-auto w-full max-w-[1240px] px-5 py-12 sm:px-10 md:py-16">
+        <p class="petrik-eyebrow mb-3">Petrik Lajos Két Tanítási Nyelvű Technikum</p>
+        <h1 class="font-display text-4xl font-bold md:text-5xl">Dokumentumtár</h1>
+        <div class="mt-10">
+          <EmptyState
+            title="A dokumentumtár jelenleg nem érhető el."
+            text="A dokumentumok az API-ból töltődnek be; próbáld újra később."
+          />
+        </div>
+      </div>
+    ) : (
+      <DocumentLibrary
+        eyebrow="Petrik Lajos Két Tanítási Nyelvű Technikum"
+        title="Dokumentumtár"
+        library={library}
+      />
+    )
+  }
+</Layout>

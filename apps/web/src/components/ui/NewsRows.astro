@@ -1,0 +1,79 @@
+---
+import Container from "./Container.astro";
+import NewsRow from "./NewsRow.astro";
+import type { NewsRowData } from "../../lib/news";
+import Pagination from "./Pagination.astro";
+
+export interface NewsFilter {
+  label: string;
+  href: string;
+  active: boolean;
+}
+
+export interface NewsPagination {
+  current: number;
+  total: number;
+  hrefFor: (page: number) => string;
+}
+
+interface Props {
+  rows: NewsRowData[];
+  filters?: NewsFilter[];
+  pagination?: NewsPagination;
+  filtersLabel?: string;
+  emptyLabel?: string;
+}
+
+const {
+  rows,
+  filters,
+  pagination,
+  filtersLabel = "Szűrők",
+  emptyLabel = "Nincs találat.",
+} = Astro.props;
+---
+
+<section data-component="newsList" class=" ">
+  <Container>
+    {
+      filters && filters.length > 0 && (
+        <nav aria-label={filtersLabel} class="mb-8">
+          <ul class="flex flex-wrap gap-2">
+            {filters.map((filter) => (
+              <li>
+                <a
+                  href={filter.href}
+                  aria-current={filter.active ? "true" : undefined}
+                  class:list={[
+                    "inline-block rounded-full border px-4 py-1.5 text-sm font-medium",
+                    filter.active
+                      ? "border-petrikaccent bg-petrikaccent text-petrikcard"
+                      : "border-petrikline bg-petrikcard text-petrikink hover:border-petrikaccent",
+                  ]}
+                >
+                  {filter.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+
+    {
+      rows.length === 0 ? (
+        <p class="py-10 text-center text-sm text-petriksoft">{emptyLabel}</p>
+      ) : (
+        <ul>
+          {rows.map((row) => (
+            <li class="border-t border-petrikline last:border-b">
+              <NewsRow row={row} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {pagination && pagination.total > 1 && <Pagination {...pagination} />}
+  </Container>
+</section>

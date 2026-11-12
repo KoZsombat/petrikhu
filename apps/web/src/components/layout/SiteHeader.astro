@@ -1,0 +1,212 @@
+---
+import { ChevronDown, Menu, X } from "lucide-react";
+import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
+import { MENUS, localizedHref, socialLinks, upperLinks, type MenuItem } from "../../lib/site";
+import Container from "../ui/Container.astro";
+import { FacebookOutline, InstagramOutline } from "../icons";
+import LanguageSwitch from "./LanguageSwitch.astro";
+import Logo from "./Logo.astro";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+const menu = MENUS[locale];
+const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
+
+const leafHref = (item: MenuItem) => ("href" in item ? item.href : "");
+const isActive = (item: MenuItem) => {
+  const href = leafHref(item);
+  if (!href || !href.startsWith("/")) return false;
+
+  // Query links (`/hirek?kategoria=…`) are shortcuts, not pages: several of them share `/hirek`,
+  // so they would all underline on the news page. Only path links own the active state.
+  if (href.includes("?")) return false;
+
+  const base = href.split("?")[0] ?? href;
+  if (pathname === base) return true;
+
+  // Only the news section owns detail pages; `/en` must not claim every English page.
+  return base === "/hirek" && pathname.startsWith("/hirek/");
+};
+const hasActiveChild = (item: MenuItem) =>
+  "children" in item && item.children.some((child) => isActive(child));
+---
+
+<div class="sticky top-0 z-50 w-full bg-petrikcream py-3 shadow-md">
+  <Container>
+    <nav class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex items-center justify-between">
+        <a href={localizedHref(locale, "/", TRANSLATIONS)}>
+          <Logo alt={t("site.logoAlt")} class="h-auto w-50" />
+        </a>
+        <button
+          id="mobile-menu-button"
+          type="button"
+          class="cursor-pointer p-2 text-black/60 lg:hidden"
+          aria-label={t("nav.openMenu")}
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+        >
+          <Menu className="icon-open size-7" />
+          <X className="icon-close size-7" />
+        </button>
+      </div>
+
+      <div id="mobile-menu" class="mt-4 hidden max-h-[calc(100vh-8rem)] overflow-y-auto lg:hidden">
+        <ul class="flex flex-col text-base">
+          {
+            menu.map((item) => (
+              <li class="border-b border-black/10">
+                {"children" in item ? (
+                  <details class="group">
+                    <summary
+                      class:list={[
+                        "flex w-full cursor-pointer list-none items-center justify-between py-3 [&::-webkit-details-marker]:hidden",
+                        hasActiveChild(item)
+                          ? "font-semibold text-petrikaccentdark"
+                          : "text-black/60",
+                      ]}
+                    >
+                      {item.label}
+                      <ChevronDown
+                        size={16}
+                        className="transition-transform group-open:rotate-180"
+                      />
+                    </summary>
+                    <ul class="pb-2 pl-4">
+                      {item.children.map((child) => (
+                        <li>
+                          <a
+                            href={localizedHref(locale, child.href, TRANSLATIONS)}
+                            aria-current={isActive(child) ? "page" : undefined}
+                            class:list={[
+                              "block py-2",
+                              isActive(child)
+                                ? "font-semibold text-petrikaccentdark"
+                                : "text-black/60",
+                            ]}
+                          >
+                            {child.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <a
+                    href={localizedHref(locale, item.href, TRANSLATIONS)}
+                    aria-current={isActive(item) ? "page" : undefined}
+                    class:list={[
+                      "block py-3",
+                      isActive(item) ? "font-semibold text-petrikaccentdark" : "text-black/60",
+                    ]}
+                  >
+                    {item.label}
+                  </a>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="mt-4 grid grid-cols-2 gap-x-4 text-sm">
+          {
+            upperLinks.map((link) => (
+              <li>
+                <a href={localizedHref(locale, link.href, TRANSLATIONS)} class="block py-2 text-black/60">
+                  {t(link.key)}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="mt-2 flex items-center gap-4 text-black/60">
+          <a href={socialLinks.facebook} aria-label="Facebook">
+            <FacebookOutline size={20} />
+          </a>
+          <a href={socialLinks.instagram} aria-label="Instagram">
+            <InstagramOutline size={20} />
+          </a>
+          <LanguageSwitch locale={locale} tone="light" class="ml-auto" />
+        </div>
+      </div>
+
+      <div class="hidden items-center gap-6 lg:flex">
+        <ul class="flex items-center gap-6 text-sm">
+          {
+            menu.map((item, index) => (
+              <li class="group relative">
+                {"children" in item ? (
+                  <>
+                    <a
+                      class:list={[
+                        "my-2 flex cursor-pointer items-center gap-1 border-b-2 transition-colors duration-200 hover:border-petrikaccent",
+                        hasActiveChild(item)
+                          ? "border-petrikaccent text-petrikaccentdark"
+                          : "border-transparent text-black/60",
+                      ]}
+                    >
+                      {item.label}
+                      <ChevronDown size={14} className="transition-transform duration-200 group-hover:rotate-180 motion-reduce:transition-none" />
+                    </a>
+                    <ul
+                      class:list={[
+                        "invisible absolute top-8 z-50 w-60 translate-y-1 scale-[0.98] rounded-lg bg-white/95 p-2 text-left opacity-0 shadow-md transition-[opacity,transform] duration-150 ease-out group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 motion-reduce:transition-none",
+                        index >= menu.length - 2 ? "right-0" : "left-0",
+                      ]}
+                    >
+                      {item.children.map((child) => (
+                        <li>
+                          <a
+                            href={localizedHref(locale, child.href, TRANSLATIONS)}
+                            aria-current={isActive(child) ? "page" : undefined}
+                            class:list={[
+                              "block w-full cursor-pointer rounded-lg px-5 py-1.5 hover:bg-petrikpale/20",
+                              isActive(child)
+                                ? "font-semibold text-petrikaccentdark"
+                                : "text-black/60",
+                            ]}
+                          >
+                            {child.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <a
+                    href={localizedHref(locale, item.href, TRANSLATIONS)}
+                    aria-current={isActive(item) ? "page" : undefined}
+                    class:list={[
+                      "my-2 flex cursor-pointer items-center gap-1 border-b-2 transition-colors duration-200 hover:border-petrikaccent",
+                      isActive(item)
+                        ? "border-petrikaccent text-petrikaccentdark"
+                        : "border-transparent text-black/60",
+                    ]}
+                  >
+                    {item.label}
+                  </a>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </nav>
+  </Container>
+</div>
+
+<script>
+  const button = document.getElementById("mobile-menu-button");
+  const menu = document.getElementById("mobile-menu");
+
+  if (button && menu) {
+    button.addEventListener("click", () => {
+      const open = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!open));
+      menu.classList.toggle("hidden", open);
+    });
+  }
+</script>

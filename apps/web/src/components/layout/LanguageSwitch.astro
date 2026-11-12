@@ -1,0 +1,64 @@
+---
+import { socialLinks } from "../../lib/site";
+import { TRANSLATIONS, type Locale } from "../../lib/i18n";
+import { counterpart } from "../../lib/site";
+
+interface Props {
+  locale: Locale;
+  tone?: "dark" | "light";
+  class?: string;
+}
+
+const { locale, tone = "dark", class: className = "" } = Astro.props;
+const pathname = Astro.url.pathname;
+
+const item = (code: Locale, label: string) => {
+  const active = locale === code;
+  return {
+    code,
+    label,
+    active,
+    href: counterpart(pathname, code, TRANSLATIONS),
+  };
+};
+
+const items = [item("hu", "HU"), item("en", "EN")];
+---
+
+<span
+  class:list={[
+    "inline-flex items-center divide-x",
+    tone === "light" ? "divide-black/20" : "divide-petriklink/30",
+    className,
+  ]}
+>
+  {
+    items.map((entry) =>
+      entry.active ? (
+        <span
+          lang={entry.code}
+          aria-current="true"
+          class:list={[
+            "px-1.5 py-0.5 font-body text-xs font-semibold uppercase tracking-[0.14em]",
+            tone === "light" ? "font-semibold text-petrikaccentdark" : "text-white",
+          ]}
+        >
+          {entry.label}
+        </span>
+      ) : (
+        <a
+          lang={entry.code}
+          hreflang={entry.code}
+          href={entry.href}
+          aria-label={entry.code === "hu" ? "Magyar" : "English"}
+          class:list={[
+            "px-1.5 py-0.5 font-body text-xs font-semibold uppercase tracking-[0.14em] transition-colors",
+            tone === "light" ? "text-black/50 hover:text-black" : "text-petriklink/60 hover:text-white",
+          ]}
+        >
+          {entry.label}
+        </a>
+      ),
+    )
+  }
+</span>

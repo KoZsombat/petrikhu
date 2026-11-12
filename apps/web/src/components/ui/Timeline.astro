@@ -1,0 +1,32 @@
+---
+import Container from "./Container.astro";
+
+interface Row {
+  key: string;
+  text: string;
+}
+
+interface Props {
+  heading?: string;
+  rows: Row[];
+  class?: string;
+}
+
+const { heading, rows, class: className = "" } = Astro.props;
+---
+
+<section data-component="timeline" class:list={[" ", className]}>
+  <Container>
+    {heading && <h2 class="mb-6 font-display text-2xl font-bold text-balance">{heading}</h2>}
+    <ol>
+      {
+        rows.map((row) => (
+          <li class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 border-t border-petrikline py-3.5 text-[14.5px] last:border-b sm:gap-6">
+            <span class="font-body font-semibold tabular-nums text-petrikaccentdark">{row.key}</span>
+            <span class="text-petriksoft">{row.text}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </Container>
+</section>

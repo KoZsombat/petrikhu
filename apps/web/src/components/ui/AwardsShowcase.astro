@@ -1,0 +1,82 @@
+---
+import { Award } from "lucide-react";
+import Container from "./Container.astro";
+import SectionHeading from "./SectionHeading.astro";
+
+interface Row {
+  cells: string[];
+}
+
+interface Props {
+  heading?: string;
+  intro?: string;
+  columns?: string[];
+  rows: Row[];
+}
+
+const { heading = "Díjak és elismerések", intro, rows } = Astro.props;
+
+const years = rows.flatMap((row) =>
+  [...(row.cells[0] ?? "").matchAll(/\d{4}/g)].map((match) => Number(match[0])),
+);
+const range = years.length > 0 ? `${Math.min(...years)}—${Math.max(...years)}` : "";
+
+const splitText = (text: string) => {
+  const [lead, ...rest] = text.split(/\s+–\s+|\n/);
+  return { lead: lead ?? text, rest: rest.join(" · ").trim() };
+};
+---
+
+<section data-component="awards" class="bg-petrikbg ">
+  <Container>
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <SectionHeading title={heading} eyebrow="Elismerések" intro={intro} />
+      <div class="flex flex-wrap items-center gap-2 pb-1">
+        <span class="rounded-full border border-petrikline bg-petrikcard px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-petrikaccentdark">
+          {rows.length} elismerés
+        </span>
+        {range && (
+          <span class="rounded-full border border-petrikline bg-petrikcard px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-petrikfaint">
+            {range}
+          </span>
+        )}
+      </div>
+    </div>
+
+    <ul class="mt-8 grid gap-4 md:grid-cols-2">
+      {
+        rows.map((row, index) => {
+          const date = row.cells[0] ?? "";
+          const text = row.cells[1] ?? "";
+          const { lead, rest } = splitText(text);
+          const wide = text.length > 220;
+
+          return (
+            <li class:list={["flex", wide && "md:col-span-2"]}>
+              <article class="group relative flex w-full flex-col overflow-hidden rounded-xl border border-petrikline bg-petrikcard p-6 transition duration-200 hover:-translate-y-0.5 hover:border-petrikaccent/45 hover:shadow-[0_14px_34px_-28px_rgba(22,33,29,0.55)] motion-reduce:transform-none">
+                <span aria-hidden="true" class="absolute inset-y-0 left-0 w-1 bg-petrikaccent/70" />
+                <div class="flex items-start justify-between gap-4">
+                  <span class="font-mono text-[10.5px] uppercase tracking-[0.1em] text-petrikfaint">
+                    {date}
+                  </span>
+                  <Award className="size-4 shrink-0 text-petrikaccent/70" aria-hidden />
+                </div>
+                <p class="mt-4 font-display text-[18px] font-semibold leading-snug text-balance text-petrikink">
+                  {lead}
+                </p>
+                {rest && (
+                  <p class="mt-2 whitespace-pre-line text-[13.5px] leading-relaxed text-petriksoft">
+                    {rest}
+                  </p>
+                )}
+                <span class="mt-auto pt-5 font-mono text-[10px] uppercase tracking-[0.1em] text-petrikfaint">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+              </article>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </Container>
+</section>

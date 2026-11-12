@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import NewsRows from "../components/ui/NewsRows.astro";
+import PageHero from "../components/ui/PageHero.astro";
+import RichTextSection from "../components/ui/RichTextSection.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Étkezés"} description={"Kedvezményes étkezési lehetőség"} canonicalPath={"/ebed"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Egyéb"}, {"label": "Étkezés"}]} title={"Étkezés"} intro={"Kedvezményes étkezési lehetőség"} />
+  <RichTextSection html={"<p>Kedves Petrikesek! </p><p>Lehetőségetek van az egy utcára található kollégiumi menzán kedvezményes étkezésre.</p><p>Étkezéssel kapcsolatos hírek</p>"} />
+  <NewsRows rows={[{"title": "Étkezés igénybevételének feltételei a 2026/2027 tanévben", "excerpt": "Kedves Szülők! Alább találják az ÉSZGSZ 2024/2025 tanévre szóló étkezéssel kapcsolatos tájlkoztatását. Általános tájékoztatás étkezés igénybevételéről 2024/22025 tanévben Szülői tájékoztató Kedvezményes étkezés ÉSZGSZ igénylőlap 8.sz.melléklet 9.sz.melléklet ...", "date": "ÁPR. 27.", "category": "Étkezések", "href": "/hirek/etkezzes-igenybevetelenek-feltetelei-a-2026-2027-tanevben"}, {"title": "FIGYELEM! Változás az ebédeltetési rendben!", "excerpt": "Tisztelt Szülők! Tájékoztatom Önöket, hogy 2023. december 31. napjával megszűnt az Étkeztetési Szolgáltató Gazdasági Szervezet és iskolánk munkatársa közötti szerződés. Ennek értelmében az ebédbefizetésekkel, ill. lemondásokkal kapcsolatban 2024. január 01-től...", "date": "JAN. 5.", "category": "Étkezések", "href": "/hirek/figyelem-valtozas-az-ebedeltetesi-rendben"}, {"title": "Étkezési térítési díj – 2024 január", "excerpt": "Tisztelt Szülő/Gondviselő/Étkezést igénylő! A 2024. január havi étkezési térítési díjat az ÉSZGSZ központi pénztárában (1134 Budapest Róbert K. krt.49-51.) az alábbi napokon tudják készpénzben vagy bankkártyával befizetni a befizetési információkban előre meghirdetett...", "date": "DEC. 11.", "category": "Étkezések", "href": "/hirek/etkezesi-teritesi-dij-2024-januar"}]} />
+  <RichTextSection html={"<h2>Az igényléshez szükséges dokumentumok</h2>"} />
+  <CardGrid variant={"text"} items={[{"title": "Szülői tájékoztató a 2025-2026 tanévre"}, {"title": "Kedvezményes étkezéssel kapcsolatos tájékoztató"}, {"title": "Adatlap Diétás étkezés igényléséhez"}, {"title": "Igénylőlap 2025-26 tanévre"}, {"title": "8 számű melléklet"}, {"title": "9 számű melléklet"}]} columns={3} />
+  <RichTextSection html={"<h2>Elérhetőség</h2>"} />
+  <CardGrid variant={"person"} items={[{"name": "Tolnai Ferencné", "room": "1134 Budapest, Róbert Károly krt. 49-51.", "email": "tolnai.ferencne@eszgsz.hu"}]} columns={3} />
+</Layout>

@@ -1,0 +1,170 @@
+---
+import "../styles/globals.css";
+import { translator, type Locale } from "../lib/i18n";
+import SiteHeader from "../components/layout/SiteHeader.astro";
+import SiteFooter from "../components/layout/SiteFooter.astro";
+import UpperHeader from "../components/layout/UpperHeader.astro";
+import {
+  absoluteUrl,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_WIDTH,
+  jsonLd,
+  schoolJsonLd,
+  SITE_URL,
+  websiteJsonLd,
+} from "../lib/seo";
+
+type JsonLdNode = Record<string, unknown>;
+
+interface Props {
+  locale?: Locale;
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+  /** Path for the canonical URL; defaults to the current route. */
+  canonicalPath?: string;
+  jsonLd?: JsonLdNode | JsonLdNode[];
+  /** Open Graph object type. News articles use `article`; everything else `website`. */
+  ogType?: "website" | "article";
+  image?: string | null;
+  imageAlt?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  section?: string;
+  tags?: string[];
+  /** Localised counterpart paths, e.g. `{ en: "/en/about-us" }` on `/bemutatkozas`. */
+  alternates?: Partial<Record<Locale, string>>;
+  prevPath?: string;
+  nextPath?: string;
+}
+
+const {
+  locale = "hu",
+  title,
+  description,
+  noindex = false,
+  canonicalPath,
+  jsonLd: pageJsonLd,
+  ogType = "website",
+  image,
+  imageAlt,
+  publishedTime,
+  modifiedTime,
+  section,
+  tags = [],
+  alternates = {},
+  prevPath,
+  nextPath,
+} = Astro.props;
+
+const t = translator(locale);
+const siteName = t("site.name");
+const brand = "Petrik";
+const pageTitle = title ? `${title} | ${brand}` : siteName;
+const metaDescription = description ?? t("site.description");
+
+const currentPath = canonicalPath ?? Astro.url.pathname;
+const canonical = absoluteUrl(currentPath);
+const imageUrl = absoluteUrl(image ?? DEFAULT_OG_IMAGE);
+const imageDescription = imageAlt ?? title ?? siteName;
+const usingDefaultImage = !image;
+
+const alternatePaths: Record<Locale, string | undefined> = {
+  hu: alternates.hu,
+  en: alternates.en,
+};
+alternatePaths[locale] = currentPath;
+const defaultPath = alternatePaths.hu ?? currentPath;
+const otherLocale = locale === "hu" ? "en" : "hu";
+const otherPath = alternatePaths[otherLocale];
+const ogLocales: Record<Locale, string> = { hu: "hu_HU", en: "en_GB" };
+
+const stripContext = (node: JsonLdNode): JsonLdNode => {
+  const copy = { ...node };
+  delete copy["@context"];
+  return copy;
+};
+const pageNodes = (Array.isArray(pageJsonLd) ? pageJsonLd : [pageJsonLd])
+  .filter((node): node is JsonLdNode => Boolean(node))
+  .map(stripContext);
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [websiteJsonLd(locale), schoolJsonLd(locale), ...pageNodes],
+};
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={metaDescription} />
+    <meta name="author" content={siteName} />
+    <meta
+      name="robots"
+      content={noindex
+        ? "noindex, nofollow"
+        : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"}
+    />
+    <link rel="canonical" href={canonical} />
+    {Object.entries(alternatePaths)
+      .filter(([, path]) => path)
+      .map(([lang, path]) => (
+        <link rel="alternate" hreflang={lang} href={absoluteUrl(path!)} />
+      ))}
+    <link rel="alternate" hreflang="x-default" href={absoluteUrl(defaultPath)} />
+    {prevPath && <link rel="prev" href={absoluteUrl(prevPath)} />}
+    {nextPath && <link rel="next" href={absoluteUrl(nextPath)} />}
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#fbfaf6" />
+    <link rel="alternate" type="application/rss+xml" title={`${siteName} – Hírek`} href={`${SITE_URL}/rss.xml`} />
+    <link rel="sitemap" type="application/xml" href={`${SITE_URL}/sitemap.xml`} />
+
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content={ogLocales[locale]} />
+    {otherPath && <meta property="og:locale:alternate" content={ogLocales[otherLocale]} />}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:alt" content={imageDescription} />
+    {usingDefaultImage && (
+      <>
+        <meta property="og:image:width" content={String(DEFAULT_OG_IMAGE_WIDTH)} />
+        <meta property="og:image:height" content={String(DEFAULT_OG_IMAGE_HEIGHT)} />
+      </>
+    )}
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+    {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+    {section && <meta property="article:section" content={section} />}
+    {tags.map((tag) => (
+      <meta property="article:tag" content={tag} />
+    ))}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={metaDescription} />
+    <meta name="twitter:image" content={imageUrl} />
+    <meta name="twitter:image:alt" content={imageDescription} />
+
+    <script type="application/ld+json" set:html={jsonLd(structuredData)} />
+  </head>
+  <body class="bg-petrikcream text-petrikink">
+    <div class="flex min-h-screen flex-col overflow-x-clip">
+      <header class="contents">
+        <UpperHeader locale={locale} />
+        <SiteHeader locale={locale} />
+      </header>
+      <main class="flex-1">
+        <slot />
+      </main>
+      <SiteFooter locale={locale} />
+    </div>
+  </body>
+</html>

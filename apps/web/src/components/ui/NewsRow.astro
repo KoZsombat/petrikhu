@@ -1,0 +1,49 @@
+---
+import DateTag from "./DateTag.astro";
+
+export interface NewsRowData {
+  title: string;
+  excerpt?: string;
+  date: string;
+  category?: string;
+  image?: { src: string; alt: string };
+  href: string;
+}
+
+interface Props {
+  row: NewsRowData;
+}
+
+const { row } = Astro.props;
+---
+
+<article class="group relative grid gap-4 py-6 sm:grid-cols-[240px_minmax(0,1fr)] sm:gap-6 md:grid-cols-[240px_minmax(0,1fr)_auto]">
+  <div class="relative aspect-[16/10] w-full overflow-hidden rounded-lg sm:w-60">
+    {
+      row.image ? (
+        <img
+          src={row.image.src}
+          alt={row.image.alt}
+          loading="lazy"
+          class="size-full object-cover"
+        />
+      ) : (
+        <div aria-hidden="true" class="petrik-stripes size-full" />
+      )
+    }
+    <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-[3px] bg-petrikaccent"></span>
+  </div>
+  <div class="min-w-0">
+    <DateTag date={row.date} />
+    <h3 class="mt-2.5 font-display text-[19px] font-semibold leading-snug">
+      <a
+        href={row.href}
+        class="after:absolute after:inset-0 after:content-[''] group-hover:text-petrikaccent"
+      >
+        {row.title}
+      </a>
+    </h3>
+    {row.excerpt && <p class="mt-2 text-sm leading-[1.55] text-petriksoft">{row.excerpt}</p>}
+  </div>
+  {row.category && <p class="petrik-eyebrow md:self-start md:text-right">{row.category}</p>}
+</article>

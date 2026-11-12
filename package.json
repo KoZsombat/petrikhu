@@ -1,0 +1,21 @@
+{
+  "name": "petrikhu",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun --env-file=.env run --filter '*' dev",
+    "build": "bun run --filter '*' build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "ci": "bun run typecheck && bun run build",
+    "db:generate": "bun run --cwd apps/api db:generate",
+    "db:migrate": "bun --env-file=.env run --cwd apps/api db:migrate",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down -v",
+    "dev:api": "bun --env-file=.env run --cwd apps/api dev",
+    "dev:admin": "bun --env-file=.env run --cwd apps/admin dev",
+    "dev:web": "bun --env-file=.env run --cwd apps/web dev",
+    "db:seed": "bun --env-file=.env run --cwd apps/api db:seed"
+  }
+}

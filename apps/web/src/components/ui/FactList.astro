@@ -1,0 +1,32 @@
+---
+import Container from "./Container.astro";
+
+interface Row {
+  label: string;
+  value: string;
+}
+
+interface Props {
+  heading?: string;
+  rows: Row[];
+  class?: string;
+}
+
+const { heading, rows, class: className = "" } = Astro.props;
+---
+
+<section data-component="facts" class:list={[" ", className]}>
+  <Container>
+    {heading && <h2 class="mb-6 font-display text-2xl font-bold text-balance">{heading}</h2>}
+    <dl>
+      {
+        rows.map((row) => (
+          <div class="grid gap-1 border-t border-petrikline py-3.5 text-[14.5px] last:border-b sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-6">
+            <dt class="font-semibold text-petrikink">{row.label}</dt>
+            <dd class="text-petriksoft">{row.value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </Container>
+</section>

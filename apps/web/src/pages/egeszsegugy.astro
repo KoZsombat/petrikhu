@@ -1,0 +1,26 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Callout from "../components/ui/Callout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import CheckList from "../components/ui/CheckList.astro";
+import DataTable from "../components/ui/DataTable.astro";
+import FactList from "../components/ui/FactList.astro";
+import NewsRows from "../components/ui/NewsRows.astro";
+import PageHero from "../components/ui/PageHero.astro";
+import RichTextSection from "../components/ui/RichTextSection.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Iskola-egészségügy"} description={"Épp testben ép lélek"} canonicalPath={"/egeszsegugy"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Egyéb"}, {"label": "Iskola-egészségügy"}]} title={"Iskola-egészségügy"} intro={"Épp testben ép lélek"} />
+  <Callout tone={"info"} title={"Kedves Diákok, Szülők!"} html={"<p>Iskolánkban iskola-egészségügyi és pályaalkalmassági szűrés és orvosi ellátás működik. Célunk, hogy segítsük az egészséges állapot megőrzését és a betegségek megelőzését, hogy az iskolát elhagyva szakmájukban sikeres, kiegyensúlyozott emberek dolgozhassanak.</p>"} />
+  <DataTable heading={"Munkánkat az alábbi rendeletek, iránymutatások szerint végezzük"} columns={["Jogszabály / útmutató", "Tárgya"]} rows={[{"cells": ["33/1998. (VI. 24.) NM rendelet", "A munkaköri, szakmai, illetve személyi higiénés alkalmasság orvosi vizsgálatáról és véleményezéséről"]}, {"cells": ["26/1997. (IX. 3.) NM rendelet", "Az iskola-egészségügyi ellátásról"]}, {"cells": ["Orvosi útmutató", "A szakmai és munkaköri alkalmasság véleményezéséhez és a pályaválasztási tanácsadáshoz (szerkesztette: Brunner Péter)"]}]} />
+  <FactList heading={"Vizsgálatok"} rows={[{"label": "Orvosi vizsgálat, szűrés", "value": "az új tanulóknál, a 10. és 12. évfolyamon, a technikus hallgatóknál évente"}, {"label": "Laborvizsgálat", "value": "a 9–12. vegyész, környezetvédő és technikusi osztályoknál (vérvétel, vizelet); a beutalót az iskola biztosítja"}]} />
+  <CheckList title={"Munkánk része még"} items={["gondozott tanulók nyomon követése, tanácsadás", "kiszűrt tanulók beutalása, utánkövetése", "akut beteg ellátás", "testnevelési csoportbesorolás készítése, felmentés", "egészségfejlesztés, egészséges életmódra nevelés, tanácsadás", "járványügyi feladatok"]} />
+  <DataTable heading={"Pályaalkalmasságot befolyásoló állapotok, betegségek"} columns={["Szakmacsoport", "Állapotok"]} rows={[{"cells": ["Vegyész és környezetvédelmi", "epilepszia\nszíntévesztés, nagyfokú látás- és hallásromlás\nsúlyos mozgásszervi, vérképző, keringési, idegrendszeri és egyéb krónikus megbetegedés\nnagyfokú allergia, asztma"]}, {"cells": ["Informatikai", "mozgásszervi, látás-, színtévesztési, súlyosabb zavarok – egyéni elbírálás alapján"]}]} footnote={"Ha pályaalkalmasságot befolyásoló állapotot észlelünk, a tanulót továbbirányítjuk az Ifjúsági Szakmai Alkalmasságot Vizsgáló Szakrendelésre (1096 Budapest, Nagyvárad tér 2. fsz. 6., 06/1/476-1100/68721). Egészségi állapotbeli változások szükségessé tehetik az alkalmasság felülbírálatát."} />
+  <CardGrid variant={"person"} items={[{"name": "Dr Tóth-Vajna Zsombor", "role": "Iskolaorvos"}, {"name": "Pezenhoffer Tímea", "role": "Védőnő", "room": "Iskola-Egészségüggyel kapcsolatos hírek"}]} columns={4} heading={"Munkatársak"} />
+  <NewsRows rows={[{"title": "Mozdulj  a klímáért!", "excerpt": "Kedves Petrikesek! A Petrik 9.C környezetvédő diákjai is csatlakoznak az országos környezeti nevelési kampányhoz. Ebben a tanévben az Éghajlatvédelmi Szövetség Mozdulj a klímáért! Iskolai kampányában a Petrik iskolánk 9. C osztályos tanulói is bekapcsolódnak. A...", "date": "OKT. 10.", "category": "Hírek", "href": "/hirek/mozdulj-a-klimaert"}, {"title": "Föld napja", "excerpt": "Kedves Petrikesek! A Föld napja alkalmából zöldbe öltözött diákok és tanárok – köszönjük a részvételt! A Liget körüli iskolákkal (Radnóti, Szent István, Teleki) közösen szerveztük ezt a figyelemfelhívó kiállást. Fotó: Preisler...", "date": "ÁPR. 22.", "category": "Hírek", "href": "/hirek/fold-napja"}]} />
+  <RichTextSection html={"<h2>Elérhetőség</h2>"} />
+  <CardGrid variant={"person"} items={[{"name": "Orvosi", "room": "B. épület 020", "phone": "+36 70 502 1728", "email": "orvosi@petrik.hu"}]} columns={3} />
+</Layout>

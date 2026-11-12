@@ -1,0 +1,50 @@
+---
+import Container from "./Container.astro";
+import Prose from "./Prose.astro";
+
+interface Props {
+  eyebrow?: string;
+  title: string;
+  html?: string;
+  image?: { src: string; alt: string };
+  imageSide?: "left" | "right";
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const { eyebrow, title, html, image, imageSide = "left", ctaLabel, ctaHref } = Astro.props;
+const usableImage = image && !image.src.startsWith("/media/") ? image : undefined;
+---
+
+<section data-component="feature" data-variant={imageSide} class=" ">
+  <Container class="grid items-center gap-8 md:grid-cols-2 md:gap-14">
+    {
+      usableImage && (
+        <div class:list={["relative overflow-hidden rounded-xl", imageSide === "right" && "md:order-2"]}>
+          <img
+            src={usableImage.src}
+            alt={usableImage.alt}
+            loading="lazy"
+            class="aspect-[4/3] w-full object-cover"
+          />
+          <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-1 bg-petrikaccent"></span>
+        </div>
+      )
+    }
+    <div class:list={[!usableImage && "md:col-span-2"]}>
+      {eyebrow && <p class="petrik-eyebrow mb-3">{eyebrow}</p>}
+      <h2 class="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-balance">{title}</h2>
+      {html && <Prose html={html} class="mt-4" />}
+      {
+        ctaLabel && ctaHref && (
+          <a
+            href={ctaHref}
+            class="mt-6 inline-block rounded-md bg-petrikaccent px-5 py-[11px] text-[15px] font-semibold text-petrikcard hover:bg-petrikaccentdark"
+          >
+            {ctaLabel}
+          </a>
+        )
+      }
+    </div>
+  </Container>
+</section>

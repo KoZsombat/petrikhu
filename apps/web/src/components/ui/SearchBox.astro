@@ -1,0 +1,28 @@
+---
+interface Props {
+  value?: string;
+  placeholder?: string;
+  action?: string;
+  name?: string;
+  label?: string;
+}
+
+const {
+  value = "",
+  placeholder = "Keresés a hírek között…",
+  action = "/kereses",
+  name = "q",
+  label = "Keresés",
+} = Astro.props;
+---
+
+<form action={action} method="get" role="search" class="w-full max-w-xl">
+  <input
+    type="search"
+    name={name}
+    value={value}
+    aria-label={label}
+    placeholder={placeholder}
+    class="block w-full rounded-md border border-petrikline bg-petrikcard px-4 py-2.5 text-[15px] focus:border-petrikaccent focus:outline-none focus:ring-2 focus:ring-petrikaccent/25"
+  />
+</form>

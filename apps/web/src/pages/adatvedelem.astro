@@ -1,0 +1,15 @@
+---
+import Layout from "../layouts/Layout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import LinkList from "../components/ui/LinkList.astro";
+import PageHero from "../components/ui/PageHero.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Adatvédelem"} description={"Adatkezelési tájékoztatók, szabályzatok és sablon dokumentumok a személyes adatok védelméről."} canonicalPath={"/adatvedelem"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Adatvédelem"}]} title={"Adatvédelem"} intro={"Adatkezelési tájékoztatók, szabályzatok és sablon dokumentumok a személyes adatok védelméről."} />
+  <CardGrid variant={"person"} items={[{"name": "Csőke Ádám", "role": "Adatvédelmi tisztviselő", "room": "1149 Budapest, Várna u. 23.", "email": "gdpr@petrik.hu"}]} columns={3} heading={"Adatvédelmi tisztviselő"} />
+  <LinkList heading={"Alap dokumentumok"} items={[{"title": "Adatkezelési tevékenységek Nyilvántartás", "href": "/media/wp-content/uploads/2023/05/adatkezelesi_tevekenysegek_nyilvantartas_NSZFH_bmszc_petrik_001121_2_2023.pdf", "meta": "PDF"}, {"title": "Általános adatkezelési tájékoztató", "href": "/media/wp-content/uploads/2023/05/adatkezelesi_tajekoztato_NSZFH_bmszc_petrik_001121_3_2023.pdf", "meta": "PDF"}, {"title": "Intézményi adatkezelési szabályzat", "href": "/media/wp-content/uploads/2023/05/adatkezlesei_szabalyzat_NSZFH_bmszc_petrik_001121_4_2023.pdf", "meta": "PDF"}, {"title": "Iratkezelési szabályzat", "href": "/media/wp-content/uploads/2023/05/Iratkezelesi-szabalyzat_2022-23.pdf", "meta": "PDF"}, {"title": "Kamera szabályzat", "href": "/media/wp-content/uploads/2023/05/kamera_szabalyzat_NSZFH_bmszc_petrik_001121_5_2023.pdf", "meta": "PDF"}]} />
+  <LinkList heading={"Sablon dokumentumok"} items={[{"title": "Adatkezelési tájékoztató hozzájárulás alapján …-hoz"}, {"title": "ADATKEZELÉSI HOZZÁJÁRULÁS hozzájárulás alapján kezelt adatokhoz törvényes képviselő", "href": "/media/wp-content/uploads/2023/05/ADATKEZELESI-HOZZAJARULAS-hozzajarulas-alapjan-kezelt-adatokhoz-torvenyes-kepviselo.docx", "meta": "DOCX"}, {"title": "ADATKEZELÉSI HOZZÁJÁRULÁS hozzájárulás alapján kezelt adatokhoz", "href": "/media/wp-content/uploads/2023/05/ADATKEZELESI-HOZZAJARULAS-hozzajarulas-alapjan-kezelt-adatokhoz.docx", "meta": "DOCX"}, {"title": "Tájékoztatás nem hozzájárulás alapján kezelt adatok esetében törvényes képviselő részére", "href": "/media/wp-content/uploads/2023/05/Tajekoztatas-nem-hozzajarulas-alapjan-kezelt-adatok-eseteben-torvenyes-kepviselo-reszere.docx", "meta": "DOCX"}, {"title": "Tájékoztatás nem hozzájárulás alapján kezelt adatok esetében", "href": "/media/wp-content/uploads/2023/05/Tajekoztatas-nem-hozzajarulas-alapjan-kezelt-adatok-eseteben.docx", "meta": "DOCX"}]} />
+</Layout>

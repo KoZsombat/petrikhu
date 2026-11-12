@@ -1,0 +1,18 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Callout from "../components/ui/Callout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import FactList from "../components/ui/FactList.astro";
+import LinkList from "../components/ui/LinkList.astro";
+import PageHero from "../components/ui/PageHero.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Kollégiumi lehetőségek"} description={"Vidéki tanulóink elhelyezését a BMSZC Bolyai János Kollégiuma biztosítja."} canonicalPath={"/kollegiumi-lehetosegek"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Egyéb"}, {"label": "Kollégiumi lehetőségek"}]} title={"Kollégiumi lehetőségek"} intro={"Vidéki tanulóink elhelyezését a BMSZC Bolyai János Kollégiuma biztosítja."} />
+  <Callout tone={"accent"} html={"<p><strong>Felvételt nyert tanulóinknak lehetőségük van igénybe venni a BMSZC Bolyai János Kollégium szolgáltatásait.</strong></p>"} />
+  <FactList heading={"A kollégium elérhetősége"} rows={[{"label": "Cím", "value": "1134 Budapest, Angyalföldi út 2."}, {"label": "Kollégiumvezető", "value": "+36-70/502-15-63"}, {"label": "Tanári és ügyeleti szobák", "value": "+36-70/502-15-65 vagy 66"}, {"label": "Porta", "value": "+36-70/502-13-58"}, {"label": "E-mail", "value": "bolyai@bolyai-szakkozep.hu"}, {"label": "Webhely", "value": "https://bolyai.bmszc.hu/p/bolyai-kollegium"}, {"label": "Működési rend", "value": "24 órás pedagógiai ügyelet: 06:00–14:00, 14:00–22:00, 22:00–06:00"}]} />
+  <CardGrid variant={"person"} items={[{"name": "Vassné Stevlik Teréz", "role": "Étkezés", "phone": "+36-20/852-85-97", "email": "ebedlemondas.obudal@gmail.com"}]} columns={3} heading={"Étkezési elérhetőség"} />
+  <LinkList items={[{"title": "A kollégiummal kapcsolatos tudnivalók (PDF)", "href": "/media/wp-content/uploads/2024/04/BMSZC_Bolyai_Janos_Kollegium.pdf"}, {"title": "A kollégium honlapja", "href": "https://bolyai.bmszc.hu/p/bolyai-kollegium"}]} />
+</Layout>

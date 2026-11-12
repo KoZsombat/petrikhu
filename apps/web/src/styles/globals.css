@@ -1,0 +1,221 @@
+@import "tailwindcss";
+@import "./theme.css";
+
+/* Hero animations */
+@keyframes hero-word {
+  from {
+    transform: translateY(110%) rotate(4deg);
+    filter: blur(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    filter: none;
+    opacity: 1;
+  }
+}
+@keyframes hero-rise {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes hero-glow {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(60px, 40px) scale(1.15);
+  }
+}
+.hero-word {
+  animation: hero-word 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.hero-rise {
+  animation: hero-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.hero-glow {
+  animation: hero-glow 16s ease-in-out infinite;
+}
+.hero-stripes {
+  background: repeating-linear-gradient(115deg, transparent 0 60px, rgba(255, 255, 255, 0.025) 60px 120px);
+  mask-image: linear-gradient(to left, black, transparent 70%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-word,
+  .hero-rise,
+  .hero-glow {
+    animation: none;
+  }
+}
+
+/* One vertical rhythm for every top-level page section. The hero is the only exception.
+   Specificity is deliberate: this wins over the py-* utility on the same section. */
+main section:not([data-component="hero"]) {
+  padding-block: 1.5rem;
+}
+@media (min-width: 768px) {
+  main section:not([data-component="hero"]) {
+    padding-block: 2rem;
+  }
+}
+
+/* Utility classes of the blocks */
+.petrik-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-petrikaccentdark);
+}
+.petrik-stripes {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 10px, rgba(0, 0, 0, 0.04) 10px 20px),
+    var(--color-petriktint);
+}
+
+/* Running text of page blocks: restores paragraphs, lists and headings after the Tailwind reset */
+.petrik-prose {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--color-petrikink);
+}
+.petrik-prose > * + * {
+  margin-top: 1.1em;
+}
+.petrik-prose > :first-child {
+  margin-top: 0;
+}
+.petrik-prose h2,
+.petrik-prose h3,
+.petrik-prose h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.8em;
+}
+.petrik-prose h2 {
+  font-size: 1.7rem;
+}
+.petrik-prose h3 {
+  font-size: 1.3rem;
+}
+.petrik-prose h4 {
+  font-size: 1.1rem;
+}
+.petrik-prose ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.petrik-prose ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.petrik-prose li + li {
+  margin-top: 0.35em;
+}
+.petrik-prose a {
+  color: var(--color-petrikaccentdark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.petrik-prose a:hover {
+  color: var(--color-petrikaccent);
+}
+.petrik-prose img {
+  display: block;
+  width: 100%;
+  height: 340px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+.petrik-prose blockquote {
+  border-left: 4px solid var(--color-petrikaccent);
+  padding-left: 1em;
+  font-style: italic;
+}
+.petrik-prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.petrik-prose td,
+.petrik-prose th {
+  border: 1px solid var(--color-petrikline);
+  padding: 0.4em 0.7em;
+}
+.petrik-prose iframe {
+  max-width: 100%;
+}
+.petrik-prose li > p,
+.petrik-prose td > p,
+.petrik-prose th > p {
+  margin: 0;
+}
+
+/* <picture class="contents"> keeps a bare-<img> layout: its <source> children must not become grid or flex items. */
+picture > source {
+  display: none;
+}
+
+/* Static site: smooth anchor scrolling for in-page document links. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Archivo is the site's body face. Without this, unstyled text falls back to the system UI font
+   even though Archivo is shipped in public/fonts. */
+body {
+  font-family: var(--font-body);
+}
+
+/* Mobile menu: swap the open/close icons from the button's aria-expanded state. */
+#mobile-menu-button .icon-close {
+  display: none;
+}
+#mobile-menu-button[aria-expanded="true"] .icon-open {
+  display: none;
+}
+#mobile-menu-button[aria-expanded="true"] .icon-close {
+  display: inline;
+}
+
+/* Gallery blocks inserted by the admin editor / adapted from the old WordPress galleries. */
+.petrik-prose .post-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+.petrik-prose .post-gallery img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .petrik-prose .post-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Reveal animation for the history rail. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}

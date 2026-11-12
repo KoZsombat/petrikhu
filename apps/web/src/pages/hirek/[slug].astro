@@ -1,0 +1,118 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PostContent from "../../components/ui/PostContent.astro";
+import Prose from "../../components/ui/Prose.astro";
+import { getPost } from "../../lib/api";
+import { longDate } from "../../lib/format";
+import { articleJsonLd, breadcrumbJsonLd } from "../../lib/seo";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const post = slug ? await getPost(slug) : null;
+
+if (!post) {
+  Astro.response.status = 404;
+}
+
+---
+
+{
+  post ? (
+    <Layout
+      locale="hu"
+      title={post.title}
+      description={post.excerpt || undefined}
+      canonicalPath={`/hirek/${post.slug}`}
+      ogType="article"
+      image={post.image}
+      imageAlt={post.title}
+      publishedTime={post.publishedAt}
+      modifiedTime={post.updatedAt}
+      section={post.category}
+      tags={[post.category]}
+      jsonLd={[
+        articleJsonLd(post),
+        breadcrumbJsonLd([
+          { label: "Kezdőlap", href: "/" },
+          { label: "Hírek", href: "/hirek" },
+          { label: post.title, href: `/hirek/${post.slug}` },
+        ]),
+      ]}
+    >
+      <article
+        class="mx-auto w-full max-w-[820px] px-5 py-12 sm:px-10 md:py-16"
+        data-component="post"
+      >
+        <nav aria-label="Morzsamenü" class="font-body text-xs text-petrikfaint">
+          <a href="/" class="text-petrikaccentdark hover:underline">Kezdőlap</a>
+          <span aria-hidden="true"> / </span>
+          <a href="/hirek" class="text-petrikaccentdark hover:underline">Hírek</a>
+          <span aria-hidden="true"> / </span>
+          <span aria-current="page">{post.title}</span>
+        </nav>
+        <p class="mt-5 font-body text-xs font-semibold uppercase tracking-[0.18em] text-petrikaccentdark">
+          Hírek
+        </p>
+        <h1 class="mt-3 font-display text-4xl font-bold leading-tight text-petrikink md:text-5xl">
+          {post.title}
+        </h1>
+        <p class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs font-semibold uppercase tracking-[0.12em] text-petrikfaint">
+          <time datetime={post.publishedAt}>{longDate(post.publishedAt)}</time>
+          {post.category && (
+            <span class="rounded-full bg-petriktint px-2.5 py-0.5 text-petrikaccentdark">
+              {post.category}
+            </span>
+          )}
+        </p>
+
+        {post.image && (
+          <img src={post.image} alt="" class="mt-8 h-auto w-full rounded-lg" />
+        )}
+
+        <div class="mt-8">
+          {
+            post.contentHtml ? (
+              <Prose html={post.contentHtml} variant="post" />
+            ) : (
+              <PostContent content={post.content} />
+            )
+          }
+        </div>
+
+        {post.gallery.length > 0 && (
+          <section class="mt-12 border-t border-petriklinesoft pt-8">
+            <h2 class="font-display text-2xl font-semibold">Galéria</h2>
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {post.gallery.map((url) => (
+                <a href={url} target="_blank" rel="noreferrer" class="overflow-hidden rounded-lg bg-petriktint">
+                  <img
+                    src={url}
+                    alt=""
+                    loading="lazy"
+                    class="aspect-[4/3] w-full object-cover transition duration-300 hover:scale-[1.02]"
+                  />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </article>
+    </Layout>
+  ) : (
+    <Layout locale="hu" title="Az oldal nem található" noindex>
+      <div class="mx-auto w-full max-w-[820px] px-5 py-20 sm:px-10">
+        <h1 class="font-display text-3xl font-bold">Az oldal nem található</h1>
+        <p class="mt-4 text-petriksoft">
+          A keresett hír nem létezik vagy eltávolították.
+        </p>
+        <a
+          href="/hirek"
+          class="mt-6 inline-block font-semibold text-petrikaccentdark underline"
+        >
+          Vissza a hírekhez
+        </a>
+      </div>
+    </Layout>
+  )
+}

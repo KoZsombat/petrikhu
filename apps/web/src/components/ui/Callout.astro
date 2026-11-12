@@ -1,0 +1,44 @@
+---
+import Container from "./Container.astro";
+import Prose from "./Prose.astro";
+
+interface Props {
+  title?: string;
+  html: string;
+  tone?: "info" | "accent" | "highlight";
+}
+
+const { title, html, tone = "info" } = Astro.props;
+---
+
+{
+  tone === "highlight" ? (
+    <section data-component="callout" data-variant="highlight" class=" ">
+      <Container>
+        <div class="rounded-r-lg border-l-4 border-petrikaccent bg-petriktint px-6 py-5">
+          {title && <p class="petrik-eyebrow mb-2">{title}</p>}
+          <Prose html={html} variant="bare" class="max-w-[72ch] text-[15.5px] leading-relaxed text-petrikink" />
+        </div>
+      </Container>
+    </section>
+  ) : (
+    <section data-component="callout" data-variant={tone} class=" ">
+      <Container>
+        <div
+          class:list={[
+            "rounded-xl border-l-4 p-6 md:p-8",
+            tone === "accent"
+              ? "border-petrikaccentdark bg-petrikaccent text-petrikcard"
+              : "border-petrikaccent bg-petriktint",
+          ]}
+        >
+          {title && <h2 class="mb-3 font-display text-xl font-bold">{title}</h2>}
+          <Prose
+            html={html}
+            class={tone === "accent" ? "[&_a]:text-petrikcard [&_*]:text-petrikcard" : ""}
+          />
+        </div>
+      </Container>
+    </section>
+  )
+}

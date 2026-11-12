@@ -1,0 +1,146 @@
+---
+import Container from "./Container.astro";
+import type { Library } from "../../lib/api";
+
+interface Props {
+  eyebrow?: string;
+  title: string;
+  library: Library;
+}
+
+const { eyebrow, title, library } = Astro.props;
+
+const categories = library.categories;
+const total = categories.reduce((sum, category) => sum + category.docs.length, 0);
+
+const fileType = (file: string) => (/\.([a-z0-9]+)$/i.exec(file)?.[1] ?? "fájl").slice(0, 4).toUpperCase();
+const fold = (text: string) =>
+  text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+---
+
+<div class="mx-auto w-full max-w-[1240px] px-5 py-12 sm:px-10 md:py-16">
+  {eyebrow && <p class="petrik-eyebrow mb-3">{eyebrow}</p>}
+  <h1 class="font-display text-4xl font-bold md:text-5xl">{title}</h1>
+
+  <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+    <input
+      id="library-search"
+      type="search"
+      placeholder="Keresés a dokumentumok között…"
+      aria-label="Keresés a dokumentumok között"
+      class="block w-full max-w-xl rounded-md border border-petrikline bg-petrikcard px-4 py-2.5 text-[15px] focus:border-petrikaccent focus:outline-none focus:ring-2 focus:ring-petrikaccent/25"
+    />
+    <span class="font-body text-xs font-semibold uppercase tracking-[0.12em] text-petriksoft">
+      <span id="library-total">{total}</span> dokumentum
+    </span>
+  </div>
+
+  {
+    categories.length === 0 ? (
+      <p class="mt-10 text-sm text-petriksoft">Még nincs feltöltött dokumentum.</p>
+    ) : (
+      <div class="mt-10 grid gap-10 md:grid-cols-[240px_minmax(0,1fr)] md:gap-14">
+        <nav aria-label="Kategóriák" class="md:sticky md:top-28 md:self-start">
+          <p class="petrik-eyebrow mb-3">Kategóriák</p>
+          <ul id="library-nav" class="flex flex-wrap gap-2 md:flex-col md:gap-0.5">
+            {categories.map((category) => (
+              <li data-nav-item={category.slug}>
+                <a
+                  href={`#${category.slug}`}
+                  class="flex items-center justify-between gap-3 rounded-md border border-petrikline bg-petrikcard px-3 py-1.5 text-sm hover:border-petrikaccent hover:bg-petriktint md:border-transparent md:bg-transparent"
+                >
+                  <span>{category.title}</span>
+                  <span class="font-body text-xs font-semibold tabular-nums text-petrikfaint" data-nav-count={category.slug}>
+                    {category.docs.length}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div class="space-y-10">
+          {categories.map((category) => (
+            <section id={category.slug} data-library-section={category.slug} class="scroll-mt-28">
+              <h2 class="mb-4 border-b border-petrikline pb-2 font-display text-2xl font-bold">
+                {category.title}
+              </h2>
+              <ul class="grid gap-2.5">
+                {category.docs.map((doc) => (
+                  <li data-library-item data-title={fold(doc.title)}>
+                    {doc.file ? (
+                      <a
+                        href={doc.file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="group flex items-center gap-4 rounded-xl border border-petrikline bg-petrikcard px-4 py-3.5 transition-colors hover:border-petrikaccent hover:bg-petriktint"
+                      >
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-md bg-petriktint font-body text-[11px] font-semibold text-petrikaccentdark group-hover:bg-petrikcard">
+                          {fileType(doc.file)}
+                        </span>
+                        <span class="min-w-0 flex-1 font-semibold leading-snug text-petrikink">
+                          {doc.title}
+                        </span>
+                        <span class="font-body text-xs font-semibold uppercase tracking-[0.12em] text-petrikaccentdark">
+                          Letöltés ↓
+                        </span>
+                      </a>
+                    ) : (
+                      <div class="flex items-center gap-4 rounded-xl border border-petrikline bg-petrikcard px-4 py-3.5 text-petriksoft">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-md bg-petrikcream font-body text-[11px] font-semibold tabular-nums">
+                          🔒
+                        </span>
+                        <span class="min-w-0 flex-1 leading-snug">{doc.title}</span>
+                        <span class="font-body text-xs font-semibold uppercase tracking-[0.12em]">
+                          {doc.protected ? "Védett" : "Archív"}
+                        </span>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          <p id="library-empty" class="hidden text-sm text-petriksoft">Nincs találat.</p>
+        </div>
+      </div>
+    )
+  }
+</div>
+
+<script>
+  const input = document.getElementById("library-search") as HTMLInputElement | null;
+  const totalNode = document.getElementById("library-total");
+  const empty = document.getElementById("library-empty");
+  const sections = [...document.querySelectorAll<HTMLElement>("[data-library-section]")];
+  const navItems = [...document.querySelectorAll<HTMLElement>("[data-nav-item]")];
+
+  const fold = (text: string) =>
+    text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+  const apply = () => {
+    const needle = fold(input?.value.trim() ?? "");
+    let total = 0;
+
+    for (const section of sections) {
+      const items = [...section.querySelectorAll<HTMLElement>("[data-library-item]")];
+      let visible = 0;
+      for (const item of items) {
+        const matches = !needle || fold(item.dataset.title ?? "").includes(needle);
+        item.classList.toggle("hidden", !matches);
+        if (matches) visible++;
+      }
+      section.classList.toggle("hidden", visible === 0);
+      const count = section.querySelector<HTMLElement>(`[data-nav-count="${section.dataset.librarySection}"]`);
+      if (count) count.textContent = String(visible);
+      const nav = navItems.find((entry) => entry.dataset.navItem === section.dataset.librarySection);
+      nav?.classList.toggle("hidden", visible === 0);
+      total += visible;
+    }
+
+    if (totalNode) totalNode.textContent = String(total);
+    empty?.classList.toggle("hidden", total > 0);
+  };
+
+  input?.addEventListener("input", apply);
+</script>

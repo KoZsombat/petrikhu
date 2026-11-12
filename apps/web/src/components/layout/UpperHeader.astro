@@ -1,0 +1,62 @@
+---
+import { Mail, Phone } from "lucide-react";
+import { FacebookOutline, InstagramOutline } from "../icons";
+import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
+import { localizedHref, socialLinks, upperLinks } from "../../lib/site";
+import Container from "../ui/Container.astro";
+import LanguageSwitch from "./LanguageSwitch.astro";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<div class="w-full bg-petrikink py-2">
+  <Container>
+    <nav class="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+      <div class="flex shrink-0 items-center justify-center gap-4 whitespace-nowrap lg:justify-start">
+        <a href="tel:+36705021724" class="flex items-center gap-2 text-petriklink hover:text-white">
+          <Phone size={16} />
+          <span class="text-sm">+36 70 502 1724</span>
+        </a>
+        <a
+          href="mailto:info@petrik.hu"
+          class="flex items-center gap-2 border-petriklink/40 pr-4 text-petriklink hover:text-white lg:border-r"
+        >
+          <Mail size={16} />
+          <span class="text-sm">info@petrik.hu</span>
+        </a>
+        <a
+          href={socialLinks.facebook}
+          aria-label="Facebook"
+          class="hidden items-center gap-2 text-petriklink hover:text-white lg:flex"
+        >
+          <FacebookOutline size={16} />
+        </a>
+        <a
+          href={socialLinks.instagram}
+          aria-label="Instagram"
+          class="hidden items-center gap-2 text-petriklink hover:text-white lg:flex"
+        >
+          <InstagramOutline size={16} />
+        </a>
+      </div>
+      <div class="hidden flex-wrap items-center justify-end gap-x-5 gap-y-1 lg:flex">
+        {
+          upperLinks.map((link) => (
+            <a
+              href={localizedHref(locale, link.href, TRANSLATIONS)}
+              class="whitespace-nowrap text-sm text-petriklink hover:text-white"
+            >
+              {t(link.key)}
+            </a>
+          ))
+        }
+        <LanguageSwitch locale={locale} />
+      </div>
+    </nav>
+  </Container>
+</div>

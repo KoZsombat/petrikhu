@@ -1,0 +1,14 @@
+---
+interface Props {
+  title?: string;
+  text?: string;
+  class?: string;
+}
+
+const { title = "Nincs találat.", text, class: className = "" } = Astro.props;
+---
+
+<div class:list={["rounded-xl border border-dashed border-petriklinesoft bg-petrikcard px-6 py-12 text-center", className]}>
+  <p class="font-display text-lg font-semibold">{title}</p>
+  {text && <p class="mt-2 text-sm text-petriksoft">{text}</p>}
+</div>

@@ -1,0 +1,63 @@
+---
+import {
+  BookOpen,
+  DoorOpen,
+  FlaskConical,
+  GraduationCap,
+  Users,
+} from "lucide-react";
+import Container from "./Container.astro";
+import SectionHeading from "./SectionHeading.astro";
+
+interface Item {
+  value: string;
+  label: string;
+  detail?: string;
+  icon?: "users" | "teacher" | "room" | "lab" | "book";
+}
+
+interface Props {
+  heading?: string;
+  eyebrow?: string;
+  items: Item[];
+  class?: string;
+}
+
+const ICONS = {
+  users: Users,
+  teacher: GraduationCap,
+  room: DoorOpen,
+  lab: FlaskConical,
+  book: BookOpen,
+} as const;
+
+const DEFAULTS = ["users", "teacher", "room", "lab", "book"] as const;
+const { heading, eyebrow, items, class: className = "" } = Astro.props;
+---
+
+<section data-component="statCards" class:list={[className || " "]}>
+  <Container>
+    {heading && <SectionHeading title={heading} eyebrow={eyebrow} />}
+    <dl class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        items.map((item, index) => {
+          const Icon = ICONS[item.icon ?? DEFAULTS[index % DEFAULTS.length]];
+          return (
+            <div class="group relative overflow-hidden rounded-xl border border-petrikline bg-petrikcard p-6 transition-colors duration-200 hover:border-petrikaccent/45">
+              <span class="flex size-10 items-center justify-center rounded-lg bg-petriktint text-petrikaccentdark">
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <dd class="mt-10 text-right font-display text-[44px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-petrikink">
+                {item.value}
+              </dd>
+              <dt class="mt-3 text-right font-body text-[11.5px] font-semibold uppercase tracking-[0.12em] text-petrikfaint">
+                {item.label}
+              </dt>
+              {item.detail && <p class="mt-2 text-right text-[13px] leading-normal text-petriksoft">{item.detail}</p>}
+            </div>
+          );
+        })
+      }
+    </dl>
+  </Container>
+</section>

@@ -1,0 +1,52 @@
+---
+import Container from "./Container.astro";
+
+interface Logo {
+  src?: string;
+  alt: string;
+  href?: string;
+}
+
+interface Props {
+  label?: string;
+  logos: Logo[];
+  limit?: number;
+}
+
+const { label, logos, limit } = Astro.props;
+const shown = limit === undefined ? logos : logos.slice(0, Math.max(0, limit));
+const TILE = "flex h-[78px] items-center justify-center rounded-xl border border-petrikline bg-petrikcard p-2";
+
+const usable = shown.map((logo) => ({
+  ...logo,
+  src: logo.src && !logo.src.startsWith("/media/") ? logo.src : undefined,
+}));
+---
+
+<section data-component="logoGrid" class=" ">
+  <Container>
+    {label && <h2 class="petrik-eyebrow mb-4">{label}</h2>}
+    <ul class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+      {
+        usable.map((logo) => {
+          const content = logo.src ? (
+            <img src={logo.src} alt={logo.alt} loading="lazy" class="max-h-[70%] max-w-[70%] object-contain" />
+          ) : (
+            <span class="px-2 text-center font-body text-xs font-semibold tabular-nums text-petrikfaint">{logo.alt}</span>
+          );
+          return (
+            <li>
+              {logo.href ? (
+                <a href={logo.href} aria-label={logo.alt} class:list={[TILE, "hover:border-petrikline"]}>
+                  {content}
+                </a>
+              ) : (
+                <div class={TILE}>{content}</div>
+              )}
+            </li>
+          );
+        })
+      }
+    </ul>
+  </Container>
+</section>

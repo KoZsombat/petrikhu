@@ -1,0 +1,69 @@
+---
+import Container from "./Container.astro";
+import SectionHeading from "./SectionHeading.astro";
+
+interface Row {
+  key: string;
+  text: string;
+}
+
+interface Props {
+  heading?: string;
+  intro?: string;
+  eyebrow?: string;
+  rows: Row[];
+  class?: string;
+}
+
+const { heading, intro, eyebrow, rows, class: className = "" } = Astro.props;
+---
+
+<section data-component="historyRail" data-history-rail class:list={[className || " "]}>
+  <noscript><style>[data-reveal] { opacity: 1; transform: none; }</style></noscript>
+  <Container class="grid gap-10 md:grid-cols-[260px_minmax(0,1fr)] md:gap-14">
+    <div class="md:sticky md:top-28 md:self-start">
+      <SectionHeading title={heading ?? ""} eyebrow={eyebrow} intro={intro} />
+      <p class="mt-6 border-t border-petriklinesoft pt-4 font-mono text-[10.5px] uppercase tracking-[0.12em] text-petrikfaint">
+        1879 — napjainkig
+      </p>
+    </div>
+    <ol class="relative border-l border-petrikline pl-7">
+      {
+        rows.map((row) => (
+          <li data-reveal class="relative pb-6 last:pb-0">
+            <span
+              aria-hidden="true"
+              class="absolute -left-[33px] top-1.5 size-3 rounded-full border-2 border-petrikcream bg-petrikaccent"
+            />
+            <p class="font-body text-[11.5px] font-semibold uppercase tracking-[0.14em] text-petrikaccentdark">
+              {row.key}
+            </p>
+            <p class="mt-1.5 max-w-none text-[14.5px] leading-relaxed text-petriksoft">{row.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </Container>
+</section>
+
+<script>
+  const rail = document.querySelector("[data-history-rail]");
+  const items = rail ? [...rail.querySelectorAll<HTMLElement>("[data-reveal]")] : [];
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduce) {
+    for (const item of items) item.classList.add("is-visible");
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.15 },
+    );
+    for (const item of items) observer.observe(item);
+  }
+</script>

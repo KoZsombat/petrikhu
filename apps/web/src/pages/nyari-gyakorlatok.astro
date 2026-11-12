@@ -1,0 +1,17 @@
+---
+import Layout from "../layouts/Layout.astro";
+import CardGrid from "../components/ui/CardGrid.astro";
+import NewsRows from "../components/ui/NewsRows.astro";
+import PageHero from "../components/ui/PageHero.astro";
+import RichTextSection from "../components/ui/RichTextSection.astro";
+
+export const prerender = true;
+---
+
+<Layout locale="hu" title={"Nyári gyakorlat"} description={"Vállalati környezetben, életszerű munkakörülmények között"} canonicalPath={"/nyari-gyakorlatok"}>
+  <PageHero breadcrumb={[{"label": "Kezdőlap", "href": "/"}, {"label": "Oktatás"}, {"label": "Nyári gyakorlatok"}]} title={"Nyári gyakorlat"} intro={"Vállalati környezetben, életszerű munkakörülmények között"} />
+  <RichTextSection html={"<h2>Nyári gyakorlathoz kapcsolodó bejegyzések</h2>"} />
+  <NewsRows rows={[{"title": "Nyári gyakorlat dokumentumai", "excerpt": "Kedves Diákok! Itt találjátok a 2023. évi összefüggő nyári gyakorlathoz kapcsolódó dokumentumokat. Ezeket azoknak kell letölteni, akik saját szervezésű gyakorlati helyen töltik a gyakorlatukat! Akik az iskola által szervezett gyakorlati helyet választják, azoknak nem...", "date": "FEBR. 8.", "category": "Hírek", "href": "/hirek/nyari-gyakorlat-dokumentumai"}]} />
+  <RichTextSection html={"<h2><strong>A nyári gyakorlatok koordinátorának elérhetőség</strong></h2>"} />
+  <CardGrid variant={"person"} items={[{"name": "Szolnok Ádám", "room": "A.017 tanári", "email": "szolnok@petrik.hu"}]} columns={3} />
+</Layout>

@@ -1,0 +1,31 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Hero from "../components/home/Hero.astro";
+import LatestNews from "../components/home/LatestNews.astro";
+import Programmes from "../components/home/Programmes.astro";
+import Reasons from "../components/home/Reasons.astro";
+import Projects from "../components/home/Projects.astro";
+import Introduction from "../components/home/Introduction.astro";
+import Partners from "../components/home/Partners.astro";
+import { getPosts, type PostSummary } from "../lib/api";
+
+export const prerender = false;
+
+let posts: PostSummary[] = [];
+try {
+  posts = (await getPosts({ limit: 8 })).posts;
+} catch {
+  // A fresh database may have no posts yet, or the API may be starting.
+}
+
+---
+
+<Layout locale="hu" canonicalPath="/" alternates={{ en: "/en" }}>
+  <Hero locale="hu" />
+  <LatestNews locale="hu" posts={posts} />
+  <Programmes locale="hu" />
+  <Reasons locale="hu" />
+  <Projects locale="hu" />
+  <Introduction locale="hu" />
+  <Partners locale="hu" />
+</Layout>

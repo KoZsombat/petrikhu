@@ -1,0 +1,23 @@
+---
+/**
+ * A standalone rich-text block: standard section rhythm + the 1240 px container + `.petrik-prose`.
+ * Use this for top-level legacy `RichText` content; use `Prose` directly only inside another block
+ * (Feature, Callout, Accordion) where the wrapper already exists.
+ */
+import Container from "./Container.astro";
+import Prose from "./Prose.astro";
+
+interface Props {
+  html: string;
+  class?: string;
+  id?: string;
+}
+
+const { html, class: className = "", id } = Astro.props;
+---
+
+<section data-component="richText" id={id} class:list={["scroll-mt-32", className || " "]}>
+  <Container>
+    <Prose html={html} />
+  </Container>
+</section>

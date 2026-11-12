@@ -1,0 +1,17 @@
+---
+import Container from "./Container.astro";
+
+interface Props {
+  class?: string;
+  containerClass?: string;
+  id?: string;
+}
+
+const { class: className = "", containerClass = "", id } = Astro.props;
+---
+
+<section class:list={[className]} id={id}>
+  <Container class={containerClass}>
+    <slot />
+  </Container>
+</section>

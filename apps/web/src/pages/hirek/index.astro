@@ -1,0 +1,72 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/ui/PageHero.astro";
+import NewsRows, { type NewsFilter } from "../../components/ui/NewsRows.astro";
+import { getPostCategories, getPosts } from "../../lib/api";
+import { PER_PAGE, toNewsRow } from "../../lib/news";
+
+export const prerender = false;
+
+const params = Astro.url.searchParams;
+const category = params.get("kategoria")?.trim() ?? "";
+const page = Math.max(1, Math.floor(Number(params.get("oldal"))) || 1);
+
+const [{ posts, total }, categories] = await Promise.all([
+  getPosts({
+    limit: PER_PAGE,
+    offset: (page - 1) * PER_PAGE,
+    category: category || undefined,
+  }),
+  getPostCategories().catch(() => []),
+]);
+
+const rows = posts.map((post) => toNewsRow(post));
+
+const hrefFor = (nextPage: number) => {
+  const query = new URLSearchParams();
+  if (category) query.set("kategoria", category);
+  if (nextPage > 1) query.set("oldal", String(nextPage));
+  const qs = query.toString();
+  return qs ? `/hirek?${qs}` : "/hirek";
+};
+
+const filters: NewsFilter[] = [
+  { label: "Összes", href: "/hirek", active: category === "" },
+  ...categories.map((entry) => ({
+    label: entry.title,
+    href: `/hirek?kategoria=${encodeURIComponent(entry.title)}`,
+    active: entry.title === category,
+  })),
+];
+
+const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+const canonicalQuery = new URLSearchParams();
+if (category) canonicalQuery.set("kategoria", category);
+if (page > 1) canonicalQuery.set("oldal", String(page));
+const canonicalPath = canonicalQuery.toString()
+  ? `/hirek?${canonicalQuery}`
+  : "/hirek";
+const prevPath = page > 1 ? hrefFor(page - 1) : undefined;
+const nextPath = page < totalPages ? hrefFor(page + 1) : undefined;
+---
+
+<Layout
+  locale="hu"
+  title="Hírek"
+  description="Az iskola aktuális hírei, közleményei és eseményei – kategóriák szerint szűrhető lista."
+  canonicalPath={canonicalPath}
+  prevPath={prevPath}
+  nextPath={nextPath}
+>
+  <PageHero
+    breadcrumb={[{ label: "Kezdőlap", href: "/" }, { label: "Hírek" }]}
+    title="Hírek"
+    intro="Az iskola aktuális hírei, közleményei és eseményei – kategóriák szerint szűrhető lista."
+  />
+  <NewsRows
+    rows={rows}
+    filters={filters}
+    pagination={{ current: Math.min(page, totalPages), total: totalPages, hrefFor }}
+  />
+</Layout>
