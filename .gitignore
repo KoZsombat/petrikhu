@@ -29,3 +29,5 @@ yarn-debug.log*
 !.vscode/extensions.json
 .idea/
 *.swp
+
+seed/
