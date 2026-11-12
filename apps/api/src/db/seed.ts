@@ -8,10 +8,9 @@
  * Tables are populated only when empty, so a migrated/edited database is never overwritten. Media import is
  * idempotent and also backfills databases that were seeded before it existed.
  */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { count, eq } from "drizzle-orm";
-import documentsSeed from "../../seed/documents.json";
-import postsSeed from "../../seed/posts.json";
-import teachersSeed from "../../seed/teachers.json";
 import { auth } from "../auth";
 import { env } from "../env";
 import { user } from "./auth-schema";
@@ -19,6 +18,65 @@ import { client, db } from "./index";
 import { documentCategories, documents, postCategories, posts, teachers } from "./schema";
 import { seedMedia, seedTeacherPhotos } from "./seed-media";
 import { seedLegacyGalleries } from "./seed-galleries";
+
+interface SeedTeacher {
+  name: string;
+  role: string;
+  email: string | null;
+  room: string | null;
+  photo: string | null;
+}
+
+interface SeedDocument {
+  slug: string;
+  title: string;
+  file?: string | null;
+}
+
+interface SeedDocuments {
+  categories: {
+    slug: string;
+    title: string;
+    docs: SeedDocument[];
+  }[];
+}
+
+interface SeedPost {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  contentHtml: string | null;
+  category: string;
+  image: string | null;
+  publishedAt: string;
+  updatedAt: string;
+}
+
+const SEED_DIR =
+  process.env.SEED_DIR ?? join(import.meta.dir, "../../seed");
+
+const loadSeed = <T>(name: string): T | null => {
+  const path = join(SEED_DIR, name);
+  if (!existsSync(path)) return null;
+
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as T;
+  } catch (error) {
+    console.warn(`Could not read seed file ${path}:`, error);
+    return null;
+  }
+};
+
+const teachersSeed = loadSeed<SeedTeacher[]>("teachers.json");
+const documentsSeed = loadSeed<SeedDocuments>("documents.json");
+const postsSeed = loadSeed<SeedPost[]>("posts.json");
+
+if (!teachersSeed || !documentsSeed || !postsSeed) {
+  console.log(
+    `Content seed not found in ${SEED_DIR}; starting with an empty content database.`,
+  );
+}
 
 const chunk = <T>(items: T[], size: number): T[][] => {
   const out: T[][] = [];
@@ -37,6 +95,8 @@ const slugifyCategory = (value: string) =>
     .replace(/^-|-$/g, "") || "category";
 
 async function seedPostCategories() {
+  if (!postsSeed) return;
+
   const [{ total }] = await db.select({ total: count() }).from(postCategories);
   if (total > 0) {
     console.log("Post categories already seeded.");
@@ -71,6 +131,8 @@ async function seedPostCategories() {
 }
 
 async function seedTeachers() {
+  if (!teachersSeed) return;
+
   const [{ total }] = await db.select({ total: count() }).from(teachers);
   if (total > 0) {
     console.log("Teachers already seeded.");
@@ -91,6 +153,8 @@ async function seedTeachers() {
 }
 
 async function seedDocuments() {
+  if (!documentsSeed) return;
+
   const [{ total }] = await db
     .select({ total: count() })
     .from(documentCategories);
@@ -133,6 +197,8 @@ async function seedDocuments() {
 }
 
 async function seedPosts() {
+  if (!postsSeed) return;
+
   const [{ total }] = await db.select({ total: count() }).from(posts);
   if (total > 0) {
     console.log("Posts already seeded.");
