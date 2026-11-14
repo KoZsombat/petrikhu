@@ -13,7 +13,7 @@ COPY apps/web ./apps/web
 WORKDIR /app/apps/web
 ARG PUBLIC_SITE_URL=http://localhost:3003
 ENV PUBLIC_SITE_URL=$PUBLIC_SITE_URL
-RUN bun run build
+RUN npm run build
 
 FROM node:22-alpine
 WORKDIR /app
