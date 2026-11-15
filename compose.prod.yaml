@@ -1,12 +1,17 @@
 # Launchpad deploy stack. Paste this file (or point Launchpad at it) when creating a
 # "Compose project" and publish only `web` and `admin`:
 #
-#   web    container port 4321, health path /        → DOMAIN
-#   admin  container port 80,   health path /        → admin.DOMAIN
+#   web     container port 4321, health path /        → DOMAIN
+#   admin   container port 80,   health path /        → admin.DOMAIN
+#   tunnel  cloudflared that serves those hostnames itself (deploy.md 3.1)
 #
 # `api` is reached through the site's `/api/*` proxy only, `db` stays internal.
 # Values come from `.env.prod` (see .env.prod.example); Launchpad asks for any ${VAR}
-# placeholders while scanning. No host ports are published: Traefik does the routing.
+# placeholders while scanning. No host ports are published: the panel's Traefik, or
+# this stack's own `tunnel`, routes the two hostnames.
+# `tunnel` carries no `profiles`: Launchpad ignores them and starts every service in
+# the file, so its token is a required variable (`:?`) - a missing token stops the
+# deploy while parsing the file instead of a crash-looping connector failing it.
 services:
   web:
     build:
@@ -81,6 +86,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+
+  # The stack's own Cloudflare tunnel, remotely managed: both public hostnames are
+  # configured in the dashboard (Zero Trust → Networks → Tunnels → Public hostnames)
+  # and point at containers on this network -
+  #   the SITE_ORIGIN host  → http://web:4321
+  #   the ADMIN_ORIGIN host → http://admin:80
+  # Nothing is published for it: cloudflared opens the connection outbound.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN - the token from the tunnel's install command}
+    depends_on:
+      - web
+      - admin
+    restart: unless-stopped
 
 volumes:
   pgdata:

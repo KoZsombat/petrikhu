@@ -62,8 +62,9 @@ the API.
 ## Deploy on Launchpad
 
 Production is a compose project in [Launchpad](https://github.com/KoZsombat/Launchpad): two hostnames
-(`DOMAIN` for the site, `admin.DOMAIN` for the dashboard), no published ports, Traefik + Cloudflare
-Tunnel. The stack is [`compose.prod.yaml`](compose.prod.yaml), values come from
+(`DOMAIN` for the site, `admin.DOMAIN` for the dashboard), no published ports, and the two hostnames
+served either by the panel's Traefik or by the stack's own `tunnel` (cloudflared, token in
+`CLOUDFLARE_TUNNEL_TOKEN`). The stack is [`compose.prod.yaml`](compose.prod.yaml), values come from
 [`.env.prod.example`](.env.prod.example), and [`deploy.md`](deploy.md) walks through scanning,
 subdomains, variables, webhooks and verification.
 
