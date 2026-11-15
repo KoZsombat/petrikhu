@@ -54,6 +54,8 @@ jobs:
           BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef
           ADMIN_EMAIL: admin@example.com
           ADMIN_PASSWORD: ci-password-123
+          # `tunnel` declares its token with `:?`; any non-empty value passes `compose config`.
+          CLOUDFLARE_TUNNEL_TOKEN: ci-placeholder
 
       - name: Build images
         run: docker compose build
