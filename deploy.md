@@ -206,3 +206,4 @@ origin checks to match.
 | 429 for everyone at once | `TRUST_PROXY=true` is required behind Traefik so the limiter sees client IPs. |
 | `tunnel` restarts, `failed to authenticate` | The token is wrong or was rotated: update `CLOUDFLARE_TUNNEL_TOKEN` and redeploy. |
 | Compose deploy asks for a variable | Fill every `${VAR:?}` placeholder; `:?` makes them mandatory. |
+| `web` build fails with exit 132 / `Illegal instruction` | The build host CPU has no AVX2 (Launchpad's panel is an older Xeon). `@astrojs/compiler-binding` 0.5.3 was published with BMI2/AVX2 instructions and traps while loading (`withastro/compiler-rs#220`); the root `overrides` entry pins 0.5.2, the last build targeting baseline x86-64. Drop the pin once upstream ships a fixed release. |

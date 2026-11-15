@@ -4,6 +4,9 @@
   "workspaces": [
     "apps/*"
   ],
+  "overrides": {
+    "@astrojs/compiler-binding": "0.5.2"
+  },
   "scripts": {
     "dev": "bun --env-file=.env run --filter '*' dev",
     "build": "bun run --filter '*' build",
