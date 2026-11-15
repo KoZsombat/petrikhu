@@ -1,0 +1,86 @@
+# Launchpad deploy stack. Paste this file (or point Launchpad at it) when creating a
+# "Compose project" and publish only `web` and `admin`:
+#
+#   web    container port 4321, health path /        → DOMAIN
+#   admin  container port 80,   health path /        → admin.DOMAIN
+#
+# `api` is reached through the site's `/api/*` proxy only, `db` stays internal.
+# Values come from `.env.prod` (see .env.prod.example); Launchpad asks for any ${VAR}
+# placeholders while scanning. No host ports are published: Traefik does the routing.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        PUBLIC_SITE_URL: ${SITE_ORIGIN:?}
+    restart: unless-stopped
+    # Launchpad reads `expose` to suggest the container port during the scan; nothing is published.
+    expose:
+      - "4321"
+    environment:
+      PUBLIC_SITE_URL: ${SITE_ORIGIN:?}
+      API_INTERNAL_URL: http://api:3001
+      HOST: 0.0.0.0
+      PORT: 4321
+    depends_on:
+      api:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_URL: ${SITE_ORIGIN:?}
+        VITE_WEB_URL: ${SITE_ORIGIN:?}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      web:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    # Internal only: reached through the site's /api proxy. Do not publish this in the scan.
+    expose:
+      - "3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:?}
+      # Better Auth origin and media URL base: the public site proxies /api to this container.
+      BETTER_AUTH_URL: ${SITE_ORIGIN:?}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      CORS_ORIGINS: ${SITE_ORIGIN:?},${ADMIN_ORIGIN:?}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+      ADMIN_RESET_PASSWORD: ${ADMIN_RESET_PASSWORD:-false}
+      # The container is only reachable through Traefik/Cloudflare, so forwarded client IPs are
+      # trustworthy for rate limiting.
+      TRUST_PROXY: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?} -d ${POSTGRES_DB:?}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

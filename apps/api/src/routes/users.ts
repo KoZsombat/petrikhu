@@ -11,7 +11,12 @@ import {
   requirePermission,
   roleOf,
 } from "../middleware/auth";
-import { PERMISSION_CATALOG, type Permission } from "../permissions";
+import {
+  PERMISSION_CATALOG,
+  ROLE_PERMISSIONS,
+  type Permission,
+  type Role,
+} from "../permissions";
 import { createUserSchema, updateUserSchema } from "../types/userTypes";
 import { validateJson } from "../validation";
 
@@ -19,6 +24,7 @@ const toUser = (row: typeof user.$inferSelect, permissions: string[] = []) => ({
   id: row.id,
   name: row.name,
   email: row.email,
+  role: roleOf(row),
   permissions,
   isSeededAdmin: row.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase(),
   createdAt: row.createdAt.toISOString(),
@@ -41,10 +47,29 @@ const extraPermissionsByUser = async () => {
   return map;
 };
 
-const actorPermissions = async (request: Request) => {
+const actorContext = async (request: Request) => {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) return new Set<Permission>();
-  return permissionsForUser(session.user.id, roleOf(session.user));
+  if (!session) return null;
+  const role = roleOf(session.user);
+  return {
+    userId: session.user.id,
+    role,
+    permissions: await permissionsForUser(session.user.id, role),
+  };
+};
+
+/**
+ * A permission grant must stay inside the actor's own effective permissions: nobody can hand out a
+ * capability they do not hold, which also stops a delegated user manager from escalating to admin.
+ */
+const exceedsActor = (
+  actor: Set<Permission>,
+  permissions: Iterable<string>,
+): string | null => {
+  for (const permission of permissions) {
+    if (!actor.has(permission as Permission)) return permission;
+  }
+  return null;
 };
 
 export const registerUserRoutes = (app: Hono) => {
@@ -95,13 +120,36 @@ export const registerUserRoutes = (app: Hono) => {
 
       if (existing) return c.json({ error: "Email already exists" }, 409);
 
-      const actor = await actorPermissions(c.req.raw);
-      if (input.permissions.length > 0 && !actor.has("users.permissions")) {
-        return c.json({ error: "Forbidden: missing users.permissions" }, 403);
+      const actor = await actorContext(c.req.raw);
+      if (!actor) return c.json({ error: "Unauthorized" }, 401);
+
+      if (input.role === "admin" && actor.role !== "admin") {
+        return c.json({ error: "Only an admin can create an admin" }, 403);
+      }
+
+      const granted = [...ROLE_PERMISSIONS[input.role], ...input.permissions];
+
+      if (granted.length > 0) {
+        if (!actor.permissions.has("users.permissions")) {
+          return c.json({ error: "Forbidden: missing users.permissions" }, 403);
+        }
+
+        const exceeded = exceedsActor(actor.permissions, granted);
+        if (exceeded) {
+          return c.json(
+            { error: `Forbidden: cannot grant ${exceeded}` },
+            403,
+          );
+        }
       }
 
       const created = await auth.api.signUpEmail({
         body: { name: input.name, email, password: input.password },
+      });
+
+      const context = await auth.$context;
+      await context.internalAdapter.updateUser(created.user.id, {
+        role: input.role,
       });
 
       if (input.permissions.length > 0) {
@@ -125,12 +173,14 @@ export const registerUserRoutes = (app: Hono) => {
 
   app.put(
     "/api/admin/users/:id",
-    requirePermission("users.view"),
+    requireAuth,
     validateJson(updateUserSchema),
     async (c) => {
       const id = c.req.param("id");
       const input = c.req.valid("json");
-      const actor = await actorPermissions(c.req.raw);
+      const actor = await actorContext(c.req.raw);
+
+      if (!actor) return c.json({ error: "Unauthorized" }, 401);
 
       const existing = await db.query.user.findFirst({
         where: eq(user.id, id),
@@ -138,21 +188,107 @@ export const registerUserRoutes = (app: Hono) => {
 
       if (!existing) return c.json({ error: "User not found" }, 404);
 
+      const isSelf = actor.userId === id;
+      const isSeededAdmin =
+        existing.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
+      const targetRole = roleOf(existing);
+
+      if (isSeededAdmin && !isSelf) {
+        return c.json(
+          { error: "The seeded admin can only be edited by itself" },
+          403,
+        );
+      }
+
       const changesProfile =
         input.name !== undefined || input.password !== undefined;
+      const changesRole = input.role !== undefined && input.role !== targetRole;
+      const changesPermissions = input.permissions !== undefined;
 
-      if (changesProfile && !actor.has("users.manage")) {
+      if (changesProfile && !actor.permissions.has("users.manage")) {
         return c.json({ error: "Forbidden: missing users.manage" }, 403);
       }
 
-      if (input.permissions !== undefined && !actor.has("users.permissions")) {
-        return c.json({ error: "Forbidden: missing users.permissions" }, 403);
+      if (changesRole && !actor.permissions.has("users.manage")) {
+        return c.json({ error: "Forbidden: missing users.manage" }, 403);
+      }
+
+      if (changesPermissions && !actor.permissions.has("users.permissions")) {
+        return c.json(
+          { error: "Forbidden: missing users.permissions" },
+          403,
+        );
+      }
+
+      if (isSelf && (changesRole || changesPermissions)) {
+        return c.json(
+          { error: "You cannot change your own role or permissions" },
+          400,
+        );
+      }
+
+      if (changesRole) {
+        if (!actor.permissions.has("users.permissions")) {
+          return c.json(
+            { error: "Forbidden: missing users.permissions" },
+            403,
+          );
+        }
+
+        if (
+          (targetRole === "admin" || input.role === "admin") &&
+          actor.role !== "admin"
+        ) {
+          return c.json(
+            { error: "Only an admin can change admin roles" },
+            403,
+          );
+        }
+
+        const exceeded = exceedsActor(
+          actor.permissions,
+          ROLE_PERMISSIONS[input.role as Role],
+        );
+
+        if (exceeded) {
+          return c.json({ error: `Forbidden: cannot grant ${exceeded}` }, 403);
+        }
+      }
+
+      if (changesPermissions) {
+        const requested = new Set(input.permissions);
+        const current = new Set(
+          (await extraPermissionsByUser()).get(id) ?? [],
+        );
+
+        const exceeded = exceedsActor(actor.permissions, requested);
+        if (exceeded) {
+          return c.json({ error: `Forbidden: cannot grant ${exceeded}` }, 403);
+        }
+
+        // Removing a permission the actor does not hold would let it strip capabilities it does
+        // not understand, so those rows are off limits too.
+        for (const permission of current) {
+          if (
+            !requested.has(permission as Permission) &&
+            !actor.permissions.has(permission as Permission)
+          ) {
+            return c.json(
+              { error: `Forbidden: cannot revoke ${permission}` },
+              403,
+            );
+          }
+        }
       }
 
       const context = await auth.$context;
 
       if (input.name) {
         await context.internalAdapter.updateUser(id, { name: input.name });
+      }
+
+      if (changesRole) {
+        await context.internalAdapter.updateUser(id, { role: input.role });
       }
 
       if (input.password) {

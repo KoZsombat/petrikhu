@@ -43,5 +43,17 @@ jobs:
       - name: Validate compose file
         run: docker compose config --quiet
 
+      - name: Validate production compose file
+        run: docker compose -f compose.prod.yaml config --quiet
+        env:
+          SITE_ORIGIN: https://ci.example.com
+          ADMIN_ORIGIN: https://admin.ci.example.com
+          POSTGRES_USER: petrik
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: petrik
+          BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: ci-password-123
+
       - name: Build images
         run: docker compose build

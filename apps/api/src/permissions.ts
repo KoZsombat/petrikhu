@@ -1,5 +1,3 @@
-import type { Role } from "./middleware/auth";
-
 /**
  * Every action that can be granted. Permission keys are stable API surface: keep them when
  * renaming labels, and add new keys rather than reusing old ones.
@@ -30,11 +28,54 @@ export type PermissionInfo = (typeof PERMISSION_CATALOG)[number];
 
 export const ALL_PERMISSIONS = PERMISSION_CATALOG.map((entry) => entry.key);
 
-const ALL = ALL_PERMISSIONS as Permission[];
+export const ROLES = ["admin", "editor", "reviewer", "author", "inactive"] as const;
+export type Role = (typeof ROLES)[number];
 
 const PERMISSION_SET = new Set<string>(ALL_PERMISSIONS);
 
 export const isPermission = (value: string): value is Permission => PERMISSION_SET.has(value);
+
+export const isRole = (value: unknown): value is Role =>
+  typeof value === "string" && (ROLES as readonly string[]).includes(value);
+
+/**
+ * Default permissions of each role. A user's effective permissions are these plus any extra
+ * permissions granted directly to the account (`user_permissions`).
+ *
+ * `posts.review` only covers the approve/reject decision; approving publishes the post, which is
+ * why the reviewer role also carries `posts.publish`.
+ */
+export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  admin: ALL_PERMISSIONS as Permission[],
+  editor: [
+    "dashboard.view",
+    "posts.view",
+    "posts.create",
+    "posts.update",
+    "posts.delete",
+    "posts.submit",
+    "posts.review",
+    "posts.publish",
+    "media.view",
+    "media.upload",
+    "media.delete",
+    "teachers.view",
+    "teachers.manage",
+    "documents.view",
+    "documents.manage",
+  ],
+  reviewer: ["dashboard.view", "posts.view", "posts.review", "posts.publish"],
+  author: [
+    "dashboard.view",
+    "posts.view",
+    "posts.create",
+    "posts.update",
+    "posts.submit",
+    "media.view",
+    "media.upload",
+  ],
+  inactive: [],
+};
 
 export const effectivePermissions = (
   role: Role,
@@ -42,7 +83,7 @@ export const effectivePermissions = (
 ): Set<Permission> => {
   if (role === "admin") return new Set<Permission>(ALL_PERMISSIONS as Permission[]);
 
-  const permissions = new Set<Permission>();
+  const permissions = new Set<Permission>(ROLE_PERMISSIONS[role]);
   for (const value of extra) {
     if (isPermission(value)) permissions.add(value);
   }

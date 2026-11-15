@@ -1,6 +1,7 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { cors } from "hono/cors";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { getConnInfo } from "hono/bun";
@@ -52,17 +53,27 @@ app.use(
 );
 
 /* General API limit; stricter bucket for auth (better-auth also rate-limits internally). */
+/**
+ * Client identity for rate limiting. Forwarded headers are only honoured when TRUST_PROXY is set,
+ * otherwise any client could pick its own bucket by spoofing a header.
+ */
+const clientKey = (c: Context) => {
+  if (env.TRUST_PROXY) {
+    const forwarded =
+      c.req.header("cf-connecting-ip") ??
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+    if (forwarded) return forwarded;
+  }
+  return getConnInfo(c).remote.address ?? "unknown";
+};
+
 app.use(
   "/api/*",
   rateLimiter({
     windowMs: 60_000,
     limit: 300,
     standardHeaders: "draft-6",
-    keyGenerator: (c) =>
-      c.req.header("cf-connecting-ip") ??
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      getConnInfo(c).remote.address ??
-      "unknown",
+    keyGenerator: clientKey,
     message: { error: "Too many requests" },
   }),
 );
@@ -72,11 +83,7 @@ app.use(
     windowMs: 60_000,
     limit: 30,
     standardHeaders: "draft-6",
-    keyGenerator: (c) =>
-      c.req.header("cf-connecting-ip") ??
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      getConnInfo(c).remote.address ??
-      "unknown",
+    keyGenerator: clientKey,
     message: { error: "Too many authentication attempts" },
   }),
 );

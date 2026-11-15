@@ -5,14 +5,13 @@ import { db } from "../db";
 import { userPermissions } from "../db/schema";
 import {
   effectivePermissions,
+  isRole,
   type Permission,
+  type Role,
 } from "../permissions";
 
-export const ROLES = ["admin", "editor", "reviewer", "author", "inactive"] as const;
-export type Role = (typeof ROLES)[number];
-
-export const isRole = (value: unknown): value is Role =>
-  typeof value === "string" && (ROLES as readonly string[]).includes(value);
+export { ROLES, isRole } from "../permissions";
+export type { Role } from "../permissions";
 
 export const roleOf = (user: unknown): Role => {
   if (user && typeof user === "object" && "role" in user) {

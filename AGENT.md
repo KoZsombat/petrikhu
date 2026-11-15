@@ -130,12 +130,23 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
 - OpenAPI is built separately in `src/openapi.ts` with `@asteasolutions/zod-to-openapi`; `src/zod-openapi.ts` extends
   Zod before any schema module loads. Do not put route metadata back into the handlers. Swagger UI is mounted at
   `/docs` and `/openapi.json` in `index.ts`.
-- Permissions live in `src/permissions.ts`: a stable-key catalog and `effectivePermissions(role, extra)`.
-  `requirePermission` loads the account's direct `user_permissions` rows and returns `403` with the missing keys.
-  The seeded admin (role `admin`, internal only) gets every permission without a DB read.
-- Accounts have **no user-facing roles**. `user.role` remains only as better-auth plumbing (`inactive` for every
-  created account, `admin` for the seeded admin); permission decisions use `user_permissions` only.
-  Public sign-up is blocked at the HTTP layer; only `/api/admin/users` creates accounts.
+- Permissions live in `src/permissions.ts`: a stable-key catalog, `ROLE_PERMISSIONS` (defaults per role) and
+  `effectivePermissions(role, extra)`. `requirePermission` loads the account's direct `user_permissions` rows and
+  returns `403` with the missing keys. Role `admin` gets every permission without a DB read.
+- Accounts have a **role**: `admin`, `editor`, `reviewer`, `author` or `inactive`. Effective permissions are the role
+  defaults plus direct `user_permissions` rows; `GET /api/admin/users` returns both `role` and the extra rows, and
+  `PUT /api/admin/users/:id` accepts `role`. Any role or permission grant must stay inside the acting user's own
+  permissions (`exceedsActor` in `routes/users.ts`); nobody can change their own role/permissions, and only an admin
+  may edit roles for `admin` or touch the seeded admin. Public sign-up is blocked at the HTTP layer; only
+  `/api/admin/users` creates accounts.
+- `contentHtml` is untrusted: `src/lib/sanitize.ts` allow-lists the editor/legacy markup and runs on every create and
+  update. Never write `contentHtml` to `posts` without it — the site renders the value with `set:html`.
+- Review approval (`POST /api/admin/posts/:id/review`, `decision: "approve"`) publishes, so it requires
+  `posts.publish` in addition to `posts.review`.
+- Uploads are checked against their declared MIME by signature (`src/lib/sniff.ts`); `text/*` must be NUL-free UTF-8.
+- `TRUST_PROXY=true` makes the rate limiter read `cf-connecting-ip`/`x-forwarded-for`; only enable it when the API is
+  reachable exclusively through the reverse proxy. In production the API refuses to boot with the development
+  `BETTER_AUTH_SECRET` or `ADMIN_PASSWORD`.
 - The seeded admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the seed creates it once, forces `admin`, and the
   users routes refuse to delete or demote it. `ADMIN_RESET_PASSWORD=true` resets the password on the next boot.
 - Posts have `status`: `draft` → (submit) `pending` → (approve) `published`, or reject back to `draft` with
@@ -213,9 +224,17 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
   Dockerfiles copy the whole dependency tree from the build stage rather than re-installing production deps.
 - `apps/web` reads `PUBLIC_SITE_URL` at runtime first, then the build arg. Docker passes both (build arg
   `http://localhost:3003`); production must set the real public origin.
-- The web image is Node (`node:22-alpine`) and serves `dist/server/entry.mjs`; admin is static files behind nginx
-  with SPA fallback; API is `oven/bun` and runs migrate → optional seed → start. The seed folder is ignored by git,
-  so CI images start empty unless seed data is mounted at `SEED_DIR`.
+- The web image is Node (`node:22-alpine`) and runs `apps/web/server.mjs`, which wraps the adapter handler
+  (`ASTRO_NODE_AUTOSTART=disabled`) to add security headers to prerendered pages and serve as the process entry.
+  It installs **production** dependencies only in the runtime stage. Admin is static files behind nginx with SPA
+  fallback; API is `oven/bun` and runs migrate → optional seed → start. The seed folder is ignored by git, so CI
+  images start empty unless seed data is mounted at `SEED_DIR`.
+- `apps/web/src/middleware.ts` proxies `/api/*` to `API_INTERNAL_URL`. That is why `api` has no public hostname:
+  media URLs (`BETTER_AUTH_URL`), better-auth cookies and the admin app all use the site origin. Never start the web
+  container with `node dist/server/entry.mjs` — the proxy only exists in `server.mjs`.
+- `compose.prod.yaml` is the Launchpad stack (see `deploy.md`): no published ports, `web` and `admin` published
+  through Traefik, `depends_on` health conditions, `restart: unless-stopped`. `docker-compose.yml` is local-only and
+  binds Postgres to loopback.
 - Documents are served from the API (`/api/media/{id}`); `apps/web/public/media` is legacy static content and is not
   the source of truth.
 
@@ -248,10 +267,15 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
 3. Teacher portraits are seeded from the old `/tanari-kar/` page (88/88 matched by normalized name); missing files
    use the old `tanarur.png`/`tanarno.png` placeholders. Post images and document links are seeded into `media` and
    rewritten to `/api/media/{id}`; six old-site references 404 and keep their original URL.
-4. Public registration is disabled. Change the default `ADMIN_PASSWORD`/`BETTER_AUTH_SECRET` before deploying;
-   existing admin passwords are only reset with `ADMIN_RESET_PASSWORD=true`.
+4. Public registration is disabled. In production the API refuses to start while `ADMIN_PASSWORD` or
+   `BETTER_AUTH_SECRET` still hold the development defaults; existing admin passwords are only reset with
+   `ADMIN_RESET_PASSWORD=true`.
 5. `docker compose down -v` removes the database; the next boot re-seeds content only if a seed snapshot is
    present at `apps/api/seed` or `SEED_DIR`.
+6. `contentHtml` is sanitised on write, so HTML seeded before that rule (`src/db/seed.ts`, a legacy snapshot) is
+   stored as-is. Re-saving a post in the admin editor passes it through the sanitizer.
+7. Astro's CSP emits hashes for inlined scripts, so `script-src` has no `'unsafe-inline'`; inline scripts arriving
+   through `set:html` are blocked by design. `style-src` keeps `'unsafe-inline'` for the hero's `style` attributes.
 
 ## Verification checklist
 
@@ -264,6 +288,10 @@ docker compose up --build                             # end-to-end
 curl -s localhost:3001/health
 curl -s localhost:3001/health | jq .
 curl -s -o /dev/null -w '%{http_code}\n' localhost:3003/ localhost:3003/bemutatkozas localhost:3003/hirek
+curl -s localhost:3003/api/posts | head -c 200        # /api proxy through the site origin
+curl -s localhost:3003/bemutatkozas | grep -o 'content-security-policy'   # CSP meta on prerendered pages
+curl -sI localhost:3003/ | grep -i content-security-policy                # CSP header on SSR pages
+docker compose -f compose.prod.yaml --env-file .env.prod config --quiet   # Launchpad stack
 ```
 
 For UI changes, open the page in a browser (desktop + 390 px mobile), check the sticky menu, the language switch,

@@ -138,10 +138,30 @@ export const mediaSchema = z.object({
 
 export const mediaListSchema = z.array(mediaSchema);
 
+export const ROLE_VALUES = [
+  "admin",
+  "editor",
+  "reviewer",
+  "author",
+  "inactive",
+] as const;
+
+export const roleSchema = z.enum(ROLE_VALUES);
+export type Role = z.infer<typeof roleSchema>;
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "Admin",
+  editor: "Szerkesztő",
+  reviewer: "Jóváhagyó",
+  author: "Szerző",
+  inactive: "Inaktív",
+};
+
 export const userSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
+  role: roleSchema,
   permissions: z.array(z.string()),
   isSeededAdmin: z.boolean(),
   createdAt: z.string(),
@@ -167,6 +187,7 @@ export const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   email: z.email("Enter a valid email"),
   password: z.string().min(8, "At least 8 characters").max(200),
+  role: roleSchema.default("inactive"),
   permissions: z.array(z.string()).default([]),
 });
 
@@ -193,6 +214,7 @@ export type PermissionCatalog = z.infer<typeof permissionCatalogSchema>;
 export type UpdateUserInput = {
   name?: string;
   password?: string;
+  role?: Role;
   permissions?: string[];
 };
 export type LoginInput = z.infer<typeof loginSchema>;

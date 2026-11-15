@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import { db } from "../db";
 import { media } from "../db/schema";
 import { env } from "../env";
+import { contentMatchesMime } from "../lib/sniff";
 import { requirePermission } from "../middleware/auth";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -117,13 +118,22 @@ export const registerMediaRoutes = (app: Hono) => {
         return c.json({ error: "File is larger than 25 MB" }, 413);
       }
 
+      const data = Buffer.from(await file.arrayBuffer());
+
+      if (!contentMatchesMime(file.type, data)) {
+        return c.json(
+          { error: "File content does not match its declared type" },
+          415,
+        );
+      }
+
       const [created] = await db
         .insert(media)
         .values({
           name: file.name || "image",
           mime: file.type,
           size: file.size,
-          data: Buffer.from(await file.arrayBuffer()),
+          data,
         })
         .returning();
 

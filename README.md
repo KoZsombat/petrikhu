@@ -11,7 +11,7 @@ Fullstack starter: a Bun/Hono API with better-auth, Drizzle and separately gener
 | `apps/web`         | Astro SSR (`@astrojs/node`), Tailwind v4, React renderer for icons       | Static content pages + DB-driven news/teachers/documents + sitemap/RSS/JSON-LD |
 | `db`               | Postgres 17                                                              | Persistence                              |
 
-Zod validates API input, request/response payloads and forms in the admin app, and API env vars in the backend. The public Astro app only reads data. Admin access is permission-based: every route checks a named permission, and each account is created with exactly the permissions selected for it.
+Zod validates API input, request/response payloads and forms in the admin app, and API env vars in the backend. The public Astro app only reads data. Admin access is role-based: a role (`admin`, `editor`, `reviewer`, `author`, `inactive`) carries a default permission set, and each account can be extended with extra permissions, capped by what the acting user holds.
 
 Only **posts**, **teachers**, **documents**, **post categories** and **media** bytes live in the database. Every other public page is
 static Astro content. See [`CREATE.md`](CREATE.md) for the styling rules and component catalog, and [`AGENT.md`](AGENT.md)
@@ -47,7 +47,7 @@ docker compose up --build
 
 | Service | URL                    | Notes                                |
 | ------- | ---------------------- | ------------------------------------ |
-| Web     | http://localhost:3003  | Astro SSR, reads published posts     |
+| Web     | http://localhost:3003  | Astro SSR; proxies `/api/*` to the API |
 | Admin   | http://localhost:3002  | Sign in with the seeded admin, manage content/users |
 | API     | http://localhost:3001  | `/health`, `/api/*`                  |
 | Swagger | http://localhost:3001/docs | UI for `/openapi.json`            |
@@ -58,6 +58,17 @@ snapshot is mounted/present, it imports posts, documents, teachers and legacy me
 content seed is missing and starts with an empty content database (the admin account is always created). Static
 pages are prerendered at build time; the home page, news, search and teachers pages render on the server against
 the API.
+
+## Deploy on Launchpad
+
+Production is a compose project in [Launchpad](https://github.com/KoZsombat/Launchpad): two hostnames
+(`DOMAIN` for the site, `admin.DOMAIN` for the dashboard), no published ports, Traefik + Cloudflare
+Tunnel. The stack is [`compose.prod.yaml`](compose.prod.yaml), values come from
+[`.env.prod.example`](.env.prod.example), and [`deploy.md`](deploy.md) walks through scanning,
+subdomains, variables, webhooks and verification.
+
+The public site proxies `/api/*` to the API container, so media URLs, better-auth cookies and the
+admin app all share the site origin; `api` and `db` stay unpublished.
 
 ## Local development
 
@@ -96,6 +107,7 @@ There is exactly **one** env file: `.env` in the repository root (template: `.en
 | `ADMIN_EMAIL` | `admin@petrik.hu` | Seeded admin |
 | `ADMIN_PASSWORD` | `PetrikAdmin2026!` | Seeded admin first-boot password |
 | `ADMIN_RESET_PASSWORD` | `false` | Reset seeded admin password on boot |
+| `TRUST_PROXY` | `false` | Honour `cf-connecting-ip`/`x-forwarded-for` for rate limiting (set `true` only behind Traefik) |
 | `LEGACY_MEDIA_BASE_URL` | `https://petrik.hu` | One-time legacy media seed |
 | `VITE_API_URL` | `http://localhost:3001` | Admin browser → API |
 | `VITE_WEB_URL` | `http://localhost:4321` | Admin links to the public site |
@@ -182,12 +194,16 @@ their original URLs.
   **Felhasználók**.
 - The seeded admin (`ADMIN_EMAIL`) is created on the first boot with `ADMIN_PASSWORD`, implicitly has every
   permission and cannot be deleted. Set `ADMIN_RESET_PASSWORD=true` for one boot to reset its password.
-- Accounts have **no roles**: a new account is created with exactly the permissions chosen in the create dialog
-  (dashboard is preselected). Permissions are named capabilities (`posts.update`, `documents.manage`,
-  `users.permissions`, …); the catalog is returned by `GET /api/admin/permissions`, effective permissions by
-  `GET /api/me/permissions`.
-- Anyone holding `users.permissions` can edit an account's permission set from the shield icon in **Felhasználók**.
-  Changes take effect on the next request; the admin navigation and action buttons are filtered by the same set.
+- Accounts have a **role** (`admin`, `editor`, `reviewer`, `author`, `inactive`) with a default permission set,
+  which the create dialog extends with extra permissions (the dashboard permission is part of every role except
+  `inactive`). Permissions are named capabilities (`posts.update`, `documents.manage`, `users.permissions`, …); the
+  catalog is returned by `GET /api/admin/permissions`, effective permissions by `GET /api/me/permissions`. The role
+  is shown and changed inline in **Felhasználók**.
+- A non-admin cannot grant a permission it does not hold, cannot change its own role or permissions, and cannot edit
+  the seeded admin. Without `posts.publish`, review approval is rejected as well.
+- Anyone holding `users.permissions` can extend an account's permission set from the shield icon in **Felhasználók**,
+  up to the permissions the acting user holds. Changes take effect on the next request; the admin navigation and
+  action buttons are filtered by the same set.
 - New posts are created as **drafts**. Authors submit them for review; reviewers/admins approve (publish) or send them
   back with a note. The **Áttekintés** page lists every pending post with approve/reject actions.
 - Images and documents are stored in the `media` table (served from `/api/media/{id}`). Both the cover/gallery image

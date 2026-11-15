@@ -1,3 +1,4 @@
+# Local development stack. For deployment use compose.prod.yaml (Launchpad).
 services:
   db:
     image: postgres:17-alpine
@@ -7,8 +8,9 @@ services:
       POSTGRES_DB: app
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Loopback only: the database is for local tooling, never for the network.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d app"]
       interval: 3s
@@ -20,13 +22,15 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
+      NODE_ENV: development
       DATABASE_URL: postgres://app:app@db:5432/app
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-0123456789abcdef}
       BETTER_AUTH_URL: http://localhost:3001
-      CORS_ORIGINS: http://localhost:3002,http://localhost:3003
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3002,http://localhost:3003
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@petrik.hu}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-PetrikAdmin2026!}
       ADMIN_RESET_PASSWORD: ${ADMIN_RESET_PASSWORD:-false}
+      TRUST_PROXY: "false"
       PORT: 3001
     ports:
       - "3001:3001"
@@ -60,7 +64,8 @@ services:
     ports:
       - "3003:4321"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

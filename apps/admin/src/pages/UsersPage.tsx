@@ -15,9 +15,12 @@ import {
 import { usePermissions } from "../lib/permissions";
 import {
   createUserSchema,
+  ROLE_LABELS,
+  ROLE_VALUES,
   type AdminUser,
   type CreateUserInput,
   type PermissionCatalog,
+  type Role,
 } from "../lib/schemas";
 import {
   actions,
@@ -38,6 +41,7 @@ import {
   pageTitle,
   panel,
   panelTitle,
+  select,
   table,
   tableWrap,
   td,
@@ -48,7 +52,8 @@ const emptyDraft: CreateUserInput = {
   name: "",
   email: "",
   password: "",
-  permissions: ["dashboard.view"],
+  role: "author",
+  permissions: [],
 };
 type FieldErrors = Record<string, string | undefined>;
 
@@ -132,6 +137,20 @@ export function UsersPage() {
     }
   };
 
+  const changeRole = async (entry: AdminUser, role: Role) => {
+    try {
+      const updated = await updateUser(entry.id, { role });
+      setUsers(
+        (current) =>
+          current?.map((item) => (item.id === updated.id ? updated : item)) ??
+          null,
+      );
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Hiba");
+    }
+  };
+
   const resetPassword = async (entry: AdminUser) => {
     const password = window.prompt(`Új jelszó — ${entry.email} (min. 8 karakter)`);
     if (!password) return;
@@ -211,7 +230,8 @@ export function UsersPage() {
                 <tr>
                   <th className={th}>Név</th>
                   <th className={th}>E-mail</th>
-                  <th className={th}>Jogosultságok</th>
+                  <th className={th}>Szerepkör</th>
+                  <th className={th}>További jogosultságok</th>
                   <th className={th}>Létrehozva</th>
                   <th className={th} aria-label="Műveletek" />
                 </tr>
@@ -227,7 +247,25 @@ export function UsersPage() {
                     </td>
                     <td className={td}>{entry.email}</td>
                     <td className={td}>
-                      <span className={code}>{entry.permissions.length} jogosultság</span>
+                      {canManage && !entry.isSeededAdmin && entry.id !== currentId ? (
+                        <select
+                          className={select}
+                          value={entry.role}
+                          aria-label={`Szerepkör — ${entry.email}`}
+                          onChange={(event) => void changeRole(entry, event.target.value as Role)}
+                        >
+                          {ROLE_VALUES.map((role) => (
+                            <option key={role} value={role}>
+                              {ROLE_LABELS[role]}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={code}>{ROLE_LABELS[entry.role]}</span>
+                      )}
+                    </td>
+                    <td className={td}>
+                      <span className={code}>{entry.permissions.length} további</span>
                     </td>
                     <td className={td}>{formatDate(entry.createdAt)}</td>
                     <td className={td}>
@@ -294,8 +332,26 @@ export function UsersPage() {
             {fieldErrors.password ? <p className={fieldError}>{fieldErrors.password}</p> : null}
           </label>
 
+          <label className={field}>
+            <span>Szerepkör</span>
+            <select
+              className={select}
+              value={draft.role}
+              onChange={(event) => setDraft((c) => ({ ...c, role: event.target.value as Role }))}
+            >
+              {ROLE_VALUES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role]}
+                </option>
+              ))}
+            </select>
+            <p className={muted}>
+              A szerepkör alapértelmezett jogosultságait a lenti lista egészíti ki.
+            </p>
+          </label>
+
           <div className={field}>
-            <span>Jogosultságok</span>
+            <span>További jogosultságok</span>
             <PermissionPicker
               catalog={catalog}
               value={draft.permissions}
@@ -317,7 +373,7 @@ export function UsersPage() {
       >
         <div className="flex flex-col gap-4">
           <p className={muted}>
-            A fiók csak a kijelölt jogosultságokkal rendelkezik. A módosítás a következő kérésnél érvényes.
+            A fiók a szerepkör alapértelmezett jogosultságai mellett a kijelölt további jogosultságokkal rendelkezik. A módosítás a következő kérésnél érvényes.
           </p>
 
           {grantError ? <p className={formError}>{grantError}</p> : null}

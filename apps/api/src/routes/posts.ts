@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { auth } from "../auth";
 import { db } from "../db";
 import { posts } from "../db/schema";
+import { sanitizePostHtml } from "../lib/sanitize";
 import { permissionsForUser, requirePermission, roleOf } from "../middleware/auth";
 import {
   postInputSchema,
@@ -94,7 +95,13 @@ export const registerPostRoutes = (app: Hono) => {
 
       const [created] = await db
         .insert(posts)
-        .values({ ...input, published: false, status: "draft", reviewNote: null })
+        .values({
+          ...input,
+          contentHtml: sanitizePostHtml(input.contentHtml),
+          published: false,
+          status: "draft",
+          reviewNote: null,
+        })
         .returning();
 
       return c.json(toPost(created), 201);
@@ -151,10 +158,15 @@ export const registerPostRoutes = (app: Hono) => {
         if (conflict) return c.json({ error: "Slug already exists" }, 409);
       }
 
-      const values =
+      // A plain-text edit (content without contentHtml) clears the stored HTML, as before.
+      const contentHtml =
         input.content !== undefined
-          ? { ...input, contentHtml: input.contentHtml ?? null }
-          : input;
+          ? sanitizePostHtml(input.contentHtml ?? null)
+          : input.contentHtml === undefined
+            ? undefined
+            : sanitizePostHtml(input.contentHtml);
+      const values =
+        contentHtml === undefined ? input : { ...input, contentHtml };
 
       const [updated] = await db
         .update(posts)
@@ -217,6 +229,20 @@ export const registerPostRoutes = (app: Hono) => {
 
       if (existing.status !== "pending") {
         return c.json({ error: "Post is not pending review" }, 409);
+      }
+
+      // Approving publishes: it must not be a way around `posts.publish`.
+      if (decision === "approve") {
+        const session = await auth.api.getSession({
+          headers: c.req.raw.headers,
+        });
+        const actor = session
+          ? await permissionsForUser(session.user.id, roleOf(session.user))
+          : new Set<string>();
+
+        if (!actor.has("posts.publish")) {
+          return c.json({ error: "Forbidden: missing posts.publish" }, 403);
+        }
       }
 
       const [updated] = await db
