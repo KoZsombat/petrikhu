@@ -31,8 +31,14 @@ export function LoginPage() {
 
     const session = await authClient.getSession();
     if (!session.data) {
+      const diag = await fetch("/api/diag/cookies")
+        .then((response) => response.json() as Promise<{ cookieNames: string[]; hasSessionToken: boolean }>)
+        .catch(() => null);
+      const detail = diag
+        ? ` (cookie: ${diag.hasSessionToken ? "session token present" : "session token missing"}; ${diag.cookieNames.join(", ") || "no cookies"})`
+        : "";
       throw new Error(
-        "A bejelentkezés sikerült, de a munkamenet nem jött létre. Töltsd újra az oldalt (Cmd/Ctrl+Shift+R), és próbáld újra.",
+        `A bejelentkezés sikerült, de a munkamenet nem jött létre. Töltsd újra az oldalt (Cmd/Ctrl+Shift+R), és próbáld újra.${detail}`,
       );
     }
 
