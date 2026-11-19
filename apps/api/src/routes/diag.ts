@@ -27,19 +27,33 @@ export const registerDiagRoutes = (app: Hono) => {
 
     let signatureValid: boolean | null = null;
     let sessionRowFound: boolean | null = null;
+    let sessionExpired: boolean | null = null;
+    let sessionExpiresAt: string | null = null;
+    let sessionCreatedAt: string | null = null;
     if (signed) {
-      const splitAt = signed.lastIndexOf(".");
+      const decoded = (() => {
+        try {
+          return decodeURIComponent(signed);
+        } catch {
+          return signed;
+        }
+      })();
+      const splitAt = decoded.lastIndexOf(".");
       if (splitAt > 0) {
-        const token = signed.slice(0, splitAt);
-        const signature = signed.slice(splitAt + 1);
+        const token = decoded.slice(0, splitAt);
+        const signature = decoded.slice(splitAt + 1);
         const context = await auth.$context;
         signatureValid = signature === (await makeSignature(token, context.secret));
-        sessionRowFound = Boolean(
-          await db.query.session.findFirst({
-            where: eq(session.token, token),
-            columns: { id: true },
-          }),
-        );
+        const row = await db.query.session.findFirst({
+          where: eq(session.token, token),
+          columns: { id: true, expiresAt: true, createdAt: true },
+        });
+        sessionRowFound = Boolean(row);
+        if (row) {
+          sessionExpired = row.expiresAt.getTime() < Date.now();
+          sessionExpiresAt = row.expiresAt.toISOString();
+          sessionCreatedAt = row.createdAt.toISOString();
+        }
       }
     }
 
@@ -58,6 +72,10 @@ export const registerDiagRoutes = (app: Hono) => {
         names.includes("better-auth.session_token"),
       signatureValid,
       sessionRowFound,
+      sessionExpired,
+      sessionExpiresAt,
+      sessionCreatedAt,
+      now: new Date().toISOString(),
       sessionResolved,
       forwardedProto: c.req.header("x-forwarded-proto") ?? null,
       host: c.req.header("host") ?? null,
