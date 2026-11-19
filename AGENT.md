@@ -238,7 +238,8 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
   session cookie is first-party on `ADMIN_ORIGIN`. Never start the web container with `node dist/server/entry.mjs`
   — the proxy only exists in `server.mjs`.
 - `compose.prod.yaml` is the Launchpad stack (see `deploy.md`): no published ports, `web` and `admin` published
-  through Traefik, `depends_on` health conditions, `restart: unless-stopped`. It also carries a `tunnel`
+  through Traefik, `depends_on` health conditions, `restart: unless-stopped`. The `web`, `admin` and `api` services set
+  `pull_policy: build` so a redeploy rebuilds their images instead of reusing the previous build. It also carries a `tunnel`
   (cloudflared) for the stack's own hostnames, and its token is required (`:?`) because Launchpad starts every
   service in the file. `docker-compose.yml` is local-only and binds Postgres to loopback.
 - Documents are served from the API (`/api/media/{id}`); `apps/web/public/media` is legacy static content and is not

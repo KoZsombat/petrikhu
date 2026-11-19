@@ -19,6 +19,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         PUBLIC_SITE_URL: ${SITE_ORIGIN:?}
+    pull_policy: build
     restart: unless-stopped
     # Launchpad reads `expose` to suggest the container port during the scan; nothing is published.
     expose:
@@ -39,6 +40,7 @@ services:
       args:
         VITE_API_URL: ${ADMIN_ORIGIN:?}
         VITE_WEB_URL: ${SITE_ORIGIN:?}
+    pull_policy: build
     restart: unless-stopped
     expose:
       - "80"
@@ -50,6 +52,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    pull_policy: build
     restart: unless-stopped
     # Internal only: reached through the site's /api proxy. Do not publish this in the scan.
     expose:
