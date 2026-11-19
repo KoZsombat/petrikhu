@@ -39,6 +39,8 @@ const EN: Record<string, string> = {
   "E-mail": "Email",
   "Jelszó": "Password",
   "Sikertelen bejelentkezés": "Sign-in failed",
+  "A bejelentkezés sikerült, de a munkamenet nem jött létre. Töltsd újra az oldalt (Cmd/Ctrl+Shift+R), és próbáld újra.":
+    "Signed in, but the session was not created. Reload the page (Cmd/Ctrl+Shift+R) and try again.",
   "A kezdeti admin fiókot a szerver hozza létre az ADMIN_EMAIL és ADMIN_PASSWORD környezeti változókból; ez a fiók nem törölhető.":
     "The initial admin account is created from the ADMIN_EMAIL and ADMIN_PASSWORD environment variables; it cannot be deleted.",
 

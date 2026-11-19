@@ -28,6 +28,14 @@ export function LoginPage() {
 
     const { error } = await authClient.signIn.email(parsed.data);
     if (error) throw new Error(error.message || "Sikertelen bejelentkezés");
+
+    const session = await authClient.getSession();
+    if (!session.data) {
+      throw new Error(
+        "A bejelentkezés sikerült, de a munkamenet nem jött létre. Töltsd újra az oldalt (Cmd/Ctrl+Shift+R), és próbáld újra.",
+      );
+    }
+
     navigate("/", { replace: true });
   });
 
