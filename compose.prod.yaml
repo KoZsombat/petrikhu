@@ -37,7 +37,7 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
       args:
-        VITE_API_URL: ${SITE_ORIGIN:?}
+        VITE_API_URL: ${ADMIN_ORIGIN:?}
         VITE_WEB_URL: ${SITE_ORIGIN:?}
     restart: unless-stopped
     expose:

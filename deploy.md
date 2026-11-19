@@ -18,9 +18,9 @@ Internet ── HTTPS ──> Cloudflare (petrik.zsombor.dev, petrik-admin.zsomb
                  └──────────────┬─────────────┘
                                 ▼
               web  (Astro SSR, :4321)          admin (nginx, :80)
-                 │  /api/* proxied                 │ browser calls
-                 ▼                                 │ https://petrik.zsombor.dev/api/*
-              api  (Hono, :3001)  ◄────────────────┘   through the web proxy
+                 │  /api/* proxied                 │ /api/* proxied
+                 ▼                                 ▼
+              api  (Hono, :3001)  ◄────────────────┘   same origin as the admin app
                  │
                  ▼
               db   (Postgres, internal)
@@ -31,10 +31,11 @@ Two public hostnames:
 | Hostname | Service | Purpose |
 | --- | --- | --- |
 | `petrik.zsombor.dev` | `web` | Public site **and** the `/api` proxy |
-| `petrik-admin.zsombor.dev` | `admin` | Content admin (React SPA) |
+| `petrik-admin.zsombor.dev` | `admin` | Content admin (React SPA) **and** its `/api` proxy |
 
-`api` and `db` are never published: the site proxies `/api/*` to the API container, so media URLs,
-auth cookies and the admin app all share the site origin.
+`api` and `db` are never published. Each frontend proxies `/api/*` to the API container: the public
+site keeps media URLs and its own origin, while the admin app talks to its own hostname so the
+better-auth session cookie is first-party on the admin origin.
 
 ## 1. Launchpad prerequisites
 
@@ -82,8 +83,8 @@ Launchpad lists every `${VAR}` placeholder. Fill them with values from `.env.pro
 | `CLOUDFLARE_TUNNEL_TOKEN` | the token of this stack's own tunnel - see [3.1](#31-the-stacks-own-tunnel) |
 
 `SITE_ORIGIN`, `ADMIN_ORIGIN`, `BETTER_AUTH_SECRET` and `ADMIN_PASSWORD` are the load-bearing ones:
-Better Auth rejects a browser origin that is not `SITE_ORIGIN`, media URLs are built from it, and
-the API refuses to start in production with the development secret or password.
+Better Auth rejects a browser origin that is not in `CORS_ORIGINS`, media URLs are built from
+`SITE_ORIGIN`, and the API refuses to start in production with the development secret or password.
 
 ### 3.1 The stack's own tunnel
 
@@ -200,8 +201,8 @@ origin checks to match.
 | `502` on the site | `web` is running and listening on `4321`; the health path is `/`. |
 | Site loads, no news | `web` cannot reach `api`: check `API_INTERNAL_URL=http://api:3001` and that `api` is healthy. |
 | `/api/...` returns 500 | The container entry is `node server.mjs`; a plain `node dist/server/entry.mjs` has no proxy. Check the `web` logs. |
-| Admin login says "Invalid origin" | `SITE_ORIGIN` must exactly match the browser origin (scheme + host, no trailing slash). |
-| Admin loads but every request 401 | `CORS_ORIGINS` must contain both `SITE_ORIGIN` and `ADMIN_ORIGIN`; cookies are set on the site origin. |
+| Admin login says "Invalid origin" | Both `SITE_ORIGIN` and `ADMIN_ORIGIN` must exactly match the browser origins (scheme + host, no trailing slash) and be listed in `CORS_ORIGINS`. |
+| Admin loads but every request 401 | `CORS_ORIGINS` must contain both `SITE_ORIGIN` and `ADMIN_ORIGIN`; the admin bundle must be built with `VITE_API_URL=ADMIN_ORIGIN` and its nginx proxies `/api/` to `api:3001`. |
 | API exits immediately | `BETTER_AUTH_SECRET` or `ADMIN_PASSWORD` still the development default; the log says which. |
 | 429 for everyone at once | `TRUST_PROXY=true` is required behind Traefik so the limiter sees client IPs. |
 | `tunnel` restarts, `failed to authenticate` | The token is wrong or was rotated: update `CLOUDFLARE_TUNNEL_TOKEN` and redeploy. |

@@ -68,8 +68,8 @@ served either by the panel's Traefik or by the stack's own `tunnel` (cloudflared
 [`.env.prod.example`](.env.prod.example), and [`deploy.md`](deploy.md) walks through scanning,
 subdomains, variables, webhooks and verification.
 
-The public site proxies `/api/*` to the API container, so media URLs, better-auth cookies and the
-admin app all share the site origin; `api` and `db` stay unpublished.
+Both frontends proxy `/api/*` to the API container: the public site on its origin and the admin app
+on its own, so the admin session cookie is first-party; `api` and `db` stay unpublished.
 
 ## Local development
 
@@ -215,7 +215,7 @@ their original URLs.
   or the school placeholder when a teacher has no photo.
 - The admin UI automatically follows the browser language (HU/EN switch in the header).
 - better-auth's default rate limiter is active. Repeated failed sign-ins return `429` with "Too many requests".
-- Cross-origin cookies work because admin and API share the `localhost` site (different ports) in this setup. On separate domains, set `BETTER_AUTH_URL`, add the admin origin to `CORS_ORIGINS`, and use HTTPS so cookies are `Secure`.
+- The admin app calls `/api/*` on its own origin (nginx proxies to `api:3001`), so better-auth's session cookie is first-party. Local dev calls the API on `localhost:3001` directly; the two ports are same-site, so cookies still work.
 
 ## SEO
 

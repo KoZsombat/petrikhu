@@ -233,9 +233,10 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
   It installs **production** dependencies only in the runtime stage. Admin is static files behind nginx with SPA
   fallback; API is `oven/bun` and runs migrate → optional seed → start. The seed folder is ignored by git, so CI
   images start empty unless seed data is mounted at `SEED_DIR`.
-- `apps/web/src/middleware.ts` proxies `/api/*` to `API_INTERNAL_URL`. That is why `api` has no public hostname:
-  media URLs (`BETTER_AUTH_URL`), better-auth cookies and the admin app all use the site origin. Never start the web
-  container with `node dist/server/entry.mjs` — the proxy only exists in `server.mjs`.
+- `apps/web/src/middleware.ts` proxies `/api/*` to `API_INTERNAL_URL`; the admin nginx proxies `/api/` to
+  `http://api:3001` as well. `api` has no public hostname: media URLs use the site origin, and the admin app's
+  session cookie is first-party on `ADMIN_ORIGIN`. Never start the web container with `node dist/server/entry.mjs`
+  — the proxy only exists in `server.mjs`.
 - `compose.prod.yaml` is the Launchpad stack (see `deploy.md`): no published ports, `web` and `admin` published
   through Traefik, `depends_on` health conditions, `restart: unless-stopped`. It also carries a `tunnel`
   (cloudflared) for the stack's own hostnames, and its token is required (`:?`) because Launchpad starts every
