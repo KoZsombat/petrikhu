@@ -27,6 +27,8 @@ export const auth = betterAuth({
     },
   },
   advanced: {
+    /** Distinct from other apps on *.zsombor.dev, whose better-auth cookies can be sent here too. */
+    cookiePrefix: "petrik",
     database: {
       generateId: () => crypto.randomUUID(),
     },

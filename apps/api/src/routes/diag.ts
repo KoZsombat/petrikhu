@@ -21,8 +21,8 @@ export const registerDiagRoutes = (app: Hono) => {
     );
     const names = [...cookies.keys()];
     const signed =
-      cookies.get("__Secure-better-auth.session_token") ??
-      cookies.get("better-auth.session_token") ??
+      cookies.get("__Secure-petrik.session_token") ??
+      cookies.get("petrik.session_token") ??
       null;
 
     let signatureValid: boolean | null = null;
@@ -68,8 +68,8 @@ export const registerDiagRoutes = (app: Hono) => {
 
     return c.json({
       cookieNames: names,
-      hasSessionToken: names.includes("__Secure-better-auth.session_token") ||
-        names.includes("better-auth.session_token"),
+      hasSessionToken: names.includes("__Secure-petrik.session_token") ||
+        names.includes("petrik.session_token"),
       signatureValid,
       sessionRowFound,
       sessionExpired,
