@@ -1,5 +1,4 @@
 import { LogIn } from "lucide-react";
-import { useNavigate } from "react-router";
 import {
   FieldError,
   SubmitButton,
@@ -11,7 +10,6 @@ import { loginSchema } from "../lib/schemas";
 import { field, form, formError, input } from "../lib/ui";
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const { errors, apply, clear } = useFieldErrors();
 
   const { pending, formError: submitError, onSubmit } = useFormSubmit(async (data) => {
@@ -29,20 +27,9 @@ export function LoginPage() {
     const { error } = await authClient.signIn.email(parsed.data);
     if (error) throw new Error(error.message || "Sikertelen bejelentkezés");
 
-    const session = await authClient.getSession();
-    if (!session.data) {
-      const diag = await fetch("/api/diag/cookies")
-        .then((response) => response.json() as Promise<{ cookieNames: string[]; hasSessionToken: boolean }>)
-        .catch(() => null);
-      const detail = diag
-        ? ` (cookie: ${diag.hasSessionToken ? "session token present" : "session token missing"}; ${diag.cookieNames.join(", ") || "no cookies"})`
-        : "";
-      throw new Error(
-        `A bejelentkezés sikerült, de a munkamenet nem jött létre. Töltsd újra az oldalt (Cmd/Ctrl+Shift+R), és próbáld újra.${detail}`,
-      );
-    }
-
-    navigate("/", { replace: true });
+    // Full navigation, not a client-side redirect: the SPA must bootstrap its session
+    // store from the cookie that the sign-in response just set.
+    window.location.assign("/");
   });
 
   return (
