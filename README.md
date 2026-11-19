@@ -216,6 +216,7 @@ their original URLs.
 - The admin UI automatically follows the browser language (HU/EN switch in the header).
 - better-auth's default rate limiter is active. Repeated failed sign-ins return `429` with "Too many requests".
 - The admin app calls `/api/*` on its own origin (nginx proxies to `api:3001`), so better-auth's session cookie is first-party. Local dev calls the API on `localhost:3001` directly; the two ports are same-site, so cookies still work.
+- Better Auth sets `cookiePrefix: "petrik"` (`__Secure-petrik.session_token`). Other apps on `*.zsombor.dev` use better-auth's default cookie name, and those cookies would otherwise be sent to the admin host and read first.
 
 ## SEO
 

@@ -151,6 +151,8 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
   and is never overwritten by the seed. `GET /api/stats` combines it with the published teacher count and the
   `tanterem`/`laboratórium` counts from the filc Chronos API (`FILC_API_URL`, cached 10 minutes, stale on failure).
   `GET|PUT /api/admin/settings` require `settings.manage` and back the **Beállítások** admin page.
+- Better Auth uses `advanced.cookiePrefix: "petrik"`: `*.zsombor.dev` also hosts other better-auth apps, and their
+  default `better-auth.session_token` cookies would be sent here and shadow the first-party session cookie.
 - The seeded admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the seed creates it once, forces `admin`, and the
   users routes refuse to delete or demote it. `ADMIN_RESET_PASSWORD=true` resets the password on the next boot.
 - Posts have `status`: `draft` → (submit) `pending` → (approve) `published`, or reject back to `draft` with
