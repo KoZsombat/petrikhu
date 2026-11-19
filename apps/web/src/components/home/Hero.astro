@@ -1,21 +1,47 @@
 ---
 import { ArrowRight } from "lucide-react";
+import type { SiteStats } from "../../lib/api";
 import { TRANSLATIONS, translator, type Locale } from "../../lib/i18n";
 import { localizedHref } from "../../lib/site";
+import { yearsSinceFounding } from "../../lib/stats";
 
 interface Props {
   locale: Locale;
+  stats: SiteStats | null;
 }
 
-const { locale } = Astro.props;
+const { locale, stats } = Astro.props;
 const t = translator(locale);
 
 const words = t("home.headline").split(" ");
 
+const years = yearsSinceFounding();
+const roundedYears = Math.floor(years / 10) * 10;
+const students = stats?.students ?? "—";
+const numericStudents = /^\d+$/.test(students) ? Number(students) : null;
+
 const STATS = [
-  { value: 140, prefix: "", suffix: "+", label: t("home.statYears") },
-  { value: 1200, prefix: "~", suffix: "", label: t("home.statStudents") },
-  { value: 25, prefix: "~", suffix: "%", label: t("home.statBilingual") },
+  {
+    display: years % 10 === 0 ? `${years}` : `${roundedYears}+`,
+    countTo: roundedYears,
+    prefix: "",
+    suffix: years % 10 === 0 ? "" : "+",
+    label: t("home.statYears"),
+  },
+  {
+    display: students,
+    countTo: numericStudents,
+    prefix: "",
+    suffix: "",
+    label: t("home.statStudents"),
+  },
+  {
+    display: "~25%",
+    countTo: 25,
+    prefix: "~",
+    suffix: "%",
+    label: t("home.statBilingual"),
+  },
 ];
 ---
 
@@ -99,13 +125,11 @@ const STATS = [
           <div>
             <dd
               class="font-display text-2xl font-semibold tabular-nums md:text-4xl"
-              data-count-to={stat.value}
+              data-count-to={stat.countTo ?? undefined}
               data-count-prefix={stat.prefix}
               data-count-suffix={stat.suffix}
             >
-              {stat.prefix}
-              {stat.value}
-              {stat.suffix}
+              {stat.display}
             </dd>
             <dt class="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.12em] text-petrikcream/80 md:text-xs">
               {stat.label}

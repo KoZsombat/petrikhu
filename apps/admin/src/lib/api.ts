@@ -15,6 +15,8 @@ import {
   permissionCatalogSchema,
   postsSchema,
   postSchema,
+  siteSettingsInputSchema,
+  siteSettingsSchema,
   teacherInputSchema,
   teacherSchema,
   teachersSchema,
@@ -31,6 +33,8 @@ import {
   type PostCategoryInput,
   type PostInput,
   type PermissionCatalog,
+  type SiteSettings,
+  type SiteSettingsInput,
   type UpdateUserInput,
   type Teacher,
   type TeacherInput,
@@ -336,6 +340,22 @@ export async function getMyPermissions(): Promise<{
 export async function getPermissionCatalog(): Promise<PermissionCatalog> {
   return permissionCatalogSchema.parse(
     await apiFetch("/api/admin/permissions"),
+  );
+}
+
+/* Site settings */
+export async function getSiteSettings(): Promise<SiteSettings> {
+  return siteSettingsSchema.parse(await apiFetch("/api/admin/settings"));
+}
+
+export async function updateSiteSettings(
+  input: SiteSettingsInput,
+): Promise<SiteSettings> {
+  return siteSettingsSchema.parse(
+    await apiFetch("/api/admin/settings", {
+      method: "PUT",
+      body: json(siteSettingsInputSchema.parse(input)),
+    }),
   );
 }
 

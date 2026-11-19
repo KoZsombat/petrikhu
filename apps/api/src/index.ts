@@ -13,6 +13,8 @@ import { registerDocumentRoutes } from "./routes/documents";
 import { registerMediaRoutes } from "./routes/media";
 import { registerPostCategoryRoutes } from "./routes/post-categories";
 import { registerPostRoutes } from "./routes/posts";
+import { registerSettingsRoutes } from "./routes/settings";
+import { registerStatsRoutes } from "./routes/stats";
 import { registerTeacherRoutes } from "./routes/teachers";
 import { registerUserRoutes } from "./routes/users";
 
@@ -103,6 +105,8 @@ registerPostCategoryRoutes(app);
 registerTeacherRoutes(app);
 registerDocumentRoutes(app);
 registerMediaRoutes(app);
+registerStatsRoutes(app);
+registerSettingsRoutes(app);
 registerUserRoutes(app);
 
 app.get("/openapi.json", (c) => c.json(openApiDocument));

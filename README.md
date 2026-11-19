@@ -110,6 +110,7 @@ There is exactly **one** env file: `.env` in the repository root (template: `.en
 | `ADMIN_RESET_PASSWORD` | `false` | Reset seeded admin password on boot |
 | `TRUST_PROXY` | `false` | Honour `cf-connecting-ip`/`x-forwarded-for` for rate limiting (set `true` only behind Traefik) |
 | `LEGACY_MEDIA_BASE_URL` | `https://petrik.hu` | One-time legacy media seed |
+| `FILC_API_URL` | `https://filc.petrik.hu/api` | Chronos API used for the room counts in `/api/stats` |
 | `VITE_API_URL` | `http://localhost:3001` | Admin browser → API |
 | `VITE_WEB_URL` | `http://localhost:4321` | Admin links to the public site |
 | `API_INTERNAL_URL` | `http://localhost:3001` | Astro server-side API reads (Docker: `http://api:3001`) |
@@ -127,6 +128,8 @@ GET    /api/posts/:slug       one published post (public)
 GET    /api/teachers           published teaching staff (public)
 GET    /api/documents          document library (public)
 GET    /api/post-categories    news categories (public; used by the admin select)
+GET    /api/stats              public counters: teacher count, student text, filc classroom/lab counts
+GET|PUT /api/admin/settings    editable site settings                  settings.manage
 GET    /api/admin/posts        all posts incl. drafts          posts.view
 GET    /api/admin/posts/:id    one post with full content      posts.view
 POST   /api/admin/posts        create post                    posts.create

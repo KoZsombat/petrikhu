@@ -1,18 +1,20 @@
 ---
+import type { SiteStats } from "../../lib/api";
 import { translator, type Locale } from "../../lib/i18n";
 
 interface Props {
   locale: Locale;
+  stats: SiteStats | null;
 }
 
-const { locale } = Astro.props;
+const { locale, stats } = Astro.props;
 const t = translator(locale);
 
 const COUNTERS: [string, string][] = [
-  ["1178", "home.counterStudents"],
-  ["120", "home.counterTeachers"],
-  ["35", "home.counterClassrooms"],
-  ["23", "home.counterLabs"],
+  [stats?.students ?? "—", "home.counterStudents"],
+  [stats ? String(stats.teachers) : "—", "home.counterTeachers"],
+  [stats?.classrooms != null ? String(stats.classrooms) : "—", "home.counterClassrooms"],
+  [stats?.labs != null ? String(stats.labs) : "—", "home.counterLabs"],
   ["1", "home.counterGoal"],
 ];
 ---

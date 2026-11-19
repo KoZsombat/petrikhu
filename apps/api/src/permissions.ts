@@ -21,6 +21,7 @@ export const PERMISSION_CATALOG = [
   { key: "users.view", label: "Felhasználók megtekintése", group: "Felhasználók" },
   { key: "users.manage", label: "Felhasználók létrehozása, szerkesztése, törlése", group: "Felhasználók" },
   { key: "users.permissions", label: "További jogosultságok adása", group: "Felhasználók" },
+  { key: "settings.manage", label: "Oldal beállításainak kezelése", group: "Beállítások" },
 ] as const;
 
 export type Permission = (typeof PERMISSION_CATALOG)[number]["key"];

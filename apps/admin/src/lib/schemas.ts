@@ -181,6 +181,14 @@ export const myPermissionsSchema = z.object({
   permissions: z.array(z.string()),
 });
 
+export const siteSettingsSchema = z.object({
+  students: z.string(),
+});
+
+export const siteSettingsInputSchema = z.object({
+  students: z.string().trim().min(1, "Student count is required").max(32),
+});
+
 export const usersSchema = z.array(userSchema);
 
 export const createUserSchema = z.object({
@@ -211,6 +219,8 @@ export type AdminUser = z.infer<typeof userSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type PermissionInfo = z.infer<typeof permissionInfoSchema>;
 export type PermissionCatalog = z.infer<typeof permissionCatalogSchema>;
+export type SiteSettings = z.infer<typeof siteSettingsSchema>;
+export type SiteSettingsInput = z.infer<typeof siteSettingsInputSchema>;
 export type UpdateUserInput = {
   name?: string;
   password?: string;

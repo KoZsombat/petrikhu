@@ -21,6 +21,7 @@ const EN: Record<string, string> = {
   "Hírek": "News",
   "Tanárok": "Teachers",
   "Dokumentumok": "Documents",
+  "Beállítások": "Settings",
   "Felhasználók": "Users",
   "Kilépés": "Sign out",
   "Adminisztrátor": "Administrator",
@@ -164,6 +165,17 @@ const EN: Record<string, string> = {
 
 
   // permissions / gallery / documents
+  "Oldal beállításainak kezelése": "Manage site settings",
+  "A nyilvános oldal statisztikáiban megjelenő értékek.":
+    "Values shown in the public site statistics.",
+  "Iskola adatai": "School data",
+  "Diákok száma": "Student count",
+  "Ez a szöveg jelenik meg a kezdőlapon és a bemutatkozás oldalon. Számot írj be, ha szeretnéd, hogy felszámlálással jelenjen meg.":
+    "This text is shown on the homepage and the about page. Enter a number to have it count up.",
+  "Beállítások mentése": "Save settings",
+  "Mentve.": "Saved.",
+  "A beállítások szerkesztéséhez Beállítások kezelése jogosultság szükséges.":
+    "Editing settings requires the Manage site settings permission.",
   "Fiókok és jogosultságok kezelése.": "Manage accounts and permissions.",
   "A fiók csak a kijelölt jogosultságokkal rendelkezik. A módosítás a következő kérésnél érvényes.": "The account has only the selected permissions. Changes apply on the next request.",
   "Nincs kiválasztott jogosultság — a fiók csak be tud jelentkezni.": "No permissions selected — the account can only sign in.",

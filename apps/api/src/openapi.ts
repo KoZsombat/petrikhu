@@ -19,6 +19,7 @@ import {
   postUpdateSchema,
 } from "./types/postTypes";
 import { teacherInputSchema, teacherUpdateSchema } from "./types/teacherTypes";
+import { settingsInputSchema } from "./types/settingsTypes";
 import { createUserSchema, updateUserSchema } from "./types/userTypes";
 
 const registry = new OpenAPIRegistry();
@@ -121,6 +122,14 @@ const PermissionCatalogSchema = z.object({
   permissions: z.array(PermissionInfoSchema),
 });
 const MyPermissionsSchema = z.object({ permissions: z.array(z.string()) });
+
+const SiteStatsSchema = z.object({
+  teachers: z.number().int(),
+  students: z.string(),
+  classrooms: z.number().int().nullable(),
+  labs: z.number().int().nullable(),
+});
+const SiteSettingsSchema = z.object({ students: z.string() });
 
 registry.register("Post", PostSchema);
 registry.register("PostSummary", PostSummarySchema);
@@ -550,6 +559,33 @@ registry.registerPath({
   security,
   request: { params: IdParams },
   responses: { 204: { description: "Deleted" }, 400: ErrorResponse, 404: ErrorResponse },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/stats",
+  tags: ["Public"],
+  summary: "Public site counters",
+  responses: { 200: { description: "Counters", ...Json(SiteStatsSchema) } },
+});
+registry.registerPath({
+  method: "get",
+  path: "/api/admin/settings",
+  tags: ["Admin settings"],
+  summary: "Read editable site settings",
+  security,
+  responses: { 200: { description: "Settings", ...Json(SiteSettingsSchema) } },
+});
+registry.registerPath({
+  method: "put",
+  path: "/api/admin/settings",
+  tags: ["Admin settings"],
+  summary: "Update editable site settings",
+  security,
+  request: {
+    body: { required: true, content: { "application/json": { schema: settingsInputSchema } } },
+  },
+  responses: { 200: { description: "Settings", ...Json(SiteSettingsSchema) } },
 });
 
 registry.registerPath({

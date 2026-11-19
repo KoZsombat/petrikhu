@@ -77,6 +77,22 @@ export async function getTeachers(): Promise<Teacher[]> {
   return get<Teacher[]>("/api/teachers");
 }
 
+export interface SiteStats {
+  teachers: number;
+  students: string;
+  classrooms: number | null;
+  labs: number | null;
+}
+
+/** Public counters for the homepage and school profile. Null when the API is unreachable. */
+export async function getStats(): Promise<SiteStats | null> {
+  try {
+    return await get<SiteStats>("/api/stats");
+  } catch {
+    return null;
+  }
+}
+
 export interface LibraryDoc {
   slug: string;
   title: string;

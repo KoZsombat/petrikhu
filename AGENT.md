@@ -147,6 +147,10 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
 - `TRUST_PROXY=true` makes the rate limiter read `cf-connecting-ip`/`x-forwarded-for`; only enable it when the API is
   reachable exclusively through the reverse proxy. In production the API refuses to boot with the development
   `BETTER_AUTH_SECRET` or `ADMIN_PASSWORD`.
+- `site_settings` stores admin-editable public-site values; `students` is seeded once with `DEFAULT_STUDENT_COUNT`
+  and is never overwritten by the seed. `GET /api/stats` combines it with the published teacher count and the
+  `tanterem`/`laboratórium` counts from the filc Chronos API (`FILC_API_URL`, cached 10 minutes, stale on failure).
+  `GET|PUT /api/admin/settings` require `settings.manage` and back the **Beállítások** admin page.
 - The seeded admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the seed creates it once, forces `admin`, and the
   users routes refuse to delete or demote it. `ADMIN_RESET_PASSWORD=true` resets the password on the next boot.
 - Posts have `status`: `draft` → (submit) `pending` → (approve) `published`, or reject back to `draft` with

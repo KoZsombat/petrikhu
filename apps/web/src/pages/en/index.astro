@@ -7,7 +7,7 @@ import Reasons from "../../components/home/Reasons.astro";
 import Projects from "../../components/home/Projects.astro";
 import Introduction from "../../components/home/Introduction.astro";
 import Partners from "../../components/home/Partners.astro";
-import { getPosts, type PostSummary } from "../../lib/api";
+import { getPosts, getStats, type PostSummary } from "../../lib/api";
 
 export const prerender = false;
 
@@ -17,14 +17,15 @@ try {
 } catch {
   // A fresh database may have no posts yet, or the API may be starting.
 }
+const stats = await getStats();
 ---
 
 <Layout locale="en" canonicalPath="/en" alternates={{ hu: "/" }}>
-  <Hero locale="en" />
+  <Hero locale="en" stats={stats} />
   <LatestNews locale="en" posts={posts} />
   <Programmes locale="en" />
   <Reasons locale="en" />
   <Projects locale="en" />
-  <Introduction locale="en" />
+  <Introduction locale="en" stats={stats} />
   <Partners locale="en" />
 </Layout>

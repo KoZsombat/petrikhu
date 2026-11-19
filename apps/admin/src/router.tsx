@@ -4,6 +4,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PostsPage } from "./pages/PostsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { TeachersPage } from "./pages/TeachersPage";
 import { UsersPage } from "./pages/UsersPage";
 
@@ -17,6 +18,7 @@ export function AppRoutes() {
         <Route path="posts" element={<PostsPage />} />
         <Route path="teachers" element={<TeachersPage />} />
         <Route path="documents" element={<DocumentsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
       </Route>
 

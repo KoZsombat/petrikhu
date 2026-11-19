@@ -11,6 +11,7 @@ const NAV = [
   { to: "/posts", label: "Hírek", permission: "posts.view" },
   { to: "/teachers", label: "Tanárok", permission: "teachers.view" },
   { to: "/documents", label: "Dokumentumok", permission: "documents.view" },
+  { to: "/settings", label: "Beállítások", permission: "settings.manage" },
   { to: "/users", label: "Felhasználók", permission: "users.view" },
 ];
 

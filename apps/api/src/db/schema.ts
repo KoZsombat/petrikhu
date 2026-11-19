@@ -25,6 +25,16 @@ const bytea = customType<{
   },
 });
 
+/** Editable public-site settings. One row per key; the admin panel owns the values. */
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt")
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
 /** Additional permissions granted to a user on top of their role defaults. */
 export const userPermissions = pgTable(
   "user_permissions",

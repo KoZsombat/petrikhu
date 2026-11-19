@@ -15,7 +15,15 @@ import { auth } from "../auth";
 import { env } from "../env";
 import { user } from "./auth-schema";
 import { client, db } from "./index";
-import { documentCategories, documents, postCategories, posts, teachers } from "./schema";
+import {
+  documentCategories,
+  documents,
+  postCategories,
+  posts,
+  siteSettings,
+  teachers,
+} from "./schema";
+import { DEFAULT_STUDENT_COUNT } from "../types/settingsTypes";
 import { seedMedia, seedTeacherPhotos } from "./seed-media";
 import { seedLegacyGalleries } from "./seed-galleries";
 
@@ -225,6 +233,14 @@ async function seedPosts() {
   console.log(`Seeded ${rows.length} posts.`);
 }
 
+/** Inserts missing defaults only; admin edits are never overwritten. */
+async function seedSettings() {
+  await db
+    .insert(siteSettings)
+    .values({ key: "students", value: DEFAULT_STUDENT_COUNT })
+    .onConflictDoNothing();
+}
+
 async function seedAdmin() {
   const email = env.ADMIN_EMAIL.toLowerCase();
   const existing = await db.query.user.findFirst({
@@ -263,6 +279,7 @@ await seedPosts();
 await seedTeacherPhotos();
 await seedMedia();
 await seedLegacyGalleries();
+await seedSettings();
 await seedAdmin();
 
 await client.end();
