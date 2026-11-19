@@ -1,55 +1,22 @@
 @import "tailwindcss";
 @import "./theme.css";
 
-/* Hero animations */
-@keyframes hero-word {
+/* Hero load animation: one short fade-up, no blur or looping motion. */
+@keyframes hero-fade {
   from {
-    transform: translateY(110%) rotate(4deg);
-    filter: blur(8px);
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
-    transform: none;
-    filter: none;
     opacity: 1;
-  }
-}
-@keyframes hero-rise {
-  from {
-    transform: translateY(24px);
-    opacity: 0;
-  }
-  to {
     transform: none;
-    opacity: 1;
   }
 }
-@keyframes hero-glow {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(60px, 40px) scale(1.15);
-  }
-}
-.hero-word {
-  animation: hero-word 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-.hero-rise {
-  animation: hero-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-.hero-glow {
-  animation: hero-glow 16s ease-in-out infinite;
-}
-.hero-stripes {
-  background: repeating-linear-gradient(115deg, transparent 0 60px, rgba(255, 255, 255, 0.025) 60px 120px);
-  mask-image: linear-gradient(to left, black, transparent 70%);
+.hero-fade {
+  animation: hero-fade 0.55s ease-out both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-word,
-  .hero-rise,
-  .hero-glow {
+  .hero-fade {
     animation: none;
   }
 }
