@@ -13,6 +13,7 @@ import {
   documentUpdateSchema,
 } from "./types/docTypes";
 import {
+  adminPostListQuerySchema,
   postInputSchema,
   postListQuerySchema,
   postReviewSchema,
@@ -36,7 +37,52 @@ const security = [{ cookieAuth: [] }];
 const IdParams = z.object({ id: z.string() });
 const SlugParams = z.object({ slug: z.string() });
 
-const PostSchema = z.object({
+const PostActionsSchema = z.object({
+  edit: z.boolean(),
+  submit: z.boolean(),
+  review: z.boolean(),
+  delete: z.boolean(),
+});
+
+const PostHistoryEntrySchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  fromStatus: z.string().nullable(),
+  toStatus: z.string().nullable(),
+  note: z.string().nullable(),
+  actorName: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+const PostSummarySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  slug: z.string(),
+  excerpt: z.string(),
+  category: z.string(),
+  image: z.string().nullable(),
+  gallery: z.array(z.string()),
+  published: z.boolean(),
+  status: z.enum(["draft", "pending", "revision", "published"]),
+  reviewNote: z.string().nullable(),
+  authorId: z.string(),
+  authorName: z.string().nullable(),
+  submittedAt: z.string().nullable(),
+  reviewedAt: z.string().nullable(),
+  publishedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  actions: PostActionsSchema,
+});
+
+const PostSchema = PostSummarySchema.extend({
+  content: z.string(),
+  contentHtml: z.string().nullable(),
+  reviewerName: z.string().nullable(),
+  history: z.array(PostHistoryEntrySchema),
+});
+
+const PublicPostSchema = z.object({
   id: z.string(),
   title: z.string(),
   slug: z.string(),
@@ -46,16 +92,17 @@ const PostSchema = z.object({
   category: z.string(),
   image: z.string().nullable(),
   gallery: z.array(z.string()),
-  published: z.boolean(),
-  status: z.enum(["draft", "pending", "published"]),
-  reviewNote: z.string().nullable(),
   publishedAt: z.string(),
-  createdAt: z.string(),
   updatedAt: z.string(),
 });
-const PostSummarySchema = PostSchema.omit({ content: true, contentHtml: true });
+
+const PublicPostSummarySchema = PublicPostSchema.omit({
+  content: true,
+  contentHtml: true,
+});
+
 const PostListSchema = z.object({
-  posts: z.array(PostSummarySchema),
+  posts: z.array(PublicPostSummarySchema),
   total: z.number().int(),
 });
 
@@ -133,6 +180,8 @@ const SiteSettingsSchema = z.object({ students: z.string() });
 
 registry.register("Post", PostSchema);
 registry.register("PostSummary", PostSummarySchema);
+registry.register("PublicPost", PublicPostSchema);
+registry.register("PostHistoryEntry", PostHistoryEntrySchema);
 registry.register("PostList", PostListSchema);
 registry.register("PostInput", postInputSchema);
 registry.register("PostUpdate", postUpdateSchema);
@@ -182,7 +231,7 @@ registry.registerPath({
   summary: "Get a published post by slug",
   request: { params: SlugParams },
   responses: {
-    200: { description: "Post", ...Json(PostSchema) },
+    200: { description: "Post", ...Json(PublicPostSchema) },
     404: ErrorResponse,
   },
 });
@@ -190,9 +239,10 @@ registry.registerPath({
   method: "get",
   path: "/api/admin/posts",
   tags: ["Admin posts"],
-  summary: "List all posts including drafts",
+  summary: "List posts; authors only see their own",
   security,
-  responses: { 200: { description: "All posts", ...Json(z.array(PostSummarySchema)) } },
+  request: { query: adminPostListQuerySchema },
+  responses: { 200: { description: "Posts", ...Json(z.array(PostSummarySchema)) } },
 });
 registry.registerPath({
   method: "get",
@@ -236,25 +286,30 @@ registry.registerPath({
   method: "delete",
   path: "/api/admin/posts/{id}",
   tags: ["Admin posts"],
-  summary: "Delete a post",
+  summary: "Delete a draft/revision you own, or a published post with posts.publish",
   security,
   request: { params: IdParams },
-  responses: { 204: { description: "Deleted" }, 404: ErrorResponse },
+  responses: { 204: { description: "Deleted" }, 403: ErrorResponse, 404: ErrorResponse },
 });
 registry.registerPath({
   method: "post",
   path: "/api/admin/posts/{id}/submit",
   tags: ["Admin posts"],
-  summary: "Submit a draft for review",
+  summary: "Submit your draft or returned post for review",
   security,
   request: { params: IdParams },
-  responses: { 200: { description: "Submitted post", ...Json(PostSchema) }, 404: ErrorResponse },
+  responses: {
+    200: { description: "Submitted post", ...Json(PostSchema) },
+    403: ErrorResponse,
+    404: ErrorResponse,
+    409: ErrorResponse,
+  },
 });
 registry.registerPath({
   method: "post",
   path: "/api/admin/posts/{id}/review",
   tags: ["Admin posts"],
-  summary: "Approve or reject a pending post",
+  summary: "Approve (publish) or reject (return for revision) a pending post",
   security,
   request: {
     params: IdParams,
@@ -262,6 +317,8 @@ registry.registerPath({
   },
   responses: {
     200: { description: "Reviewed post", ...Json(PostSchema) },
+    400: ErrorResponse,
+    403: ErrorResponse,
     404: ErrorResponse,
     409: ErrorResponse,
   },

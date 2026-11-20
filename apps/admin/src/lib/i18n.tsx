@@ -75,7 +75,7 @@ const EN: Record<string, string> = {
   "Bezárás": "Close",
   "Keresés": "Search",
   "Válassz kategóriát…": "Choose a category…",
-  "Cím / slug / kategória": "Title / slug / category",
+  "Cím / slug / kategória / szerző": "Title / slug / category / author",
   "találat": "results",
   "oldal": "page",
   "Előző": "Previous",
@@ -120,7 +120,34 @@ const EN: Record<string, string> = {
   "Beküldés jóváhagyásra": "Submit for review",
   "Jóváhagyás": "Approve",
   "Visszaküldés": "Send back",
-  "Miért küldöd vissza? (opcionális)": "Why are you sending it back? (optional)",
+  "Jóváhagyási sor": "Approval queue",
+  "Saját hírek": "Your posts",
+  "Beküldve": "Submitted",
+  "Javításra visszaküldve": "Returned for revision",
+  "Visszaküldve:": "Returned:",
+  "Előzmények": "History",
+  "Hír jóváhagyása": "Approve post",
+  "Visszaküldés javításra": "Return for revision",
+  "Jóváhagyás és publikálás": "Approve and publish",
+  "Megjegyzés (nem kötelező)": "Note (optional)",
+  "Indoklás (kötelező)": "Reason (required)",
+  "Indoklás:": "Reason:",
+  "Javításra visszaküldve.": "Returned for revision.",
+  "Javítás után a lista nézetben küldheted be újra.":
+    "Fix it, then submit it again from the list.",
+  "Jóváhagyás után a hír azonnal publikálásra kerül.":
+    "Approving publishes the post immediately.",
+  "A szerző az indoklást látja, javíthat és újraküldheti a hírt.":
+    "The author sees the reason, can edit the post and submit it again.",
+  "A visszaküldéshez indoklás kötelező.": "A reason is required to send a post back.",
+  "ismeretlen szerző": "unknown author",
+  "Miért küldöd vissza? (kötelező)": "Why are you sending it back? (required)",
+  "Módosítva": "Edited",
+  "Beküldve jóváhagyásra": "Submitted for review",
+  "Jóváhagyó szerkesztette": "Edited by reviewer",
+  "Visszaküldve javításra": "Returned for revision",
+  "Jóváhagyva és publikálva": "Approved and published",
+  "Törölve": "Deleted",
   "A mentés nem változtatja meg a hír állapotát.":
     "Saving does not change the post status.",
   "Az új hír piszkozatként jön létre; beküldés után jóváhagyásra vár.":
@@ -128,6 +155,8 @@ const EN: Record<string, string> = {
   "Piszkozat létrehozása": "Create draft",
   "Új hírt piszkozatként hozhatsz létre, majd beküldheted jóváhagyásra. Publikálni csak jóváhagyó vagy adminisztrátor tud.":
     "You can create posts as drafts and submit them for review. Only a reviewer or administrator can publish.",
+  "Új hírt piszkozatként hozhatsz létre, majd beküldheted jóváhagyásra. Beküldés után a hír zárolt; visszaküldés esetén a vezetői indoklás mellett szerkesztheted újra.":
+    "You can create posts as drafts and submit them for review. After submitting, the post is locked; if it is returned you can edit it again with the reviewer's reason attached.",
 
   // teachers
   "tanár": "teacher",

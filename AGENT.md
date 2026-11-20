@@ -64,8 +64,13 @@ uploaded/seeded `media` bytes. Every other public page is static Astro content c
 | `GET /api/post-categories` | done | `PostCategory[]` |
 | `POST/PUT/DELETE /api/admin/post-categories[/{id}]` | done | `posts.update`; rename updates posts, delete refuses used categories |
 | `GET/POST /api/auth/*` | done | better-auth |
-| `GET /api/admin/posts`, `GET /api/admin/posts/{id}` | done | summaries / full post (`posts.view`) |
-| `POST/PUT/DELETE /api/admin/posts` | done | `posts.create/update/delete` |
+| `GET /api/admin/posts?status` | done | `posts.view`; authors get only their own posts, reviewers get every post |
+| `GET /api/admin/posts/{id}` | done | `posts.view`; full post + `author`, `reviewerName`, `history`; authors get 404 for foreign posts |
+| `POST /api/admin/posts` | done | `posts.create`; always a `draft` owned by the caller |
+| `PUT /api/admin/posts/{id}` | done | `posts.update` for own `draft`/`revision`; `posts.review` for a `pending` post (stays pending) |
+| `DELETE /api/admin/posts/{id}` | done | own `draft`/`revision` (`posts.delete`), or any `published` post (`posts.publish`) |
+| `POST /api/admin/posts/{id}/submit` | done | `posts.submit`; own `draft`/`revision` only -> `pending` |
+| `POST /api/admin/posts/{id}/review` | done | `posts.review`; reject requires a note -> `revision`, approve needs `posts.publish` -> `published` |
 | `GET/POST/PUT/DELETE /api/admin/teachers` | done | `teachers.view` / `teachers.manage` |
 | `GET/POST/PUT/DELETE /api/admin/documents` | done | `documents.view` / `documents.manage` |
 | `GET/POST/PUT/DELETE /api/admin/document-categories` | done | `documents.view` / `documents.manage` |
@@ -74,8 +79,10 @@ uploaded/seeded `media` bytes. Every other public page is static Astro content c
 | `GET /api/admin/users`, `GET /api/admin/permissions` | done | accounts/catalog (`users.view`) |
 | `POST/PUT/DELETE /api/admin/users` | done | `users.manage` / `users.permissions` |
 
-`PostSummary`: `id, title, slug, excerpt, category, image, gallery, publishedAt`. `Post` adds plain-text `content` and
-`contentHtml` (sanitized legacy HTML, rendered by the public article page).
+`PostSummary` (admin): `id, title, slug, excerpt, category, image, gallery, published, status, reviewNote, authorId,
+authorName, submittedAt, reviewedAt, publishedAt, createdAt, updatedAt, actions{edit,submit,review,delete}`. `Post`
+adds plain-text `content`, `contentHtml`, `reviewerName` and `history[]`. The public list/detail is a smaller shape
+(`id, title, slug, excerpt, content, contentHtml, category, image, gallery, publishedAt, updatedAt`).
 `Post` includes `gallery: string[]` (max 24). `Teacher`: `id, name, role, email, room, photo`.
 `LibraryCategory`: `{ slug, title, docs: Document[] }`.
 
@@ -155,16 +162,25 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
   default `better-auth.session_token` cookies would be sent here and shadow the first-party session cookie.
 - The seeded admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the seed creates it once, forces `admin`, and the
   users routes refuse to delete or demote it. `ADMIN_RESET_PASSWORD=true` resets the password on the next boot.
-- Posts have `status`: `draft` → (submit) `pending` → (approve) `published`, or reject back to `draft` with
-  `reviewNote`. Public endpoints only read `published`; the dashboard shows pending posts with review actions.
+- Posts follow the approval workflow ported from the WordPress plugin `petrik-news-workflow`:
+  `draft` → (submit) `pending` → (approve) `published`, or (reject, note required) `revision` → (edit, resubmit)
+  `pending`. `status` is the source of truth; `published` is derived on every write and is not client-writable, and
+  `publishedAt` is set at approval time (never from `createdAt`).
+- Ownership is enforced server-side: `canEdit` in `routes/posts.ts` lets an author touch only their own `draft`/
+  `revision`, and a reviewer only a `pending` post. Submitting locks the post for its author; the API also returns
+  per-post `actions` so the admin never renders a button that would 403.
+- Every transition writes a `post_audit_log` row in the same transaction (`lib/post-audit.ts`); the detail endpoint
+  returns that history. Deletion logs first so the FK nulls `postId` and the trail survives.
+- Workflow e-mail goes through `lib/notify.ts` (Resend). Without `RESEND_API_KEY` + `MAIL_FROM` messages are logged
+  and skipped. Submit notifies every `reviewer`/`editor` (fallback: admins); reject/approve notify the author.
 - `media` stores uploaded image bytes and seeded legacy documents in Postgres; `/api/media/{id}` serves them,
   `/api/admin/media` lists only image MIME types and uploads/deletes. Stored URLs use `BETTER_AUTH_URL` — keep it
   pointing at the public API origin.
 - `src/db/seed-media.ts` imports every `/wp-content/uploads/...` asset referenced by posts/documents/teachers from
   `LEGACY_MEDIA_BASE_URL` (default `https://petrik.hu`), stores it with a deterministic `legacy-<sha1>` id, and
   rewrites the references. It runs after content seeding, is idempotent, and only downloads missing ids.
-- `Post` responses include both `publishedAt` (derived from `createdAt`) and the raw timestamps; the public list is
-  an envelope, the admin list is a raw array.
+- The public list is an envelope (`{posts,total}`) and the admin list is a raw array. Public reads filter
+  `status = 'published'`; `publishedAt` falls back to `createdAt` only for legacy rows.
 - Post category is a plain string used by `?kategoria=` filtering. `q` searches title and content (`ilike`).
 - Teachers are seeded once when the table is empty (`src/db/seed.ts`); the API container runs migrations + seed then
   starts.
@@ -179,8 +195,10 @@ Read `CREATE.md` for the full component catalog and styling recipes. The short v
 - All component styling is Tailwind utilities: structural classes live directly in the JSX; repeated recipes (button,
   input, panel, table, badge, dialog, editor) are exported as class strings from `lib/ui.ts` and consumed inline.
   There is no component CSS and no separate stylesheet to grow. Do not reintroduce the old dark theme.
-- Pages: `DashboardPage` (counts + pending review), `PostsPage` (dialogs, search/pagination, rich editor, media
-  picker, submit/review), `TeachersPage`, `DocumentsPage` (categories + documents), `UsersPage` (admin only).
+- Pages: `DashboardPage` (counts + pending review), `PostsPage` (approval queue, dialogs, search/pagination, rich
+  editor, media picker, submit/review), `TeachersPage`, `DocumentsPage` (categories + documents), `UsersPage`
+  (admin only). `PostsPage` renders actions from the server-provided `post.actions`; visible statuses are
+  `draft`, `pending`, `revision`, `published`, and a returned post shows the reviewer's note plus its history.
   Create/edit forms live in `Dialog`; the header has a second navigation row. Login only; no register screen.
 - About page: `StatCards`, `HistoryRail`, `AwardsShowcase`, `FurtherReading` and `VideoGrid` are the reference
   examples for richer blocks.

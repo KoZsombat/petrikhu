@@ -23,11 +23,12 @@ import {
   th,
 } from "../lib/ui";
 
-const STATUS_LABEL = {
+const STATUS_LABEL: Record<Post["status"], string> = {
   draft: "Piszkozat",
   pending: "Jóváhagyásra vár",
+  revision: "Javításra visszaküldve",
   published: "Publikált",
-} as const;
+};
 
 export function DashboardPage() {
   const permissions = usePermissions();
@@ -69,10 +70,16 @@ export function DashboardPage() {
   const decide = async (post: Post, decision: "approve" | "reject") => {
     const note =
       decision === "reject"
-        ? (window.prompt("Miért küldöd vissza? (opcionális)") ?? undefined)
+        ? (window.prompt("Miért küldöd vissza? (kötelező)") ?? "")
         : undefined;
+
+    if (decision === "reject" && !note?.trim()) {
+      setError("A visszaküldéshez indoklás kötelező.");
+      return;
+    }
+
     try {
-      await reviewPost(post.id, decision, note);
+      await reviewPost(post.id, decision, note?.trim() || undefined);
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Hiba");

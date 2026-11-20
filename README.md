@@ -13,6 +13,10 @@ Fullstack starter: a Bun/Hono API with better-auth, Drizzle and separately gener
 
 Zod validates API input, request/response payloads and forms in the admin app, and API env vars in the backend. The public Astro app only reads data. Admin access is role-based: a role (`admin`, `editor`, `reviewer`, `author`, `inactive`) carries a default permission set, and each account can be extended with extra permissions, capped by what the acting user holds.
 
+News follows an approval workflow: an author drafts and submits a post, which locks it; a reviewer (or editor/admin)
+approves it — publishing — or returns it with a mandatory reason so the author can fix and resubmit. Every transition
+is written to `post_audit_log`, and workflow e-mail is sent when `RESEND_API_KEY` and `MAIL_FROM` are set.
+
 Only **posts**, **teachers**, **documents**, **post categories** and **media** bytes live in the database. Every other public page is
 static Astro content. See [`CREATE.md`](CREATE.md) for the styling rules and component catalog, and [`AGENT.md`](AGENT.md)
 for the architecture and working notes.
@@ -114,7 +118,9 @@ There is exactly **one** env file: `.env` in the repository root (template: `.en
 | `VITE_API_URL` | `http://localhost:3001` | Admin browser → API |
 | `VITE_WEB_URL` | `http://localhost:4321` | Admin links to the public site |
 | `API_INTERNAL_URL` | `http://localhost:3001` | Astro server-side API reads (Docker: `http://api:3001`) |
-| `PUBLIC_SITE_URL` | `http://localhost:4321` | Canonical/OG/sitemap origin (Docker: `http://localhost:3003`) |
+| `PUBLIC_SITE_URL` | `http://localhost:4321` | Canonical/OG/sitemap origin, workflow e-mail links (Docker: `http://localhost:3003`) |
+| `RESEND_API_KEY` | — (optional) | Workflow e-mail delivery; without it mail is logged and skipped |
+| `MAIL_FROM` | — (optional) | Sender for workflow e-mail, e.g. `Petrik Hírkezelő <no-reply@petrik.hu>` |
 
 Docker Compose overrides the container-specific values (`DATABASE_URL`, `API_INTERNAL_URL`, public origins) with
 service hostnames. For production set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `PUBLIC_SITE_URL` and the admin
@@ -130,13 +136,13 @@ GET    /api/documents          document library (public)
 GET    /api/post-categories    news categories (public; used by the admin select)
 GET    /api/stats              public counters: teacher count, student text, filc classroom/lab counts
 GET|PUT /api/admin/settings    editable site settings                  settings.manage
-GET    /api/admin/posts        all posts incl. drafts          posts.view
-GET    /api/admin/posts/:id    one post with full content      posts.view
-POST   /api/admin/posts        create post                    posts.create
-PUT    /api/admin/posts/:id   update post                    posts.update (+ posts.publish when publishing)
-DELETE /api/admin/posts/:id   delete post                    posts.delete
-POST   /api/admin/posts/:id/submit  submit for review        posts.submit
-POST   /api/admin/posts/:id/review  approve/reject           posts.review
+GET    /api/admin/posts        posts (?status); authors see only their own   posts.view
+GET    /api/admin/posts/:id    full post + author + review history            posts.view
+POST   /api/admin/posts        create draft (owner = caller)                  posts.create
+PUT    /api/admin/posts/:id   own draft/revision, or pending (reviewer)       posts.update / posts.review
+DELETE /api/admin/posts/:id   own draft/revision; published needs publish     posts.delete / posts.publish
+POST   /api/admin/posts/:id/submit  draft|revision -> pending, locks the post posts.submit
+POST   /api/admin/posts/:id/review  approve -> published (publish), reject -> revision (note required)  posts.review
 GET|POST|PUT|DELETE /api/admin/teachers[/:id]                teachers.view / teachers.manage
 GET|POST|PUT|DELETE /api/admin/documents[/:id]               documents.view / documents.manage
 GET|POST|PUT|DELETE /api/admin/document-categories[/:id]     documents.view / documents.manage

@@ -1,5 +1,6 @@
 import {
   Check,
+  History,
   Loader2,
   Pencil,
   Plus,
@@ -41,6 +42,7 @@ import {
   badge,
   badgeLive,
   badgePending,
+  badgeRevision,
   button,
   buttonPrimary,
   code,
@@ -62,6 +64,7 @@ import {
   table,
   tableWrap,
   td,
+  textarea,
   th,
 } from "../lib/ui";
 
@@ -76,15 +79,43 @@ type Draft = {
 
 const emptyDraft: Draft = { title: "", slug: "", excerpt: "", category: "Hírek", image: null, gallery: [] };
 type FieldErrors = Record<string, string | undefined>;
+type ReviewDecision = "approve" | "reject";
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium" }).format(new Date(value));
-
-const STATUS_LABEL = {
+const STATUS_LABEL: Record<Post["status"], string> = {
   draft: "Piszkozat",
   pending: "Jóváhagyásra vár",
+  revision: "Javításra visszaküldve",
   published: "Publikált",
-} as const;
+};
+
+const AUDIT_LABEL: Record<string, string> = {
+  created: "Létrehozva",
+  updated: "Módosítva",
+  submitted: "Beküldve jóváhagyásra",
+  reviewer_edited: "Jóváhagyó szerkesztette",
+  rejected: "Visszaküldve javításra",
+  approved: "Jóváhagyva és publikálva",
+  deleted: "Törölve",
+};
+
+const statusBadge = (status: Post["status"]) =>
+  status === "published"
+    ? badgeLive
+    : status === "pending"
+      ? badgePending
+      : status === "revision"
+        ? badgeRevision
+        : badge;
+
+const formatDate = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium" }).format(new Date(value))
+    : "—";
+
+const formatDateTime = (value: string) =>
+  new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value),
+  );
 
 const contentToHtml = (post: Post) => {
   if (post.contentHtml) return post.contentHtml;
@@ -99,11 +130,8 @@ const contentToHtml = (post: Post) => {
 
 export function PostsPage() {
   const permissions = usePermissions();
-  const canReview = permissions.has("posts.review");
   const canCreate = permissions.has("posts.create");
-  const canUpdate = permissions.has("posts.update");
-  const canDelete = permissions.has("posts.delete");
-  const canSubmit = permissions.has("posts.submit");
+  const canReview = permissions.has("posts.review");
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [categories, setCategories] = useState<PostCategory[]>([]);
@@ -119,12 +147,17 @@ export function PostsPage() {
   const [editorKey, setEditorKey] = useState(0);
   const [templateId, setTemplateId] = useState("blank");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Post | null>(null);
+  const [history, setHistory] = useState<Post["history"]>([]);
   const [slugEdited, setSlugEdited] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [review, setReview] = useState<{ post: Post; decision: ReviewDecision } | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSaving, setReviewSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
@@ -152,7 +185,8 @@ export function PostsPage() {
     setDraft(emptyDraft);
     setContentHtml("<p></p>");
     setPlainText("");
-    setEditingId(null);
+    setEditing(null);
+    setHistory([]);
     setTemplateId("blank");
     setSlugEdited(false);
     setFieldErrors({});
@@ -232,7 +266,7 @@ export function PostsPage() {
 
     setSaving(true);
     try {
-      if (editingId) await updatePost(editingId, parsed.data);
+      if (editing) await updatePost(editing.id, parsed.data);
       else await createPost(parsed.data);
       resetForm();
       setFormOpen(false);
@@ -248,7 +282,8 @@ export function PostsPage() {
     setBusyId(post.id);
     try {
       const full = await getAdminPost(post.id);
-      setEditingId(full.id);
+      setEditing(full);
+      setHistory(full.history ?? []);
       setSlugEdited(true);
       setDraft({
         title: full.title,
@@ -283,19 +318,32 @@ export function PostsPage() {
     }
   };
 
-  const decide = async (post: Post, decision: "approve" | "reject") => {
-    const note =
-      decision === "reject"
-        ? (window.prompt("Miért küldöd vissza? (opcionális)") ?? undefined)
-        : undefined;
-    setBusyId(post.id);
+  const openReview = (post: Post, decision: ReviewDecision) => {
+    setReview({ post, decision });
+    setReviewNote("");
+    setReviewError(null);
+  };
+
+  const submitReview = async (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!review) return;
+
+    const note = reviewNote.trim();
+    if (review.decision === "reject" && !note) {
+      setReviewError("A visszaküldéshez indoklás kötelező.");
+      return;
+    }
+
+    setReviewError(null);
+    setReviewSaving(true);
     try {
-      await reviewPost(post.id, decision, note);
+      await reviewPost(review.post.id, review.decision, note || undefined);
+      setReview(null);
       await refresh();
     } catch (cause) {
-      setLoadError(cause instanceof Error ? cause.message : "Hiba");
+      setReviewError(cause instanceof Error ? cause.message : "Hiba");
     } finally {
-      setBusyId(null);
+      setReviewSaving(false);
     }
   };
 
@@ -312,18 +360,82 @@ export function PostsPage() {
     }
   };
 
-  const filtered = (posts ?? []).filter((post) => {
-    const needle = query.trim().toLowerCase();
-    return (
-      !needle ||
-      post.title.toLowerCase().includes(needle) ||
-      post.slug.toLowerCase().includes(needle) ||
-      post.category.toLowerCase().includes(needle)
-    );
-  });
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const needle = query.trim().toLowerCase();
+  const matches = (post: Post) =>
+    !needle ||
+    post.title.toLowerCase().includes(needle) ||
+    post.slug.toLowerCase().includes(needle) ||
+    post.category.toLowerCase().includes(needle) ||
+    (post.authorName ?? "").toLowerCase().includes(needle);
+
+  const queue = (posts ?? []).filter((post) => post.status === "pending").filter(matches);
+  // Pending posts live in the queue above, so the main table never lists them twice.
+  const tablePosts = (posts ?? []).filter(
+    (post) => (canReview ? post.status !== "pending" : true) && matches(post),
+  );
+  const totalPages = Math.max(1, Math.ceil(tablePosts.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const shown = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const shown = tablePosts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const renderActions = (post: Post) => (
+    <div className={actions}>
+      {post.actions.edit ? (
+        <button
+          className={iconButton}
+          type="button"
+          title="Szerkesztés"
+          disabled={busyId === post.id}
+          onClick={() => void startEdit(post)}
+        >
+          <Pencil className="size-3.5" aria-hidden />
+        </button>
+      ) : null}
+      {post.actions.submit ? (
+        <button
+          className={iconButton}
+          type="button"
+          title="Beküldés jóváhagyásra"
+          disabled={busyId === post.id}
+          onClick={() => void submitForReview(post)}
+        >
+          <Send className="size-3.5" aria-hidden />
+        </button>
+      ) : null}
+      {post.actions.review ? (
+        <>
+          <button
+            className={iconButton}
+            type="button"
+            title="Jóváhagyás és publikálás"
+            disabled={busyId === post.id}
+            onClick={() => openReview(post, "approve")}
+          >
+            <Check className="size-3.5" aria-hidden />
+          </button>
+          <button
+            className={iconButton}
+            type="button"
+            title="Visszaküldés javításra"
+            disabled={busyId === post.id}
+            onClick={() => openReview(post, "reject")}
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+          </button>
+        </>
+      ) : null}
+      {post.actions.delete ? (
+        <button
+          className={iconButtonDanger}
+          type="button"
+          title="Törlés"
+          disabled={busyId === post.id}
+          onClick={() => void remove(post)}
+        >
+          <Trash2 className="size-3.5" aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  );
 
   return (
     <div className={pageClass}>
@@ -333,7 +445,7 @@ export function PostsPage() {
           <h1 className={`mt-1 ${pageTitle}`}>Hírek</h1>
           <p className="mt-1.5 text-[14.5px] text-soft">
             {posts
-              ? `${posts.length} hír · ${posts.filter((p) => p.status === "pending").length} jóváhagyásra vár`
+              ? `${posts.length} hír · ${posts.filter((entry) => entry.status === "pending").length} jóváhagyásra vár`
               : "Betöltés…"}
           </p>
         </div>
@@ -351,39 +463,77 @@ export function PostsPage() {
 
       {loadError ? <p className={formError}>{loadError}</p> : null}
 
-      {!permissions.has("posts.publish") && canCreate ? (
+      {!canReview && canCreate ? (
         <p className={muted}>
-          Új hírt piszkozatként hozhatsz létre, majd beküldheted jóváhagyásra. Publikálni csak
-          jóváhagyó vagy adminisztrátor tud.
+          Új hírt piszkozatként hozhatsz létre, majd beküldheted jóváhagyásra. Beküldés után a hír
+          zárolt; visszaküldés esetén a vezetői indoklás mellett szerkesztheted újra.
         </p>
+      ) : null}
+
+      <label className="flex max-w-sm flex-col gap-1 text-[12.5px] font-semibold text-soft">
+        <span className={muted}>Keresés</span>
+        <span className="flex items-center gap-2">
+          <Search className="size-3.5 text-faint" aria-hidden />
+          <input
+            className={input}
+            type="search"
+            value={query}
+            placeholder="Cím / slug / kategória / szerző"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+          />
+        </span>
+      </label>
+
+      {canReview ? (
+        <section className={panel}>
+          <h2 className={panelTitle}>Jóváhagyási sor</h2>
+          {queue.length === 0 ? (
+            <p className={empty}>Nincs jóváhagyásra váró hír.</p>
+          ) : (
+            <div className={tableWrap}>
+              <table className={table}>
+                <thead>
+                  <tr>
+                    <th className={th}>Cím</th>
+                    <th className={th}>Szerző</th>
+                    <th className={th}>Kategória</th>
+                    <th className={th}>Beküldve</th>
+                    <th className={th} aria-label="Műveletek" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {queue.map((post) => (
+                    <tr key={post.id}>
+                      <td className={td}>
+                        <strong>{post.title}</strong>
+                        <div className={code}>/{post.slug}</div>
+                      </td>
+                      <td className={td}>{post.authorName ?? "—"}</td>
+                      <td className={td}>{post.category}</td>
+                      <td className={td}>{formatDate(post.submittedAt)}</td>
+                      <td className={td}>{renderActions(post)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       ) : null}
 
       <section className={panel}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className={`${panelTitle} mb-0`}>Összes hír</h2>
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold text-soft">
-            <span className={muted}>Keresés</span>
-            <span className="flex items-center gap-2">
-              <Search className="size-3.5 text-faint" aria-hidden />
-              <input
-                className={`${input} min-w-[240px]`}
-                type="search"
-                value={query}
-                placeholder="Cím / slug / kategória"
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setPage(1);
-                }}
-              />
-            </span>
-          </label>
+          <h2 className={`${panelTitle} mb-0`}>{canReview ? "Összes hír" : "Saját hírek"}</h2>
         </div>
 
         {posts === null ? (
           <p className={empty}>
             <Loader2 className="mx-auto mb-1 size-4 animate-spin" /> Betöltés…
           </p>
-        ) : posts.length === 0 ? (
+        ) : tablePosts.length === 0 ? (
           <p className={empty}>Még nincs hír.</p>
         ) : (
           <div className={tableWrap}>
@@ -391,6 +541,7 @@ export function PostsPage() {
               <thead>
                 <tr>
                   <th className={th}>Cím</th>
+                  <th className={th}>Szerző</th>
                   <th className={th}>Kategória</th>
                   <th className={th}>Állapot</th>
                   <th className={th}>Dátum</th>
@@ -403,76 +554,17 @@ export function PostsPage() {
                     <td className={td}>
                       <strong>{post.title}</strong>
                       <div className={code}>/{post.slug}</div>
-                      {post.reviewNote ? <div className={code}>Megjegyzés: {post.reviewNote}</div> : null}
+                      {post.status === "revision" && post.reviewNote ? (
+                        <div className={code}>Visszaküldve: {post.reviewNote}</div>
+                      ) : null}
                     </td>
+                    <td className={td}>{post.authorName ?? "—"}</td>
                     <td className={td}>{post.category}</td>
                     <td className={td}>
-                      <span
-                        className={
-                          post.status === "published"
-                            ? badgeLive
-                            : post.status === "pending"
-                              ? badgePending
-                              : badge
-                        }
-                      >
-                        {STATUS_LABEL[post.status]}
-                      </span>
+                      <span className={statusBadge(post.status)}>{STATUS_LABEL[post.status]}</span>
                     </td>
-                    <td className={td}>{formatDate(post.createdAt)}</td>
-                    <td className={td}>
-                      <div className={actions}>
-                        {canUpdate ? (
-                          <button className={iconButton} type="button" title="Szerkesztés" disabled={busyId === post.id} onClick={() => void startEdit(post)}>
-                            <Pencil className="size-3.5" aria-hidden />
-                          </button>
-                        ) : null}
-                        {canSubmit && post.status === "draft" ? (
-                          <button
-                            className={iconButton}
-                            type="button"
-                            title="Beküldés jóváhagyásra"
-                            disabled={busyId === post.id}
-                            onClick={() => void submitForReview(post)}
-                          >
-                            <Send className="size-3.5" aria-hidden />
-                          </button>
-                        ) : null}
-                        {canReview && post.status === "pending" ? (
-                          <>
-                            <button
-                              className={iconButton}
-                              type="button"
-                              title="Jóváhagyás"
-                              disabled={busyId === post.id}
-                              onClick={() => void decide(post, "approve")}
-                            >
-                              <Check className="size-3.5" aria-hidden />
-                            </button>
-                            <button
-                              className={iconButton}
-                              type="button"
-                              title="Visszaküldés"
-                              disabled={busyId === post.id}
-                              onClick={() => void decide(post, "reject")}
-                            >
-                              <RotateCcw className="size-3.5" aria-hidden />
-                            </button>
-                          </>
-                        ) : null}
-                        {canDelete ? (
-                          <button
-                            className={iconButtonDanger}
-                            type="button"
-                            title="Törlés"
-                            disabled={busyId === post.id}
-                            onClick={() => void remove(post)}
-                          >
-                            <Trash2 className="size-3.5" aria-hidden />
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
+                    <td className={td}>{formatDate(post.publishedAt ?? post.createdAt)}</td>
+                    <td className={td}>{renderActions(post)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -480,10 +572,10 @@ export function PostsPage() {
           </div>
         )}
 
-        {filtered.length > pageSize ? (
+        {tablePosts.length > pageSize ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <span className={muted}>
-              {filtered.length} találat · {currentPage}/{totalPages}. oldal
+              {tablePosts.length} találat · {currentPage}/{totalPages}. oldal
             </span>
             <div className="flex items-center gap-2">
               <button className={button} type="button" disabled={currentPage <= 1} onClick={() => setPage((v) => Math.max(1, v - 1))}>
@@ -499,7 +591,7 @@ export function PostsPage() {
 
       <Dialog
         open={formOpen}
-        title={editingId ? "Hír szerkesztése" : "Új hír"}
+        title={editing ? "Hír szerkesztése" : "Új hír"}
         onClose={() => {
           setFormOpen(false);
           resetForm();
@@ -508,7 +600,15 @@ export function PostsPage() {
         <form className={form} onSubmit={handleSubmit} noValidate>
           {submitError ? <p className={formError}>{submitError}</p> : null}
 
-          {!editingId ? (
+          {editing?.status === "revision" ? (
+            <div className={formError}>
+              <strong>Javításra visszaküldve.</strong>
+              {editing.reviewNote ? <> Indoklás: {editing.reviewNote}</> : null} Javítás után a lista
+              nézetben küldheted be újra.
+            </div>
+          ) : null}
+
+          {!editing ? (
             <label className={field}>
               <span>Sablon</span>
               <select className={input} value={templateId} onChange={(event) => applyTemplate(event.target.value)}>
@@ -552,7 +652,7 @@ export function PostsPage() {
             <div className={field}>
               <div className="flex items-center justify-between gap-2">
                 <span>Kategória</span>
-                {canUpdate ? (
+                {permissions.has("posts.update") ? (
                   <button className="text-xs font-semibold text-accent-dark underline-offset-2 hover:underline" type="button" onClick={openCategoryDialog}>
                     + Új kategória
                   </button>
@@ -591,7 +691,7 @@ export function PostsPage() {
           <div className={field}>
             <span>Tartalom</span>
             <RichTextEditor
-              key={`${editingId ?? "new"}-${editorKey}`}
+              key={`${editing?.id ?? "new"}-${editorKey}`}
               initialContent={contentHtml}
               onChange={(html, text) => {
                 setContentHtml(html);
@@ -601,15 +701,73 @@ export function PostsPage() {
             {fieldErrors.content ? <p className={fieldError}>{fieldErrors.content}</p> : null}
           </div>
 
+          {editing && history.length > 0 ? (
+            <div className={field}>
+              <span>Előzmények</span>
+              <ul className="flex flex-col gap-1.5 text-[12.5px] text-soft">
+                {history.map((entry) => (
+                  <li key={entry.id}>
+                    {formatDateTime(entry.createdAt)} · {AUDIT_LABEL[entry.action] ?? entry.action}
+                    {entry.actorName ? ` · ${entry.actorName}` : ""}
+                    {entry.note ? ` · ${entry.note}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className={muted}>
-              {editingId
+              {editing
                 ? "A mentés nem változtatja meg a hír állapotát."
                 : "Az új hír piszkozatként jön létre; beküldés után jóváhagyásra vár."}
             </p>
             <button className={buttonPrimary} type="submit" disabled={saving}>
               {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Check className="size-4" aria-hidden />}
-              {editingId ? "Mentés" : "Piszkozat létrehozása"}
+              {editing ? "Mentés" : "Piszkozat létrehozása"}
+            </button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={review !== null}
+        title={review?.decision === "approve" ? "Hír jóváhagyása" : "Visszaküldés javításra"}
+        onClose={() => setReview(null)}
+      >
+        <form className={form} onSubmit={submitReview} noValidate>
+          {reviewError ? <p className={formError}>{reviewError}</p> : null}
+
+          <p className="text-[13.5px] text-soft">
+            {review?.post.title}
+            <span className={code}> · {review?.post.authorName ?? "ismeretlen szerző"}</span>
+          </p>
+
+          <label className={field}>
+            <span>{review?.decision === "approve" ? "Megjegyzés (nem kötelező)" : "Indoklás (kötelező)"}</span>
+            <textarea
+              className={textarea}
+              rows={4}
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+            />
+          </label>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className={muted}>
+              {review?.decision === "approve"
+                ? "Jóváhagyás után a hír azonnal publikálásra kerül."
+                : "A szerző az indoklást látja, javíthat és újraküldheti a hírt."}
+            </p>
+            <button className={buttonPrimary} type="submit" disabled={reviewSaving}>
+              {reviewSaving ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : review?.decision === "approve" ? (
+                <Check className="size-4" aria-hidden />
+              ) : (
+                <History className="size-4" aria-hidden />
+              )}
+              {review?.decision === "approve" ? "Jóváhagyás" : "Visszaküldés"}
             </button>
           </div>
         </form>

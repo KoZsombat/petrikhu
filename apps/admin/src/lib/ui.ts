@@ -33,6 +33,7 @@ export const badge =
   "inline-block rounded-full border border-line-soft bg-cream px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-soft";
 export const badgeLive = `${badge} border-accent/35 bg-tint text-accent-dark`;
 export const badgePending = `${badge} border-[#8a5a00]/25 bg-[#fbf3e0] text-[#8a5a00]`;
+export const badgeRevision = `${badge} border-[#b42318]/25 bg-[#fdf4f2] text-[#b42318]`;
 
 export const tableWrap = "overflow-x-auto rounded-xl border border-line-soft bg-surface";
 export const table = "w-full border-collapse text-[13.5px]";

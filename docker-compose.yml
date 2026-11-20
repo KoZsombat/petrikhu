@@ -31,6 +31,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-PetrikAdmin2026!}
       ADMIN_RESET_PASSWORD: ${ADMIN_RESET_PASSWORD:-false}
       TRUST_PROXY: "false"
+      PUBLIC_SITE_URL: http://localhost:3003
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       PORT: 3001
     ports:
       - "3001:3001"

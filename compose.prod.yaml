@@ -66,6 +66,9 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
       CORS_ORIGINS: ${SITE_ORIGIN:?},${ADMIN_ORIGIN:?}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+      PUBLIC_SITE_URL: ${SITE_ORIGIN:?}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
       ADMIN_RESET_PASSWORD: ${ADMIN_RESET_PASSWORD:-false}
       # The container is only reachable through Traefik/Cloudflare, so forwarded client IPs are

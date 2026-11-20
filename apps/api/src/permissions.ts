@@ -71,6 +71,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "posts.view",
     "posts.create",
     "posts.update",
+    "posts.delete",
     "posts.submit",
     "media.view",
     "media.upload",

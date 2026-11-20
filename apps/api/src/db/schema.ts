@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   boolean,
   customType,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -54,6 +55,10 @@ export const posts = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => randomUUID()),
+    /** The munkaközösség-vezető who owns the draft; reviewers may edit but never re-own it. */
+    authorId: text("authorId")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
     title: text("title").notNull(),
     slug: text("slug").notNull(),
     excerpt: text("excerpt").notNull().default(""),
@@ -64,18 +69,58 @@ export const posts = pgTable(
     category: text("category").notNull().default("Hírek"),
     image: text("image"),
     gallery: jsonb("gallery").$type<string[]>().notNull().default([]),
+    /**
+     * Derived from `status` on every write; kept because the public contract exposes it.
+     * `status` is the source of truth and only the review endpoint may publish.
+     */
     published: boolean("published").notNull().default(false),
-    status: text("status", { enum: ["draft", "pending", "published"] })
+    status: text("status", {
+      enum: ["draft", "pending", "revision", "published"],
+    })
       .notNull()
       .default("draft"),
+    /** Rejection reason written by the reviewer; cleared on resubmit and on approval. */
     reviewNote: text("reviewNote"),
+    reviewerId: text("reviewerId").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    submittedAt: timestamp("submittedAt"),
+    reviewedAt: timestamp("reviewedAt"),
+    /** Set when a reviewer approves; never derived from `createdAt`. */
+    publishedAt: timestamp("publishedAt"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt")
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex("posts_slug_idx").on(table.slug)],
+  (table) => [
+    uniqueIndex("posts_slug_idx").on(table.slug),
+    index("posts_author_idx").on(table.authorId),
+    index("posts_status_idx").on(table.status),
+  ],
+);
+
+/** Append-only trail of every workflow transition; `AGENT.md` documents the action names. */
+export const postAuditLog = pgTable(
+  "post_audit_log",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    postId: text("postId").references(() => posts.id, {
+      onDelete: "set null",
+    }),
+    actorId: text("actorId").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    action: text("action").notNull(),
+    fromStatus: text("fromStatus"),
+    toStatus: text("toStatus"),
+    note: text("note"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => [index("post_audit_log_post_idx").on(table.postId)],
 );
 
 export const teachers = pgTable(

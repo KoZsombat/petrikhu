@@ -213,7 +213,20 @@ async function seedPosts() {
     return;
   }
 
+  // Every post needs an owner; the seeded admin claims the imported archive.
+  const [owner] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, env.ADMIN_EMAIL.toLowerCase()))
+    .limit(1);
+
+  if (!owner) {
+    console.log("Posts skipped: seeded admin account is missing.");
+    return;
+  }
+
   const rows = postsSeed.map((post) => ({
+    authorId: owner.id,
     title: post.title,
     slug: post.slug,
     excerpt: post.excerpt,
@@ -223,6 +236,7 @@ async function seedPosts() {
     image: post.image,
     published: true,
     status: "published" as const,
+    publishedAt: new Date(post.publishedAt),
     createdAt: new Date(post.publishedAt),
     updatedAt: new Date(post.updatedAt),
   }));
@@ -272,6 +286,7 @@ async function seedAdmin() {
   }
 }
 
+await seedAdmin();
 await seedTeachers();
 await seedDocuments();
 await seedPostCategories();
@@ -280,6 +295,5 @@ await seedTeacherPhotos();
 await seedMedia();
 await seedLegacyGalleries();
 await seedSettings();
-await seedAdmin();
 
 await client.end();

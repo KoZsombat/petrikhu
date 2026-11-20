@@ -1,5 +1,29 @@
 import { z } from "zod";
 
+export const postStatusSchema = z.enum([
+  "draft",
+  "pending",
+  "revision",
+  "published",
+]);
+
+export const postActionsSchema = z.object({
+  edit: z.boolean(),
+  submit: z.boolean(),
+  review: z.boolean(),
+  delete: z.boolean(),
+});
+
+export const postHistoryEntrySchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  fromStatus: z.string().nullable(),
+  toStatus: z.string().nullable(),
+  note: z.string().nullable(),
+  actorName: z.string().nullable(),
+  createdAt: z.string(),
+});
+
 export const postSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -11,11 +35,18 @@ export const postSchema = z.object({
   image: z.string().nullable(),
   gallery: z.array(z.string()).default([]),
   published: z.boolean(),
-  status: z.enum(["draft", "pending", "published"]),
+  status: postStatusSchema,
   reviewNote: z.string().nullable(),
-  publishedAt: z.string(),
+  authorId: z.string(),
+  authorName: z.string().nullable(),
+  reviewerName: z.string().nullable().optional(),
+  submittedAt: z.string().nullable(),
+  reviewedAt: z.string().nullable(),
+  publishedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  actions: postActionsSchema,
+  history: z.array(postHistoryEntrySchema).default([]),
 });
 
 export const postsSchema = z.array(postSchema);

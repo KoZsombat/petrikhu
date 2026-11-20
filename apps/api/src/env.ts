@@ -30,6 +30,11 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  /** Public origin used for links in workflow e-mails. */
+  PUBLIC_SITE_URL: z.url().default("http://localhost:4321"),
+  /** Resend HTTP API for workflow e-mails; without both keys mail is logged and skipped. */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  MAIL_FROM: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
