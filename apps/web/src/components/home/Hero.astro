@@ -168,6 +168,8 @@ if (canvas && ctx) {
   let center: Body | null = null;
   let frame = 0;
   let running = true;
+  const ENTRANCE_DURATION = 550;
+  let entranceStartedAt: number | null = reduceMotion ? 0 : null;
 
   const ORBIT_SPEED = 0.16; // rad/s – one lap in about 40 s
   const BREATH = 0.035; // how far the subjects drift in and out (fraction of the radius)
@@ -182,10 +184,7 @@ if (canvas && ctx) {
 
   // Where a body wants to be at time t: hubs circle the logo and drift in and out.
   const targetOf = (h: Body, t: number): [number, number] => {
-    if (!h.orbiting) {
-      const sway = reduceMotion ? 0 : 1;
-      return [cx + Math.sin(t * 0.6) * 6 * sway, cy + Math.cos(t * 0.5) * 6 * sway];
-    }
+    if (!h.orbiting) return [cx, cy];
     const angle = h.a0 + t * ORBIT_SPEED;
     const breath = 1 + (reduceMotion ? 0 : Math.sin(t * 0.55 + h.phase) * BREATH);
     const spec = ORBIT_SPECS[h.orbitIndex] ?? ORBIT_SPECS[0]!;
@@ -241,6 +240,15 @@ if (canvas && ctx) {
     const logoR = (clamp(Math.min(unit * 0.12, rMin * 0.42), 36, 84) / 1.5) * BODY_SCALE;
     hubs = HUB_DEFS.map((d, i) => makeBody(d.label, d.icon, hubR, i * 2.1, d.a0, true, i));
     center = makeBody("", null, logoR, 0, 0, false);
+    if (!reduceMotion && entranceStartedAt === null) {
+      center.x = center.hx = cx;
+      center.y = center.hy = cy;
+      for (const h of hubs) {
+        h.x = h.hx = cx;
+        h.y = h.hy = cy;
+        h.vx = h.vy = 0;
+      }
+    }
     if (reduceMotion) draw();
   };
 
@@ -269,8 +277,16 @@ if (canvas && ctx) {
     h.y = clamp(h.y + h.vy, h.r, height - h.r - 34);
   };
 
-  const drawHub = (h: Body, t: number) => {
+  const clamp01 = (v: number) => clamp(v, 0, 1);
+  const easeOutCubic = (v: number) => 1 - Math.pow(1 - v, 3);
+
+  const drawHub = (h: Body, t: number, entranceScale = 1, entranceAlpha = 1) => {
     const { x, y, r } = h;
+    ctx.save();
+    ctx.globalAlpha = entranceAlpha;
+    ctx.translate(x, y);
+    ctx.scale(entranceScale, entranceScale);
+    ctx.translate(-x, -y);
     if (!reduceMotion) {
       for (let k = 0; k < 2; k++) {
         const p = (t / 3.6 + k * 0.5) % 1;
@@ -322,10 +338,16 @@ if (canvas && ctx) {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillText(h.label, lx, y + r + fs + 10);
     ctx.shadowBlur = 0;
+    ctx.restore();
   };
 
-  const drawCenter = (h: Body, t: number) => {
+  const drawCenter = (h: Body, t: number, entranceScale = 1, entranceAlpha = 1) => {
     const { x, y, r } = h;
+    ctx.save();
+    ctx.globalAlpha = entranceAlpha;
+    ctx.translate(x, y);
+    ctx.scale(entranceScale, entranceScale);
+    ctx.translate(-x, -y);
     if (!reduceMotion) {
       for (let k = 0; k < 3; k++) {
         const p = (t / 4.5 + k / 3) % 1;
@@ -368,12 +390,17 @@ if (canvas && ctx) {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
   };
 
-  const drawOrbitFields = () => {
+  const drawOrbitFields = (entranceProgress = 1) => {
     for (let i = 0; i < ORBIT_SPECS.length; i++) {
       const spec = ORBIT_SPECS[i]!;
+      const delay = i * 0.07;
+      const progress = easeOutCubic(clamp01((entranceProgress - delay) / (1 - delay)));
+      if (progress <= 0) continue;
       ctx.save();
+      ctx.globalAlpha = progress;
       ctx.translate(cx + rx * spec.offsetX, cy + ry * spec.offsetY);
       ctx.rotate(spec.angle);
       ctx.setLineDash([4, 7]);
@@ -381,7 +408,8 @@ if (canvas && ctx) {
       ctx.lineWidth = 1;
       ctx.strokeStyle = "rgba(255,255,255,0.65)";
       ctx.beginPath();
-      ctx.ellipse(0, 0, rx * spec.scaleX, ry * spec.scaleY, 0, 0, Math.PI * 2);
+      const fieldScale = 0.55 + progress * 0.45;
+      ctx.ellipse(0, 0, rx * spec.scaleX * fieldScale, ry * spec.scaleY * fieldScale, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -391,17 +419,50 @@ if (canvas && ctx) {
     if (!center || width === 0) return;
     const now = performance.now();
     const t = reduceMotion ? 0 : now / 1000;
+    const entranceProgress = reduceMotion
+      ? 1
+      : entranceStartedAt === null
+        ? 0
+        : clamp01((now - entranceStartedAt) / ENTRANCE_DURATION);
+    const orbitTime = reduceMotion || entranceStartedAt === null
+      ? 0
+      : Math.max(0, (now - entranceStartedAt - ENTRANCE_DURATION) / 1000);
 
     ctx.clearRect(0, 0, width, height); // transparent: the hero photo shows through
 
     if (!reduceMotion) {
-      updateBody(center, t);
-      for (const h of hubs) updateBody(h, t);
+      if (entranceProgress < 1) {
+        center.x = center.hx = cx;
+        center.y = center.hy = cy;
+        center.vx = center.vy = 0;
+        for (const h of hubs) {
+          const [tx, ty] = targetOf(h, 0);
+          const planetDelay = 0.18 + h.orbitIndex * 0.06;
+          const planetProgress = easeOutCubic(clamp01((entranceProgress - planetDelay) / (1 - planetDelay)));
+          h.x = h.hx = cx + (tx - cx) * planetProgress;
+          h.y = h.hy = cy + (ty - cy) * planetProgress;
+          h.vx = h.vy = 0;
+        }
+      } else {
+        updateBody(center, orbitTime);
+        for (const h of hubs) updateBody(h, orbitTime);
+      }
     }
 
-    drawOrbitFields();
-    for (const h of hubs) drawHub(h, t);
-    drawCenter(center, t);
+    drawOrbitFields(entranceProgress);
+
+    for (const h of hubs) {
+      const planetDelay = 0.18 + h.orbitIndex * 0.06;
+      const planetProgress = easeOutCubic(clamp01((entranceProgress - planetDelay) / (1 - planetDelay)));
+      drawHub(h, t, 0.4 + planetProgress * 0.6, planetProgress);
+    }
+
+    const logoProgress = clamp01(entranceProgress / 0.42);
+    const logoScale = entranceProgress < 0.42
+      ? 0.05 + easeOutCubic(logoProgress) * 1.13
+      : 1.18 - easeOutCubic(clamp01((entranceProgress - 0.42) / 0.58)) * 0.18;
+    const logoAlpha = clamp01(entranceProgress / 0.18);
+    drawCenter(center, t, logoScale, logoAlpha);
 
     if (!reduceMotion && running) frame = requestAnimationFrame(draw);
   };
@@ -419,9 +480,12 @@ if (canvas && ctx) {
   // Do not animate while the hero is off-screen (or hidden on small screens).
   new IntersectionObserver(([entry]) => {
     if (!entry) return;
-    if (entry.isIntersecting && !running) {
-      running = true;
-      if (!reduceMotion) frame = requestAnimationFrame(draw);
+    if (entry.isIntersecting) {
+      if (entranceStartedAt === null) entranceStartedAt = performance.now();
+      if (!running) {
+        running = true;
+        if (!reduceMotion) frame = requestAnimationFrame(draw);
+      }
     } else if (!entry.isIntersecting) {
       running = false;
       cancelAnimationFrame(frame);
