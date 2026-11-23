@@ -50,9 +50,6 @@ const STATS = [
   <canvas
     data-network-field
     data-logo="/icon-192.png"
-    data-label-chemistry={t("home.chemistry")}
-    data-label-environment={t("home.environment")}
-    data-label-it={t("home.it")}
     aria-hidden="true"
     class="pointer-events-none absolute inset-0 h-full w-full opacity-0 xl:inset-y-0 xl:left-auto xl:right-0 xl:h-full xl:w-[68%] xl:opacity-100"></canvas>
 
@@ -112,7 +109,6 @@ const STATS = [
 type IconName = "flask" | "leaf" | "code";
 
 type Body = {
-  label: string;
   orbiting: boolean;
   orbitIndex: number;
   a0: number;
@@ -132,8 +128,6 @@ const canvas = document.querySelector<HTMLCanvasElement>("[data-network-field]")
 const ctx = canvas?.getContext("2d");
 
 if (canvas && ctx) {
-  const MOUSE_DIST = 190;
-  const mouse = { x: -9999, y: -9999 };
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
   const logo = new Image();
@@ -152,9 +146,9 @@ if (canvas && ctx) {
   };
 
   const HUB_DEFS = [
-    { label: canvas.dataset.labelChemistry ?? "Vegyipar", icon: "flask", a0: -Math.PI / 2 },
-    { label: canvas.dataset.labelEnvironment ?? "Környezetvédelem", icon: "leaf", a0: Math.PI / 6 },
-    { label: canvas.dataset.labelIt ?? "Informatika", icon: "code", a0: (5 * Math.PI) / 6 },
+    { icon: "flask", a0: -Math.PI / 2 },
+    { icon: "leaf", a0: Math.PI / 6 },
+    { icon: "code", a0: (5 * Math.PI) / 6 },
   ] as const;
 
   let width = 0;
@@ -196,8 +190,8 @@ if (canvas && ctx) {
     ];
   };
 
-  const makeBody = (label: string, icon: IconName | null, r: number, phase: number, a0: number, orbiting: boolean, orbitIndex = 0): Body => {
-    const body: Body = { label, icon, r, phase, a0, orbiting, orbitIndex, hx: 0, hy: 0, x: 0, y: 0, vx: 0, vy: 0 };
+  const makeBody = (icon: IconName | null, r: number, phase: number, a0: number, orbiting: boolean, orbitIndex = 0): Body => {
+    const body: Body = { icon, r, phase, a0, orbiting, orbitIndex, hx: 0, hy: 0, x: 0, y: 0, vx: 0, vy: 0 };
     const [x, y] = targetOf(body, 0);
     body.hx = body.x = x;
     body.hy = body.y = y;
@@ -238,8 +232,8 @@ if (canvas && ctx) {
     const rMin = Math.min(rx, ry) * (1 - BREATH);
     const hubR = (clamp(Math.min(unit * 0.07, rMin * 0.3), 22, 44) / 1.5) * BODY_SCALE;
     const logoR = (clamp(Math.min(unit * 0.12, rMin * 0.42), 36, 84) / 1.5) * BODY_SCALE;
-    hubs = HUB_DEFS.map((d, i) => makeBody(d.label, d.icon, hubR, i * 2.1, d.a0, true, i));
-    center = makeBody("", null, logoR, 0, 0, false);
+    hubs = HUB_DEFS.map((d, i) => makeBody(d.icon, hubR, i * 2.1, d.a0, true, i));
+    center = makeBody(null, logoR, 0, 0, false);
     if (!reduceMotion && entranceStartedAt === null) {
       center.x = center.hx = cx;
       center.y = center.hy = cy;
@@ -252,25 +246,12 @@ if (canvas && ctx) {
     if (reduceMotion) draw();
   };
 
-  const pushFromMouse = (o: { x: number; y: number; vx: number; vy: number }, extra: number, gain: number) => {
-    const dx = o.x - mouse.x;
-    const dy = o.y - mouse.y;
-    const distance = Math.hypot(dx, dy);
-    const reach = MOUSE_DIST + extra;
-    if (distance < reach && distance > 0.1) {
-      const force = (1 - distance / reach) * 0.9;
-      o.vx += (dx / distance) * force * gain;
-      o.vy += (dy / distance) * force * gain;
-    }
-  };
-
   const updateBody = (h: Body, t: number) => {
     const [tx, ty] = targetOf(h, t);
     h.hx = tx;
     h.hy = ty;
     h.vx += (tx - h.x) * 0.03;
     h.vy += (ty - h.y) * 0.03;
-    pushFromMouse(h, h.r, 0.35); // the mouse nudges them off their path, the spring brings them back
     h.vx *= 0.86;
     h.vy *= 0.86;
     h.x = clamp(h.x + h.vx, h.r, width - h.r);
@@ -327,17 +308,6 @@ if (canvas && ctx) {
       ctx.restore();
     }
 
-    const fs = clamp(unit * 0.026, 11, 15);
-    ctx.font = `700 ${fs}px Inter, "Segoe UI", system-ui, sans-serif`;
-    (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0.16em";
-    ctx.textAlign = "center";
-    const tw = ctx.measureText(h.label).width;
-    const lx = clamp(x, tw / 2 + 8, width - tw / 2 - 8);
-    ctx.shadowColor = "rgba(0,0,0,0.7)";
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(h.label, lx, y + r + fs + 10);
-    ctx.shadowBlur = 0;
     ctx.restore();
   };
 
@@ -468,14 +438,6 @@ if (canvas && ctx) {
   };
 
   new ResizeObserver(resize).observe(canvas);
-  window.addEventListener("pointermove", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = event.clientX - rect.left;
-    mouse.y = event.clientY - rect.top;
-  });
-  document.addEventListener("pointerleave", () => {
-    mouse.x = mouse.y = -9999;
-  });
 
   // Do not animate while the hero is off-screen (or hidden on small screens).
   new IntersectionObserver(([entry]) => {
